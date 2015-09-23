@@ -22,6 +22,8 @@ import ckan.lib.plugins as lib_plugins
 import ckan.lib.activity_streams as activity_streams
 import ckan.new_authz as new_authz
 
+from paste.deploy.converters import asbool
+
 from ckan.common import _
 
 log = logging.getLogger('ckan.logic')
@@ -1046,7 +1048,6 @@ def user_show(context, data_dict):
     :type id: string
     :param user_obj: the user dictionary of the user (optional)
     :type user_obj: user dictionary
-
     :rtype: dictionary
 
     '''
@@ -1066,7 +1067,12 @@ def user_show(context, data_dict):
 
     _check_access('user_show',context, data_dict)
 
-    user_dict = model_dictize.user_dictize(user_obj,context)
+    sysadmin = new_authz.is_sysadmin(context.get('user'))
+    include_password_hash = sysadmin and asbool(
+        data_dict.get('include_password_hash', False))
+
+    user_dict = model_dictize.user_dictize(
+        user_obj, context, include_password_hash)
 
     if context.get('return_minimal'):
         return user_dict

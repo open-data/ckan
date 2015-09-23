@@ -17,6 +17,7 @@ import ckan.lib.dictization.model_save as model_save
 import ckan.lib.navl.dictization_functions
 
 from ckan.common import _
+from ckan import new_authz as authz
 
 # FIXME this looks nasty and should be shared better
 from ckan.logic.action.update import _update_package_relationship
@@ -789,6 +790,10 @@ def user_create(context, data_dict):
     if errors:
         session.rollback()
         raise ValidationError(errors)
+
+    # allow importing password_hash from another ckan
+    if authz.is_sysadmin(context['user']) and 'password_hash' in data:
+        data['_password'] = data.pop('password_hash')
 
     user = model_save.user_dict_save(data, context)
 

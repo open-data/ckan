@@ -21,6 +21,7 @@ import ckan.lib.email_notifications as email_notifications
 import ckan.lib.search as search
 
 from ckan.common import _, request
+from ckan import new_authz as authz
 
 log = logging.getLogger(__name__)
 
@@ -595,6 +596,10 @@ def user_update(context, data_dict):
     if errors:
         session.rollback()
         raise ValidationError(errors)
+
+    # allow importing password_hash from another ckan
+    if authz.is_sysadmin(context['user']) and 'password_hash' in data:
+        data['_password'] = data.pop('password_hash')
 
     user = model_save.user_dict_save(data, context)
 
