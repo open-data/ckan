@@ -761,6 +761,8 @@ msgstr "Pas d'utilisateur correspondant à %s"
 #: ckan/controllers/user.py:422
 msgid "Please check your inbox for a reset code."
 msgstr "Merci de consulter votre boîte à lettres électronique pour trouver votre code de réinitialisation."
+msgid "Please check your e-mail inbox in order to confirm your password reset request."
+msgstr "S.V.P. consulter votre boîte à lettres électronique pour confirmer votre demande de réinitialisation"
 
 #: ckan/controllers/user.py:426
 #, python-format
