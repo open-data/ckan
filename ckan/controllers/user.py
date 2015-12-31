@@ -414,8 +414,7 @@ class UserController(base.BaseController):
             if user_obj:
                 try:
                     mailer.send_reset_link(user_obj)
-                    h.flash_success(_('Please check your inbox for '
-                                    'a reset code.'))
+                    h.flash_success(_('Please check your e-mail inbox in order to confirm your password reset request.'))
                     h.redirect_to('/')
                 except mailer.MailerException, e:
                     h.flash_error(_('Could not send reset link: %s') %
