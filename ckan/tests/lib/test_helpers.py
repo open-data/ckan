@@ -203,3 +203,66 @@ class TestUnifiedResourceFormat(object):
         eq_(h.unified_resource_format('text/tab-separated-values'), 'TSV')
 
         eq_(h.unified_resource_format('text/tsv'), 'TSV')
+
+
+class TestAddi18nToURL(object):
+
+    @helpers.change_config('ckan.root_path', '')
+    def test_no_root_path_default_locale_no_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com'),
+            'https://bogon.com')
+
+    @helpers.change_config('ckan.root_path', '')
+    def test_no_root_path_fr_no_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com', locale='fr'),
+            'https://bogon.com/fr')
+
+    @helpers.change_config('ckan.root_path', '')
+    def test_no_root_path_default_locale_with_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com/action'),
+            'https://bogon.com/action')
+
+    @helpers.change_config('ckan.root_path', '')
+    def test_no_root_path_fr_with_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com/action', locale='fr'),
+            'https://bogon.com/fr/action')
+
+    @helpers.change_config('ckan.root_path', '')
+    def test_no_root_path_no_host_default_locale(self):
+        eq_(h._add_i18n_to_url('/action'),
+            '/action')
+
+    @helpers.change_config('ckan.root_path', '')
+    def test_no_root_path_no_host_fr(self):
+        eq_(h._add_i18n_to_url('/action', locale='fr'),
+            '/fr/action')
+
+    @helpers.change_config('ckan.root_path', '/foo/{{LANG}}')
+    def test_with_root_path_default_locale_no_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com'),
+            'https://bogon.com/foo')
+
+    @helpers.change_config('ckan.root_path', '/foo/{{LANG}}')
+    def test_with_root_path_fr_no_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com', locale='fr'),
+            'https://bogon.com/foo/fr')
+
+    @helpers.change_config('ckan.root_path', '/foo/{{LANG}}')
+    def test_with_root_path_default_locale_with_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com/action'),
+            'https://bogon.com/foo/action')
+
+    @helpers.change_config('ckan.root_path', '/foo/{{LANG}}')
+    def test_with_root_path_fr_with_path(self):
+        eq_(h._add_i18n_to_url('https://bogon.com/action', locale='fr'),
+            'https://bogon.com/foo/fr/action')
+
+    @helpers.change_config('ckan.root_path', '/foo/{{LANG}}')
+    def test_with_root_path_no_host_default_locale(self):
+        eq_(h._add_i18n_to_url('/action'),
+            '/foo/action')
+
+    @helpers.change_config('ckan.root_path', '/foo/{{LANG}}')
+    def test_with_root_path_no_host_fr(self):
+        eq_(h._add_i18n_to_url('/action', locale='fr'),
+            '/foo/fr/action')
