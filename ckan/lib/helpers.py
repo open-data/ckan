@@ -260,7 +260,7 @@ def _add_i18n_to_url(url_to_amend, **kw):
             root = root[:-1]
         url_path = '%s%s' % (root, url_path)
     else:
-        if not default_locale:
+        if not default_locale and not static:
             url_path = '/%s%s' % (locale, url_path)
     url = urlparse.urlunparse((url_scheme, url_netloc, url_path, url_params,
                                url_query, url_fragment))
