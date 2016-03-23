@@ -267,7 +267,7 @@ def _add_i18n_to_url(url_to_amend, **kw):
 
     # stop the root being added twice in redirects
     if no_root:
-        url = url_to_amend[len(root):]
+        url = url[len(root):]
         if not default_locale:
             url = '/%s%s' % (locale, url)
 
