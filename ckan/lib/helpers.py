@@ -167,7 +167,7 @@ def url_for_static(*args, **kw):
         if url_is_external:
             CkanUrlException = ckan.exceptions.CkanUrlException
             raise CkanUrlException('External URL passed to url_for_static()')
-    return url_for_static_or_external(*args, **kw)
+    return url_for(*args, locale=None, **kw)
 
 
 def url_for_static_or_external(*args, **kw):
