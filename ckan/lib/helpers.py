@@ -167,7 +167,7 @@ def url_for_static(*args, **kw):
         if url_is_external:
             CkanUrlException = ckan.exceptions.CkanUrlException
             raise CkanUrlException('External URL passed to url_for_static()')
-    return url_for(*args, locale=None, **kw)
+    return url_for(*args, static=True, **kw)
 
 
 def url_for_static_or_external(*args, **kw):
@@ -212,6 +212,7 @@ def _add_i18n_to_url(url_to_amend, **kw):
     # A locale of default will not add locale info to the url.
 
     no_root = kw.pop('__ckan_no_root', False)
+    static = kw.pop('static', False)
     allowed_locales = ['default'] + i18n.get_locales()
     default_locale = False
     url_scheme, url_netloc, url_path, url_params, url_query, url_fragment = \
@@ -250,7 +251,7 @@ def _add_i18n_to_url(url_to_amend, **kw):
             error = 'ckan.root_path must include {{LANG}}'
             raise ckan.exceptions.CkanUrlException(error)
 
-        if default_locale:
+        if default_locale or static:
             root = re.sub('/{{LANG}}', '', root_path)
         else:
             root = re.sub('{{LANG}}', locale, root_path)
