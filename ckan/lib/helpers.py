@@ -292,7 +292,7 @@ def _local_url(url_to_amend, **kw):
 
     # stop the root being added twice in redirects
     if no_root:
-        url = url[len(root):]
+        url = url_to_amend[len(root):]
         if not default_locale:
             url = '/%s%s' % (locale, url)
 
