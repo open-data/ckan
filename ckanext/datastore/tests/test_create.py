@@ -1,7 +1,7 @@
 import json
 import nose
 import sys
-from nose.tools import assert_equal
+from nose.tools import assert_equal, raises
 
 import pylons
 from pylons import config
@@ -138,6 +138,21 @@ class TestDatastoreCreateNewTests(object):
         current_index_names = self._get_index_names(resource['id'])
         assert_equal(previous_index_names, current_index_names)
 
+    @raises(p.toolkit.ValidationError)
+    def test_create_duplicate_fields(self):
+        package = factories.Dataset()
+        data = {
+            'resource': {
+                'book': 'crime',
+                'author': ['tolstoy', 'dostoevsky'],
+                'package_id': package['id']
+            },
+            'fields': [{'id': 'book', 'type': 'text'},
+                       {'id': 'book', 'type': 'text'}],
+        }
+        result = helpers.call_action('datastore_create', **data)
+
+
     def _has_index_on_field(self, resource_id, field):
         sql = u"""
             SELECT
@@ -173,6 +188,47 @@ class TestDatastoreCreateNewTests(object):
             {'connection_url': pylons.config['ckan.datastore.write_url']})
         session = orm.scoped_session(orm.sessionmaker(bind=engine))
         return session.connection().execute(sql, *args)
+
+    def test_sets_datastore_active_on_resource_on_create(self):
+        resource = factories.Resource()
+
+        assert_equal(resource['datastore_active'], False)
+
+        data = {
+            'resource_id': resource['id'],
+            'force': True,
+            'records': [
+                {'book': 'annakarenina', 'author': 'tolstoy'}
+            ]
+        }
+
+        helpers.call_action('datastore_create', **data)
+
+        resource = helpers.call_action('resource_show', id=resource['id'])
+
+        assert_equal(resource['datastore_active'], True)
+
+    def test_sets_datastore_active_on_resource_on_delete(self):
+        resource = factories.Resource(datastore_active=True)
+
+        assert_equal(resource['datastore_active'], True)
+
+        data = {
+            'resource_id': resource['id'],
+            'force': True,
+            'records': [
+                {'book': 'annakarenina', 'author': 'tolstoy'}
+            ]
+        }
+
+        helpers.call_action('datastore_create', **data)
+
+        helpers.call_action('datastore_delete', resource_id=resource['id'],
+                            force=True)
+
+        resource = helpers.call_action('resource_show', id=resource['id'])
+
+        assert_equal(resource['datastore_active'], False)
 
 
 class TestDatastoreCreate(tests.WsgiAppCase):

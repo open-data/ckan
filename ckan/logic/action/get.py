@@ -186,17 +186,58 @@ def current_package_list_with_resources(context, data_dict):
 
 
 def revision_list(context, data_dict):
-    '''Return a list of the IDs of the site's revisions.
+    '''Return a list of the IDs of the site's revisions. They are sorted with
+    the newest first.
 
-    :rtype: list of strings
+    Since the results are limited to 50 IDs, you can page through them using
+    parameter ``since_id``.
+
+    :param since_id: the revision ID after which you want the revisions
+    :type id: string
+    :param since_time: the timestamp after which you want the revisions
+    :type id: string
+    :param sort: the order to sort the related items in, possible values are
+      'time_asc', 'time_desc' (default). (optional)
+    :type sort: string
+    :rtype: list of revision IDs, limited to 50
 
     '''
     model = context['model']
+    since_id = data_dict.get('since_id')
+    since_time_str = data_dict.get('since_time')
+    sort_str = data_dict.get('sort')
+    PAGE_LIMIT = 50
 
     _check_access('revision_list', context, data_dict)
 
-    revs = model.Session.query(model.Revision).all()
-    return [rev.id for rev in revs]
+    since_time = None
+    if since_id:
+        rev = model.Session.query(model.Revision).get(since_id)
+        if rev is None:
+            raise NotFound
+        since_time = rev.timestamp
+    elif since_time_str:
+        try:
+            from ckan.lib import helpers as h
+            since_time = h.date_str_to_datetime(since_time_str)
+        except ValueError:
+            raise logic.ValidationError('Timestamp did not parse')
+    revs = model.Session.query(model.Revision)
+    if since_time:
+        revs = revs.filter(model.Revision.timestamp > since_time)
+
+    sortables = {
+        'time_asc': model.Revision.timestamp.asc,
+        'time_desc': model.Revision.timestamp.desc,
+    }
+    if sort_str and sort_str not in sortables:
+        raise logic.ValidationError(
+            'Invalid sort value. Allowable values: %r' % sortables.keys())
+    sort_func = sortables.get(sort_str or 'time_desc')
+    revs = revs.order_by(sort_func())
+
+    revs = revs.limit(PAGE_LIMIT)
+    return [rev_.id for rev_ in revs]
 
 
 def package_revision_list(context, data_dict):
@@ -1003,7 +1044,8 @@ def package_show(context, data_dict):
         else:
             use_validated_cache = 'schema' not in context
             if use_validated_cache and 'validated_data_dict' in search_result:
-                package_dict = json.loads(search_result['validated_data_dict'])
+                package_json = search_result['validated_data_dict']
+                package_dict = json.loads(package_json)
                 package_dict_validated = True
             else:
                 package_dict = json.loads(search_result['data_dict'])
@@ -1034,9 +1076,9 @@ def package_show(context, data_dict):
     for item in plugins.PluginImplementations(plugins.IPackageController):
         item.read(pkg)
 
-    for resource_dict in package_dict['resources']:
-        for item in plugins.PluginImplementations(plugins.IResourceController):
-            resource_dict = item.before_show(resource_dict)
+    for item in plugins.PluginImplementations(plugins.IResourceController):
+        for resource_dict in package_dict['resources']:
+            item.before_show(resource_dict)
 
     if not package_dict_validated:
         package_plugin = lib_plugins.lookup_package_plugin(
@@ -1152,6 +1194,7 @@ def resource_view_list(context, data_dict):
     ]
     return model_dictize.resource_view_list_dictize(resource_views, context)
 
+
 def resource_status_show(context, data_dict):
     '''Return the statuses of a resource's tasks.
 
@@ -1161,6 +1204,9 @@ def resource_status_show(context, data_dict):
     :rtype: list of (status, date_done, traceback, task_status) dictionaries
 
     '''
+
+    _check_access('resource_status_show', context, data_dict)
+
     try:
         import ckan.lib.celery_app as celery_app
     except ImportError:
@@ -1168,8 +1214,6 @@ def resource_status_show(context, data_dict):
 
     model = context['model']
     id = _get_or_bust(data_dict, 'id')
-
-    _check_access('resource_status_show', context, data_dict)
 
     # needs to be text query as celery tables are not in our model
     q = _text("""
@@ -1179,7 +1223,12 @@ def resource_status_show(context, data_dict):
            and key = 'celery_task_id'
         where entity_id = :entity_id
     """)
-    result = model.Session.connection().execute(q, entity_id=id)
+    try:
+        result = model.Session.connection().execute(q, entity_id=id)
+    except sqlalchemy.exc.ProgrammingError:
+        # celery tables (celery_taskmeta) may not be created even with celery
+        # installed, causing ProgrammingError exception.
+        return {'message': 'queue tables not installed on this instance'}
     result_list = [_table_dictize(row, context) for row in result]
     return result_list
 
@@ -1723,7 +1772,8 @@ def package_search(context, data_dict):
         documentation, this is a comma-separated string of field names and
         sort-orderings.
     :type sort: string
-    :param rows: the number of matching rows to return.
+    :param rows: the number of matching rows to return. There is a hard limit
+        of 1000 datasets per query.
     :type rows: int
     :param start: the offset in the complete result for where the set of
         returned datasets should begin.
@@ -1745,6 +1795,10 @@ def package_search(context, data_dict):
         sysadmin will be returned all draft datasets. Optional, the default is
         ``False``.
     :type include_drafts: boolean
+    :param use_default_schema: use default package schema instead of
+        a custom schema defined with an IDatasetForm plugin (default: False)
+    :type use_default_schema: bool
+
 
     The following advanced Solr parameters are supported as well. Note that
     some of these are only available on particular Solr versions. See Solr's
@@ -1784,9 +1838,6 @@ def package_search(context, data_dict):
         "count", "display_name" and "name" entries.  The display_name is a
         form of the name that can be used in titles.
     :type search_facets: nested dict of dicts.
-    :param use_default_schema: use default package schema instead of
-        a custom schema defined with an IDatasetForm plugin (default: False)
-    :type use_default_schema: bool
 
     An example result: ::
 
@@ -1825,7 +1876,7 @@ def package_search(context, data_dict):
 
     model = context['model']
     session = context['session']
-    user = context['user']
+    user = context.get('user')
 
     _check_access('package_search', context, data_dict)
 
@@ -1848,7 +1899,11 @@ def package_search(context, data_dict):
 
     results = []
     if not abort:
-        data_source = 'data_dict' if data_dict.get('use_default_schema') else 'validated_data_dict'
+        if asbool(data_dict.get('use_default_schema')):
+            data_source = 'data_dict'
+        else:
+            data_source = 'validated_data_dict'
+        data_dict.pop('use_default_schema', None)
         # return a list of package ids
         data_dict['fl'] = 'id {0}'.format(data_source)
 
@@ -1888,19 +1943,8 @@ def package_search(context, data_dict):
 
         for package in query.results:
             # get the package object
-            package, package_dict = package['id'], package.get(data_source)
-            pkg_query = session.query(model.Package)\
-                .filter(model.Package.id == package)\
-                .filter(model.Package.state.in_((u'active', u'draft')))
-            pkg = pkg_query.first()
-
-            # if the index has got a package that is not in ckan then
-            # ignore it.
-            if not pkg:
-                log.warning('package %s in index but not in database'
-                            % package)
-                continue
-            # use data in search index if there
+            package_dict = package.get(data_source)
+            ## use data in search index if there
             if package_dict:
                 # the package_dict still needs translating when being viewed
                 package_dict = json.loads(package_dict)
@@ -1910,7 +1954,8 @@ def package_search(context, data_dict):
                         package_dict = item.before_view(package_dict)
                 results.append(package_dict)
             else:
-                results.append(model_dictize.package_dictize(pkg, context))
+                log.error('No package_dict is coming from solr for package '
+                          'id %s', package['id'])
 
         count = query.count
         facets = query.facets
@@ -1926,6 +1971,17 @@ def package_search(context, data_dict):
         'sort': data_dict['sort']
     }
 
+    # create a lookup table of group name to title for all the groups and
+    # organizations in the current search's facets.
+    group_names = []
+    for field_name in ('groups', 'organization'):
+        group_names.extend(facets.get(field_name, {}).keys())
+
+    groups = session.query(model.Group.name, model.Group.title) \
+                    .filter(model.Group.name.in_(group_names)) \
+                    .all()
+    group_titles_by_name = dict(groups)
+
     # Transform facets into a more useful data structure.
     restructured_facets = {}
     for key, value in facets.items():
@@ -1937,11 +1993,9 @@ def package_search(context, data_dict):
             new_facet_dict = {}
             new_facet_dict['name'] = key_
             if key in ('groups', 'organization'):
-                group = model.Group.get(key_)
-                if group:
-                    new_facet_dict['display_name'] = group.display_name
-                else:
-                    new_facet_dict['display_name'] = key_
+                display_name = group_titles_by_name.get(key_, key_)
+                display_name = display_name if display_name and display_name.strip() else key_
+                new_facet_dict['display_name'] = display_name
             elif key == 'license_id':
                 license = model.Package.get_license_register().get(key_)
                 if license:
@@ -2404,60 +2458,6 @@ def get_site_user(context, data_dict):
 
     return {'name': user.name,
             'apikey': user.apikey}
-
-
-def roles_show(context, data_dict):
-    '''Return the roles of all users and authorization groups for an object.
-
-    :param domain_object: a package or group name or id
-        to filter the results by
-    :type domain_object: string
-    :param user: a user name or id
-    :type user: string
-
-    :rtype: list of dictionaries
-
-    '''
-    model = context['model']
-    session = context['session']
-    domain_object_ref = _get_or_bust(data_dict, 'domain_object')
-    user_ref = data_dict.get('user')
-
-    domain_object = ckan.logic.action.get_domain_object(
-        model, domain_object_ref)
-    if isinstance(domain_object, model.Package):
-        query = session.query(model.PackageRole).join('package')
-    elif isinstance(domain_object, model.Group):
-        query = session.query(model.GroupRole).join('group')
-    elif domain_object is model.System:
-        query = session.query(model.SystemRole)
-    else:
-        raise NotFound(_('Cannot list entity of this type: %s')
-                       % type(domain_object).__name__)
-    # Filter by the domain_obj (apart from if it is the system object)
-    if not isinstance(domain_object, type):
-        query = query.filter_by(id=domain_object.id)
-
-    # Filter by the user
-    if user_ref:
-        user = model.User.get(user_ref)
-        if not user:
-            raise NotFound(_('unknown user:') + repr(user_ref))
-        query = query.join('user').filter_by(id=user.id)
-
-    uors = query.all()
-
-    uors_dictized = [_table_dictize(uor, context) for uor in uors]
-
-    result = {
-        'domain_object_type': type(domain_object).__name__,
-        'domain_object_id':
-        domain_object.id if domain_object != model.System else None,
-        'roles': uors_dictized}
-    if user_ref:
-        result['user'] = user.id
-
-    return result
 
 
 def status_show(context, data_dict):

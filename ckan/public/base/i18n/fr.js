@@ -8,6 +8,10 @@
     null,
     "Erreur"
   ],
+  "An error occurred: %(text)s %(error)s": [
+    null,
+    "Une erreur est survenue : %(text)s %(error)s"
+  ],
   "Are you sure you want to perform this action?": [
     null,
     "Etes-vous sûr de vouloir exécuter cette commande ?"
@@ -139,6 +143,10 @@
   "You are uploading a file. Are you sure you want to navigate away and stop this upload?": [
     null,
     "Vous êtes en train de transférer un fichier. Êtes-vous sûr de vouloir naviguer ailleurs et interrompre ce transfert ?"
+  ],
+  "error loading view": [
+    null,
+    "erreur lors du chargement de la vue"
   ],
   "show less": [
     null,

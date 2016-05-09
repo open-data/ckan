@@ -8,6 +8,10 @@
     null,
     "An Error Occurred"
   ],
+  "An error occurred: %(text)s %(error)s": [
+    null,
+    "An error occurred: %(text)s %(error)s"
+  ],
   "Are you sure you want to perform this action?": [
     null,
     "Are you sure you want to perform this action?"
@@ -139,6 +143,10 @@
   "You are uploading a file. Are you sure you want to navigate away and stop this upload?": [
     null,
     "You are uploading a file. Are you sure you want to navigate away and stop this upload?"
+  ],
+  "error loading view": [
+    null,
+    "error loading view"
   ],
   "show less": [
     null,

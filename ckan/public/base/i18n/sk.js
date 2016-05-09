@@ -68,6 +68,10 @@
     null,
     "Zmazať"
   ],
+  "Reorder resource view": [
+    null,
+    "Preusporiadať náhľad dátového zdroja"
+  ],
   "Reorder resources": [
     null,
     "Preusporiadať zdroje"

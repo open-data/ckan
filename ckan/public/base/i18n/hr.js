@@ -8,6 +8,10 @@
     null,
     "Došlo je do pogreške"
   ],
+  "An error occurred: %(text)s %(error)s": [
+    null,
+    "Došlo je do greške: %(text)s %(error)s"
+  ],
   "Are you sure you want to perform this action?": [
     null,
     "Jeste li sigurni da želite izvršiti ovu akciju?"
@@ -135,6 +139,10 @@
   "You are uploading a file. Are you sure you want to navigate away and stop this upload?": [
     null,
     "U tijeku je učitavanje datoteke. Jeste li sigurni da želite otići sa ove stranice i prekinuti učitavanje?"
+  ],
+  "error loading view": [
+    null,
+    "greška kod učitavanja pogleda"
   ],
   "show less": [
     null,

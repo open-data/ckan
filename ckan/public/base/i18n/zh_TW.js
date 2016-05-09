@@ -8,6 +8,10 @@
     null,
     "發生錯誤"
   ],
+  "An error occurred: %(text)s %(error)s": [
+    null,
+    "發生錯誤：%(text)s %(error)s"
+  ],
   "Are you sure you want to perform this action?": [
     null,
     "確定要展示此活動嗎？"
@@ -139,6 +143,10 @@
   "You are uploading a file. Are you sure you want to navigate away and stop this upload?": [
     null,
     "你現在正在上傳一個檔案，確定要離開當前頁面及停止上傳檔案嗎？"
+  ],
+  "error loading view": [
+    null,
+    "讀取資料檢視發生錯誤"
   ],
   "show less": [
     null,

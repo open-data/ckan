@@ -8,6 +8,10 @@
     null,
     "Er is een fout opgetreden"
   ],
+  "An error occurred: %(text)s %(error)s": [
+    null,
+    "Er is een fout opgetreden: %(text)s %(error)s"
+  ],
   "Are you sure you want to perform this action?": [
     null,
     "Weet u zeker dat u deze actie uit wil voeren?"

@@ -137,7 +137,7 @@ def localised_nice_date(datetime_, show_date=False, with_hours=False):
         'day': datetime_.day,
         'year': datetime_.year,
         'month': _MONTH_FUNCTIONS[datetime_.month - 1](),
-        'timezone': datetime_.tzname(),
+        'timezone': datetime_.tzinfo.zone,
     }
 
     if with_hours:

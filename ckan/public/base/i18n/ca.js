@@ -8,6 +8,10 @@
     null,
     "Ha tingut lloc un error"
   ],
+  "An error occurred: %(text)s %(error)s": [
+    null,
+    "S'ha produït un error: %(text)s %(error)s"
+  ],
   "Are you sure you want to perform this action?": [
     null,
     "Teniu tota la seguretat per a dur a terme aquesta acció?"
@@ -139,6 +143,10 @@
   "You are uploading a file. Are you sure you want to navigate away and stop this upload?": [
     null,
     "Esteu pujant un arxiu. Esteu segurs que voleu marxar de la pàgina i aturar la pujada?"
+  ],
+  "error loading view": [
+    null,
+    "error carregant la vista"
   ],
   "show less": [
     null,

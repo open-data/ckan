@@ -22,10 +22,11 @@ from paste.deploy.converters import asbool
 from webhelpers.html import escape, HTML, literal, url_escape
 from webhelpers.html.tools import mail_to
 from webhelpers.html.tags import *
-from lib.markdown import markdown
 from webhelpers import paginate
 from webhelpers.text import truncate
 import webhelpers.date as date
+from markdown import markdown
+from bleach import clean as clean_html
 from pylons import url as _pylons_default_url
 from pylons.decorators.cache import beaker_cache
 from pylons import config
@@ -80,7 +81,25 @@ def _datestamp_to_datetime(datetime_):
     # all dates are considered UTC internally,
     # change output if `ckan.display_timezone` is available
     datetime_ = datetime_.replace(tzinfo=pytz.utc)
-    datetime_ = datetime_.astimezone(get_display_timezone())
+    timezone_name = config.get('ckan.display_timezone', '')
+    if timezone_name == 'server':
+        local_tz = tzlocal.get_localzone()
+        return datetime_.astimezone(local_tz)
+
+    try:
+        datetime_ = datetime_.astimezone(
+            pytz.timezone(timezone_name)
+        )
+    except pytz.UnknownTimeZoneError:
+        if timezone_name != '':
+            log.warning(
+                'Timezone `%s` not found. '
+                'Please provide a valid timezone setting in '
+                '`ckan.display_timezone` or leave the field empty. All valid '
+                'values can be found in pytz.all_timezones. You can use the '
+                'special value `server` to use the local timezone of the '
+                'server.', timezone_name
+            )
 
     return datetime_
 
@@ -127,7 +146,7 @@ def get_site_protocol_and_host():
     If `ckan.site_url` is set like this::
 
         ckan.site_url = http://example.com
-    
+
     Then this function would return a tuple `('http', 'example.com')`
     If the setting is missing, `(None, None)` is returned instead.
 
@@ -171,10 +190,8 @@ def url_for(*args, **kw):
             raise Exception('api calls must specify the version! e.g. ver=3')
         # fix ver to include the slash
         kw['ver'] = '/%s' % ver
-
     if kw.get('qualified', False):
         kw['protocol'], kw['host'] = get_site_protocol_and_host()
-
     my_url = _routes_default_url_for(*args, **kw)
     kw['__ckan_no_root'] = no_root
     return _local_url(my_url, locale=locale, **kw)
@@ -726,7 +743,8 @@ def unselected_facet_items(facet, limit=10):
     return get_facet_items_dict(facet, limit=limit, exclude_active=True)
 
 
-@maintain.deprecated('h.get_facet_title is deprecated in 2.0 and will be removed.')
+@maintain.deprecated('h.get_facet_title is deprecated in 2.0 and will be '
+                     'removed.')
 def get_facet_title(name):
     '''Deprecated in ckan 2.0 '''
     # if this is set in the config use this
@@ -821,8 +839,6 @@ def get_action(action_name, data_dict=None):
 
 
 def linked_user(user, maxlength=0, avatar=20):
-    if user in [model.PSEUDO_USER__LOGGED_IN, model.PSEUDO_USER__VISITOR]:
-        return user
     if not isinstance(user, model.User):
         user_name = unicode(user)
         user = model.User.get(user_name)
@@ -834,8 +850,9 @@ def linked_user(user, maxlength=0, avatar=20):
         displayname = user.display_name
         if maxlength and len(user.display_name) > maxlength:
             displayname = displayname[:maxlength] + '...'
-        return icon + u' ' + link_to(displayname,
-                                     url_for(controller='user', action='read', id=name))
+        return icon + u' ' + \
+            link_to(displayname,
+                    url_for(controller='user', action='read', id=name))
 
 
 def group_name_to_title(name):
@@ -854,7 +871,8 @@ def markdown_extract(text, extract_length=190):
     plain = RE_MD_HTML_TAGS.sub('', markdown(text))
     if not extract_length or len(plain) < extract_length:
         return literal(plain)
-    return literal(unicode(truncate(plain, length=extract_length, indicator='...', whole_word=True)))
+    return literal(unicode(truncate(plain, length=extract_length,
+                                    indicator='...', whole_word=True)))
 
 
 def icon_url(name):
@@ -956,7 +974,8 @@ class Page(paginate.Page):
 
     def pager(self, *args, **kwargs):
         kwargs.update(
-            format=u"<div class='pagination pagination-centered'><ul>$link_previous ~2~ $link_next</ul></div>",
+            format=u"<div class='pagination pagination-centered'><ul>"
+            "$link_previous ~2~ $link_next</ul></div>",
             symbol_previous=u'«', symbol_next=u'»',
             curpage_attr={'class': 'active'}, link_attr={}
         )
@@ -1224,7 +1243,8 @@ def group_link(group):
 
 
 def organization_link(organization):
-    url = url_for(controller='organization', action='read', id=organization['name'])
+    url = url_for(controller='organization', action='read',
+                  id=organization['name'])
     return link_to(organization['name'], url)
 
 
@@ -1478,7 +1498,8 @@ def debug_full_info_as_list(debug_info):
     ignored_keys = ['c', 'app_globals', 'g', 'h', 'request', 'tmpl_context',
                     'actions', 'translator', 'session', 'N_', 'ungettext',
                     'config', 'response', '_']
-    ignored_context_keys = ['__class__', '__context', '__delattr__', '__dict__',
+    ignored_context_keys = ['__class__', '__context', '__delattr__',
+                            '__dict__',
                             '__doc__', '__format__', '__getattr__',
                             '__getattribute__', '__hash__', '__init__',
                             '__module__', '__new__', '__reduce__',
@@ -1509,10 +1530,12 @@ def popular(type_, number, min=1, title=None):
     if type_ == 'views':
         title = ungettext('{number} view', '{number} views', number)
     elif type_ == 'recent views':
-        title = ungettext('{number} recent view', '{number} recent views', number)
+        title = ungettext('{number} recent view', '{number} recent views',
+                          number)
     elif not title:
         raise Exception('popular() did not recieve a valid type_ or title')
-    return snippet('snippets/popular.html', title=title, number=number, min=min)
+    return snippet('snippets/popular.html',
+                   title=title, number=number, min=min)
 
 
 def groups_available(am_member=False):
@@ -1713,10 +1736,10 @@ def render_markdown(data, auto_link=True, allow_html=False):
     if not data:
         return ''
     if allow_html:
-        data = markdown(data.strip(), safe_mode=False)
+        data = markdown(data.strip())
     else:
         data = RE_MD_HTML_TAGS.sub('', data.strip())
-        data = markdown(data, safe_mode=True)
+        data = markdown(clean_html(data, strip=True))
     # tags can be added by tag:... or tag:"...." and a link will be made
     # from it
     if auto_link:
@@ -1771,13 +1794,14 @@ def resource_preview(resource, package):
     if not resource['url']:
         return False
 
-    format_lower = datapreview.res_format(resource)
+    datapreview.res_format(resource)
     directly = False
     data_dict = {'resource': resource, 'package': package}
 
     if datapreview.get_preview_plugin(data_dict, return_first=True):
         url = url_for(controller='package', action='resource_datapreview',
-                      resource_id=resource['id'], id=package['id'], qualified=True)
+                      resource_id=resource['id'], id=package['id'],
+                      qualified=True)
     else:
         return False
 
@@ -1919,7 +1943,8 @@ def SI_number_span(number):
     if number < 1000:
         output = literal('<span>')
     else:
-        output = literal('<span title="' + formatters.localised_number(number) + '">')
+        output = literal('<span title="' + formatters.localised_number(number)
+                         + '">')
     return output + formatters.localised_SI_number(number) + literal('</span>')
 
 # add some formatter functions
@@ -2026,9 +2051,13 @@ _RESOURCE_FORMATS = None
 
 
 def resource_formats():
-    ''' Returns the resource formats as a dict, sourced from the resource format JSON file.
-    key:  potential user input value
-    value:  [canonical mimetype lowercased, canonical format (lowercase), human readable form]
+    ''' Returns the resource formats as a dict, sourced from the resource
+    format JSON file.
+
+    :param key:  potential user input value
+    :param value:  [canonical mimetype lowercased, canonical format
+                    (lowercase), human readable form]
+
     Fuller description of the fields are described in
     `ckan/config/resource_formats.json`.
     '''
@@ -2044,8 +2073,10 @@ def resource_formats():
         with open(format_file_path) as format_file:
             try:
                 file_resource_formats = json.loads(format_file.read())
-            except ValueError, e:  # includes simplejson.decoder.JSONDecodeError
-                raise ValueError('Invalid JSON syntax in %s: %s' % (format_file_path, e))
+            except ValueError, e:
+                # includes simplejson.decoder.JSONDecodeError
+                raise ValueError('Invalid JSON syntax in %s: %s' %
+                                 (format_file_path, e))
 
             for format_line in file_resource_formats:
                 if format_line[0] == '_comment':
@@ -2083,8 +2114,9 @@ def get_organization(org=None, include_datasets=False):
     if org is None:
         return {}
     try:
-        return logic.get_action('organization_show')({}, {'id': org, 'include_datasets': include_datasets})
-    except (NotFound, ValidationError, NotAuthorized):
+        return logic.get_action('organization_show')(
+            {}, {'id': org, 'include_datasets': include_datasets})
+    except (logic.NotFound, logic.ValidationError, logic.NotAuthorized):
         return {}
 
 
