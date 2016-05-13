@@ -7,9 +7,11 @@ from paste.deploy.converters import asbool
 from paste.util.multidict import MultiDict
 
 from ckan.common import json
-from ckan.lib.search.common import make_connection, SearchError, SearchQueryError
+from ckan.lib.search.common import make_connection, SearchError, \
+    SearchQueryError
 import ckan.logic as logic
 import ckan.model as model
+from ckan.lib.helpers import lang
 
 log = logging.getLogger(__name__)
 
@@ -27,17 +29,20 @@ QUERY_FIELDS = "name^4 title^4 tags^2 groups^2 text"
 
 solr_regex = re.compile(r'([\\+\-&|!(){}\[\]^"~*?:])')
 
+
 def escape_legacy_argument(val):
     # escape special chars \+-&|!(){}[]^"~*?:
     return solr_regex.sub(r'\\\1', val)
 
+
 def convert_legacy_parameters_to_solr(legacy_params):
-    '''API v1 and v2 allowed search params that the SOLR syntax does not
+    """API v1 and v2 allowed search params that the SOLR syntax does not
     support, so use this function to convert those to SOLR syntax.
     See tests for examples.
+    :param legacy_params
 
     raises SearchQueryError on invalid params.
-    '''
+    """
     options = QueryOptions(**legacy_params)
     options.validate()
     solr_params = legacy_params.copy()
@@ -47,7 +52,8 @@ def convert_legacy_parameters_to_solr(legacy_params):
     non_solr_params = set(legacy_params.keys()) - VALID_SOLR_PARAMETERS
     for search_key in non_solr_params:
         value_obj = legacy_params[search_key]
-        value = value_obj.replace('+', ' ') if isinstance(value_obj, basestring) else value_obj
+        value = value_obj.replace('+', ' ') \
+            if isinstance(value_obj, basestring) else value_obj
         if search_key == 'all_fields':
             if value:
                 solr_params['fl'] = '*'
@@ -63,8 +69,11 @@ def convert_legacy_parameters_to_solr(legacy_params):
             elif isinstance(value_obj, basestring):
                 tag_list = [value_obj]
             else:
-                raise SearchQueryError('Was expecting either a string or JSON list for the tags parameter: %r' % value)
-            solr_q_list.extend(['tags:"%s"' % escape_legacy_argument(tag) for tag in tag_list])
+                raise SearchQueryError('Was expecting either a string or JSON '
+                                       'list for the tags parameter: '
+                                       '%r' % value)
+            solr_q_list.extend(['tags:"%s"' % escape_legacy_argument(tag)
+                                for tag in tag_list])
         else:
             if len(value.strip()):
                 value = escape_legacy_argument(value)
@@ -75,15 +84,16 @@ def convert_legacy_parameters_to_solr(legacy_params):
     solr_params['q'] = ' '.join(solr_q_list)
     if non_solr_params:
         log.debug('Converted legacy search params from %r to %r',
-                 legacy_params, solr_params)
+                  legacy_params, solr_params)
     return solr_params
 
 
 class QueryOptions(dict):
     """
-    Options specify aspects of the search query which are only tangentially related
-    to the query terms (such as limits, etc.).
-    NB This is used only by legacy package search and current resource & tag search.
+    Options specify aspects of the search query which are only tangentially
+    related to the query terms (such as limits, etc.).
+    NB This is used only by legacy package search and current resource & tag
+    search.
        Modern SOLR package search leaves this to SOLR syntax.
     """
 
@@ -93,10 +103,12 @@ class QueryOptions(dict):
 
     def __init__(self, **kwargs):
         from ckan.lib.search import DEFAULT_OPTIONS
+        self.all_fields = DEFAULT_OPTIONS['all_fields']
+        self.return_objects = DEFAULT_OPTIONS['return_objects']
 
         # set values according to the defaults
         for option_name, default_value in DEFAULT_OPTIONS.items():
-            if not option_name in self:
+            if option_name not in self:
                 self[option_name] = default_value
 
         super(QueryOptions, self).__init__(**kwargs)
@@ -107,14 +119,19 @@ class QueryOptions(dict):
                 try:
                     value = asbool(value)
                 except ValueError:
-                    raise SearchQueryError('Value for search option %r must be True or False (1 or 0) but received %r' % (key, value))
+                    raise SearchQueryError('Value for search option %r must be '
+                                           'True or False (1 or 0) but '
+                                           'received %r' % (key, value))
             elif key in self.INTEGER_OPTIONS:
                 try:
                     value = int(value)
                 except ValueError:
-                    raise SearchQueryError('Value for search option %r must be an integer but received %r' % (key, value))
+                    raise SearchQueryError('Value for search option %r must be '
+                                           'an integer but received '
+                                           '%r' % (key, value))
             elif key in self.UNSUPPORTED_OPTIONS:
-                    raise SearchQueryError('Search option %r is not supported' % key)
+                    raise SearchQueryError('Search option %r is not '
+                                           'supported' % key)
             self[key] = value
 
     def __getattr__(self, name):
@@ -126,13 +143,15 @@ class QueryOptions(dict):
 
 class SearchQuery(object):
     """
-    A query is ... when you ask the search engine things. SearchQuery is intended
-    to be used for only one query, i.e. it sets state. Definitely not thread-safe.
+    A query is ... when you ask the search engine things. SearchQuery is
+    intended to be used for only one query, i.e. it sets state.
+    Definitely not thread-safe.
     """
 
     def __init__(self):
         self.results = []
         self.count = 0
+        self.facets = {}
 
     @property
     def open_licenses(self):
@@ -142,18 +161,19 @@ class SearchQuery(object):
         global _open_licenses
         if not isinstance(_open_licenses, list):
             _open_licenses = []
-            for license in model.Package.get_license_register().values():
-                if license and license.isopen():
-                    _open_licenses.append(license.id)
+            for a_license in model.Package.get_license_register().values():
+                if a_license and a_license.isopen():
+                    _open_licenses.append(a_license.id)
         return _open_licenses
 
     def get_all_entity_ids(self, max_results=1000):
         """
+        :param max_results
         Return a list of the IDs of all indexed packages.
         """
         return []
 
-    def run(self, query=None, terms=[], fields={}, facet_by=[], options=None, **kwargs):
+    def run(self, query=None):
         raise SearchError("SearchQuery.run() not implemented!")
 
     # convenience, allows to query(..)
@@ -174,7 +194,7 @@ class TagSearchQuery(SearchQuery):
         if isinstance(query, basestring):
             query = [query]
 
-        query = query[:] # don't alter caller's query list.
+        query = query[:]  # don't alter caller's query list.
         for field, value in fields.items():
             if field in ('tag', 'tags'):
                 query.append(value)
@@ -202,14 +222,16 @@ class TagSearchQuery(SearchQuery):
 
 class ResourceSearchQuery(SearchQuery):
     """Search for resources."""
-    def run(self, fields={}, options=None, **kwargs):
+    def run(self, fields=None, options=None, **kwargs):
+        if fields is None:
+            fields = {}
         if options is None:
             options = QueryOptions(**kwargs)
         else:
             options.update(kwargs)
 
         context = {
-            'model':model,
+            'model': model,
             'session': model.Session,
             'search_query': True,
         }
@@ -245,8 +267,13 @@ class ResourceSearchQuery(SearchQuery):
 
 
 class PackageSearchQuery(SearchQuery):
+    def do_nothing(self):
+        pass
+
     def get_all_entity_ids(self, max_results=1000):
         """
+        :param max_results
+
         Return a list of the IDs of all indexed packages.
         """
         query = "*:*"
@@ -261,10 +288,11 @@ class PackageSearchQuery(SearchQuery):
 
         return [r.get('id') for r in data.results]
 
-    def get_index(self,reference):
+    def get_index(self, reference):
+        self.do_nothing()
         query = {
             'rows': 1,
-            'q': 'name:"%s" OR id:"%s"' % (reference,reference),
+            'q': 'name:"%s" OR id:"%s"' % (reference, reference),
             'wt': 'json',
             'fq': 'site_id:"%s"' % config.get('ckan.site_id')}
 
@@ -273,13 +301,15 @@ class PackageSearchQuery(SearchQuery):
         try:
             solr_response = conn.raw_query(**query)
         except SolrException, e:
-            raise SearchError('SOLR returned an error running query: %r Error: %r' %
+            raise SearchError('SOLR returned an error running query: %r '
+                              'Error: %r' %
                               (query, e.reason))
         try:
             data = json.loads(solr_response)
 
             if data['response']['numFound'] == 0:
-                raise SearchError('Dataset not found in the search index: %s' % reference)
+                raise SearchError('Dataset not found in the search index: '
+                                  '%s' % reference)
             else:
                 return data['response']['docs'][0]
         except Exception, e:
@@ -289,21 +319,22 @@ class PackageSearchQuery(SearchQuery):
         finally:
             conn.close()
 
-
-    def run(self, query):
-        '''
+    def run(self, query=None):
+        """
         Performs a dataset search using the given query.
 
-        @param query - dictionary with keys like: q, fq, sort, rows, facet
+        :param query: - dictionary with keys like: q, fq, sort, rows, facet
         @return - dictionary with keys results and count
 
         May raise SearchQueryError or SearchError.
-        '''
+        """
         assert isinstance(query, (dict, MultiDict))
         # check that query keys are valid
         if not set(query.keys()) <= VALID_SOLR_PARAMETERS:
-            invalid_params = [s for s in set(query.keys()) - VALID_SOLR_PARAMETERS]
-            raise SearchQueryError("Invalid search parameters: %s" % invalid_params)
+            invalid_params = [s for s in set(query.keys()) -
+                              VALID_SOLR_PARAMETERS]
+            raise SearchQueryError("Invalid search parameters: "
+                                   "%s" % invalid_params)
 
         # default query is to return all documents
         q = query.get('q')
@@ -322,11 +353,11 @@ class PackageSearchQuery(SearchQuery):
 
         # show only results from this CKAN instance
         fq = query.get('fq', '')
-        if not '+site_id:' in fq:
+        if '+site_id:' not in fq:
             fq += ' +site_id:"%s"' % config.get('ckan.site_id')
 
         # filter for package status
-        if not '+state:' in fq:
+        if '+state:' not in fq:
             fq += " +state:active"
         query['fq'] = [fq]
 
@@ -334,9 +365,15 @@ class PackageSearchQuery(SearchQuery):
         query['fq'].extend(fq_list)
 
         # faceting
-        query['facet'] = query.get('facet', 'true')
-        query['facet.limit'] = query.get('facet.limit', config.get('search.facets.limit', '50'))
-        query['facet.mincount'] = query.get('facet.mincount', 1)
+        query['facet'] = query.get(
+            'facet',
+            config.get('search.facet', 'true'))
+        query['facet.limit'] = query.get(
+            'facet.limit',
+            config.get('search.facets.limit', '50'))
+        query['facet.mincount'] = query.get(
+            'facet.mincount',
+            config.get('search.facet.mincount', 1))
 
         # return the package ID and search scores
         query['fl'] = query.get('fl', 'name')
@@ -344,24 +381,29 @@ class PackageSearchQuery(SearchQuery):
         # return results as json encoded string
         query['wt'] = query.get('wt', 'json')
 
-        # If the query has a colon in it then consider it a fielded search and do use dismax.
-        defType = query.get('defType', 'dismax')
-        if ':' not in query['q'] or defType == 'edismax':
-            query['defType'] = defType
-            query['tie'] = query.get('tie', '0.1')
+        # If the query has a colon in it then consider it a fielded search and
+        # do use dismax.
+        def_type = query.get('defType', 'dismax')
+        if ':' not in query['q'] or def_type == 'edismax':
+            query['defType'] = def_type
+            query['tie'] = query.get('tie',
+                                     config.get('search.tie', '0.1'))
             # this minimum match is explained
             # http://wiki.apache.org/solr/DisMaxQParserPlugin#mm_.28Minimum_.27Should.27_Match.29
-            query['mm'] = query.get('mm', '2<-1 5<80%')
-            query['qf'] = query.get('qf', QUERY_FIELDS)
-
+            query['mm'] = query.get('mm',
+                                    config.get('search.mm', '2<-1 5<80%'))
+            qf = re.sub(
+                '\{\{LANG\}\}', lang(),
+                config.get('search.query_fields', QUERY_FIELDS))
+            query['qf'] = query.get('qf', qf)
 
         conn = make_connection()
         log.debug('Package query: %r' % query)
         try:
             solr_response = conn.raw_query(**query)
         except SolrException, e:
-            raise SearchError('SOLR returned an error running query: %r Error: %r' %
-                              (query, e.reason))
+            raise SearchError('SOLR returned an error running query: %r '
+                              'Error: %r' % (query, e.reason))
         try:
             data = json.loads(solr_response)
             response = data['response']
@@ -373,7 +415,8 @@ class PackageSearchQuery(SearchQuery):
 
             # get any extras and add to 'extras' dict
             for result in self.results:
-                extra_keys = filter(lambda x: x.startswith('extras_'), result.keys())
+                extra_keys = filter(lambda x: x.startswith('extras_'),
+                                    result.keys())
                 extras = {}
                 for extra_key in extra_keys:
                     value = result.pop(extra_key)

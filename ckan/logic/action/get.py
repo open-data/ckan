@@ -1895,7 +1895,8 @@ def package_search(context, data_dict):
     abort = data_dict.get('abort_search', False)
 
     if data_dict.get('sort') in (None, 'rank'):
-        data_dict['sort'] = 'score desc, metadata_modified desc'
+        data_dict['sort'] = config.get('search.sort',
+                                       'score desc, metadata_modified desc')
 
     results = []
     if not abort:
