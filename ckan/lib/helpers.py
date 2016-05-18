@@ -253,47 +253,69 @@ def is_url(*args, **kw):
 
 
 def _local_url(url_to_amend, **kw):
-    """
-    If the locale keyword param is provided then the url is rewritten
-    using that locale .If return_to is provided this is used as the url
-    (as part of the language changing feature).
-    A locale of default will not add locale info to the url.
+    # If the locale keyword param is provided then the url is rewritten
+    # using that locale .If return_to is provided this is used as the url
+    # (as part of the language changing feature).
+    # A locale of default will not add locale info to the url.
 
-    ckan.root_path is defined when we have non standard language
-    position in the url
-    """
-
-    _default_root_path = '/{{LANG}}'
-    _allowed_locales = i18n.get_locales()
-
-    if kw.pop('__ckan_no_root', False):
-        root_path = _default_root_path
+    default_locale = False
+    locale = kw.pop('locale', None)
+    no_root = kw.pop('__ckan_no_root', False)
+    allowed_locales = ['default'] + i18n.get_locales()
+    if locale and locale not in allowed_locales:
+        locale = None
+    if locale:
+        if locale == 'default':
+            default_locale = True
     else:
-        root_path = config.get('ckan.root_path', _default_root_path)
-        if _default_root_path not in root_path:
-            error = 'ckan.root_path must include ' + _default_root_path
-            raise ckan.exceptions.CkanUrlException(error)
+        try:
+            locale = request.environ.get('CKAN_LANG')
+            default_locale = request.environ.get('CKAN_LANG_IS_DEFAULT', True)
+        except TypeError:
+            default_locale = True
 
-    locale = kw.pop('locale')
-    if not locale:
-        locale = 'default' if request.environ.get('CKAN_LANG_IS_DEFAULT', True)\
-            else request.environ.get('CKAN_LANG')
-    if not locale or locale == 'default' or locale not in _allowed_locales:
-        root = re.sub('/\{\{LANG}}', '', root_path)
+    root = ''
+    if kw.get('qualified', False):
+        # if qualified is given we want the full url ie http://...
+        protocol, host = get_site_protocol_and_host()
+        root = _routes_default_url_for('/',
+                                       qualified=True,
+                                       host=host,
+                                       protocol=protocol)[:-1]
+    # ckan.root_path is defined when we have none standard language
+    # position in the url
+    root_path = config.get('ckan.root_path', None)
+    if root_path:
+        # FIXME this can be written better once the merge
+        # into the ecportal core is done - Toby
+        # we have a special root specified so use that
+        if default_locale:
+            root_path = re.sub('/{{LANG}}', '', root_path)
+        else:
+            root_path = re.sub('{{LANG}}', str(locale), root_path)
+        # make sure we don't have a trailing / on the root
+        if root_path[-1] == '/':
+            root_path = root_path[:-1]
     else:
-        root = re.sub('\{\{LANG}}', locale, root_path)
+        if default_locale:
+            root_path = ''
+        else:
+            root_path = '/' + str(locale)
 
-    url_scheme, url_netloc, url_path, url_params, url_query, url_fragment = \
-        urlparse.urlparse(url_to_amend)
-    url_path = '%s%s' % (root, url_path)
-    return_url = urlparse.urlunparse((url_scheme, url_netloc, url_path,
-                                      url_params, url_query, url_fragment))
+    url_path = url_to_amend[len(root):]
+    url = '%s%s%s' % (root, root_path, url_path)
 
-    if return_url == '/packages':
+    # stop the root being added twice in redirects
+    if no_root and url_to_amend.startswith(root):
+        url = url_to_amend[len(root):]
+        if not default_locale:
+            url = '/%s%s' % (locale, url)
+
+    if url == '/packages':
         error = 'There is a broken url being created %s' % kw
         raise ckan.exceptions.CkanUrlException(error)
 
-    return return_url
+    return url
 
 
 def url_is_local(url):
