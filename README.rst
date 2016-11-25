@@ -26,6 +26,16 @@ system that provides a powerful platform for cataloging, storing and accessing
 datasets with a rich front-end, full API (for both data and catalog), visualization
 tools and more. Read more at `ckan.org <http://ckan.org/>`_.
 
+Why This Fork?
+--------------
+
+The ``open-data/ckan`` fork exists because...
+
+For full changelog of features specific to this fork, please see `CHANGELOG-FORK`_
+
+
+.. _CHANGELOG-FORK: CHANGELOG-FORK.rst
+
 
 Installation
 ------------
