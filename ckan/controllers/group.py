@@ -288,14 +288,6 @@ class GroupController(base.BaseController):
         try:
             c.fields = []
             search_extras = {}
-            for (param, value) in request.params.items():
-                if not param in ['q', 'page', 'sort'] \
-                        and len(value) and not param.startswith('_'):
-                    if not param.startswith('ext_'):
-                        c.fields.append((param, value))
-                        q += ' %s: "%s"' % (param, value)
-                    else:
-                        search_extras[param] = value
 
             fq = 'capacity:"public"'
             user_member_of_orgs = [org['id'] for org
@@ -327,6 +319,16 @@ class GroupController(base.BaseController):
                 del facets['capacity']
 
             c.facet_titles = facets
+
+            for (param, value) in request.params.iteritems():
+                if not param in ['q', 'page', 'sort'] \
+                        and len(value) and not param.startswith('_') \
+                        and (param not in facets):
+                    if not param.startswith('ext_'):
+                        c.fields.append((param, value))
+                        q += ' %s: "%s"' % (param, value)
+                    else:
+                        search_extras[param] = value
 
             data_dict = {
                 'q': q,
