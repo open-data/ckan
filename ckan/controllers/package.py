@@ -166,7 +166,6 @@ class PackageController(base.BaseController):
         c.remove_field = remove_field
 
         sort_by = request.params.get('sort', 'metadata_modified desc')
-        request.GET['sort'] = sort_by
         params_nosort = [(k, v) for k, v in params_nopage if k != 'sort']
 
         def _sort_by(fields):
