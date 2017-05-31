@@ -92,7 +92,7 @@ def _mail_recipient(recipient_name, recipient_email,
 def mail_recipient(recipient_name, recipient_email, subject,
         body, headers={}):
     return _mail_recipient(recipient_name, recipient_email,
-            g.site_title, g.site_url, subject, body, headers=headers)
+            _(g.site_title), g.site_url, subject, body, headers=headers)
 
 def mail_user(recipient, subject, body, headers={}):
     if (recipient.email is None) or not len(recipient.email):
@@ -111,7 +111,7 @@ def get_reset_link_body(user):
 
     d = {
         'reset_link': get_reset_link(user),
-        'site_title': g.site_title
+        'site_title': _(g.site_title)
         }
     return reset_link_message.format(**d)
 
@@ -127,7 +127,7 @@ def get_invite_body(user):
 
     d = {
         'reset_link': get_reset_link(user),
-        'site_title': g.site_title,
+        'site_title': _(g.site_title),
         'user_name': user.name,
         }
     return invite_message.format(**d)
@@ -148,7 +148,7 @@ def send_reset_link(user):
 def send_invite(user):
     create_reset_key(user)
     body = get_invite_body(user)
-    subject = _('Invite for {site_title}').format(site_title=g.site_title)
+    subject = _('Invite for {site_title}').format(site_title=_(g.site_title))
     mail_user(user, subject, body)
 
 def create_reset_key(user):
