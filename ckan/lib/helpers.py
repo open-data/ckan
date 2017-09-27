@@ -17,6 +17,7 @@ import pprint
 import copy
 import urlparse
 from urllib import urlencode
+import uuid
 
 from paste.deploy.converters import asbool
 from webhelpers.html import HTML, literal, url_escape
@@ -2206,6 +2207,13 @@ def mail_to(email_address, name):
     return html
 
 
+def sanitize_id(id_):
+    '''Given an id (uuid4), if it has any invalid characters it raises
+    ValueError.
+    '''
+    return str(uuid.UUID(id_))
+
+
 # these are the functions that will end up in `h` template helpers
 __allowed_functions__ = [
     # functions defined in ckan.lib.helpers
@@ -2329,4 +2337,5 @@ __allowed_functions__ = [
     'license_options',
     'plugin_loaded',
     'clean_html',
+    'sanitize_id',
 ]
