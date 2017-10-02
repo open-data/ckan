@@ -3,6 +3,7 @@ import re
 import logging
 
 from pylons import config
+from jinja2.exceptions import TemplateNotFound
 
 log = logging.getLogger(__name__)
 
@@ -38,9 +39,6 @@ def template_type(template_path):
     if re.search('genshi\.edgewall\.org', source):
         return 'genshi'
     return 'jinja2'
-
-class TemplateNotFound(Exception):
-    pass
 
 def template_info(template_name):
     ''' Returns the path and type for a template '''
