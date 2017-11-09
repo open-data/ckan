@@ -2214,6 +2214,10 @@ def sanitize_id(id_):
     return str(uuid.UUID(id_))
 
 
+def public_user_details():
+    return config.get('ckan.public_user_details', False)
+
+
 # these are the functions that will end up in `h` template helpers
 __allowed_functions__ = [
     # functions defined in ckan.lib.helpers
@@ -2338,4 +2342,5 @@ __allowed_functions__ = [
     'plugin_loaded',
     'clean_html',
     'sanitize_id',
+    'public_user_details',
 ]

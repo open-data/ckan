@@ -6,6 +6,7 @@ from ckan.logic.auth import (
     get_group_object,
     get_resource_object
 )
+import ckan.lib.helpers as h
 
 
 def restrict_anon(context):
@@ -119,7 +120,10 @@ def tag_list(context, data_dict):
 @logic.auth_read_safe
 def user_list(context, data_dict):
     # Users list is visible by default
-    return restrict_anon(context)
+    if not h.public_user_details():
+        return restrict_anon(context)
+    else:
+        return {'success': True}
 
 
 @logic.auth_read_safe
@@ -272,7 +276,10 @@ def tag_show(context, data_dict):
 def user_show(context, data_dict):
     # By default, user details can be read by anyone, but some properties like
     # the API key are stripped at the action level if not not logged in.
-    return restrict_anon(context)
+    if not h.public_user_details():
+        return restrict_anon(context)
+    else:
+        return {'success': True}
 
 
 @logic.auth_read_safe
