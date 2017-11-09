@@ -8,6 +8,13 @@ from ckan.logic.auth import (
 )
 
 
+def restrict_anon(context):
+    if authz.auth_is_anon_user(context):
+        return {'success': False}
+    else:
+        return {'success': True}
+
+
 def sysadmin(context, data_dict):
     ''' This is a pseudo check if we are a sysadmin all checks are true '''
     return {'success': False, 'msg': _('Not authorized')}
@@ -112,7 +119,7 @@ def tag_list(context, data_dict):
 @logic.auth_read_safe
 def user_list(context, data_dict):
     # Users list is visible by default
-    return {'success': True}
+    return restrict_anon(context)
 
 
 @logic.auth_read_safe
@@ -230,8 +237,6 @@ def revision_show(context, data_dict):
 def group_show(context, data_dict):
     user = context.get('user')
     group = get_group_object(context, data_dict)
-    if group.state == 'active':
-        return {'success': True}
     authorized = authz.has_user_permission_for_group_or_org(
         group.id, user, 'read')
     if authorized:
@@ -267,7 +272,7 @@ def tag_show(context, data_dict):
 def user_show(context, data_dict):
     # By default, user details can be read by anyone, but some properties like
     # the API key are stripped at the action level if not not logged in.
-    return {'success': True}
+    return restrict_anon(context)
 
 
 @logic.auth_read_safe
