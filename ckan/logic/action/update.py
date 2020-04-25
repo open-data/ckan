@@ -96,6 +96,15 @@ def resource_update(context, data_dict):
 
     upload = uploader.get_resource_uploader(data_dict)
 
+    if upload.filename:
+        # determine size for the file to upload
+        upload.upload_file.seek(0, 2)
+        data_dict['size'] = upload.upload_file.tell()
+        upload.upload_file.seek(0, 0)
+    elif upload.clear:
+        # remove file size if clear is set
+        data_dict['size'] = ''
+
     pkg_dict['resources'][n] = data_dict
 
     try:

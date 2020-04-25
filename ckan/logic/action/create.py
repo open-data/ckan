@@ -3,6 +3,7 @@
 '''API functions for adding data to CKAN.'''
 
 import logging
+import os
 import random
 import re
 from socket import error as socket_error
@@ -295,6 +296,12 @@ def resource_create(context, data_dict):
         pkg_dict['resources'] = []
 
     upload = uploader.get_resource_uploader(data_dict)
+
+    # determine size for the file to upload
+    if upload.filename:
+        upload.upload_file.seek(0, 2)
+        data_dict['size'] = upload.upload_file.tell()
+        upload.upload_file.seek(0, 0)
 
     pkg_dict['resources'].append(data_dict)
 
