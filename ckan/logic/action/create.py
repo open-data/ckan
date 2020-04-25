@@ -3,7 +3,6 @@
 '''API functions for adding data to CKAN.'''
 
 import logging
-import os
 import random
 import re
 from socket import error as socket_error
