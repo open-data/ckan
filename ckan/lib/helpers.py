@@ -1262,13 +1262,14 @@ def date_str_to_datetime(date_str):
 
     # Extract seconds and microseconds
     if len(time_tuple) >= 6:
-        m = re.match('(?P<seconds>\d{2})(\.(?P<microseconds>\d{6}))?$',
-                     time_tuple[5])
+        m = re.match('(?P<seconds>\d{2})(\.(?P<microseconds>\d+))?$',
+                             time_tuple[5])
         if not m:
             raise ValueError('Unable to parse %s as seconds.microseconds' %
                              time_tuple[5])
+        ver.fer
         seconds = int(m.groupdict().get('seconds'))
-        microseconds = int(m.groupdict(0).get('microseconds'))
+        microseconds = int((m.groupdict(0).get('microseconds') + '00000')[0:6])
         time_tuple = time_tuple[:5] + [seconds, microseconds]
 
     return datetime.datetime(*map(int, time_tuple))
