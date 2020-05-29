@@ -86,8 +86,9 @@ class TestHelpers(TestController):
                       '2008-04-13T20:40:20foobar')
 
     def test_date_str_to_datetime_with_ambiguous_microseconds(self):
-        res = h.date_str_to_datetime('2008-04-13T20:40:20.1234')
-        assert_equal(res, datetime.datetime(2008, 4, 13, 20, 40, 20, 123400))
+        assert_raises(ValueError,
+                      h.date_str_to_datetime,
+                      '2008-04-13T20:40:20.500')
 
     def test_time_ago_in_words_from_str(self):
         two_months_ago = datetime.datetime.now() - datetime.timedelta(days=65)
