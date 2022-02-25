@@ -333,6 +333,9 @@ def ckan_after_request(response):
     if response.cache_control.private is None:
         response.cache_control.private = True
 
+    if "LOCAL_CKAN_INSTALL" in os.environ:
+        return response
+
     # 204 "No content" response required for CORS OPTIONS calls
     if not response.data and response.status_code == 200:
         response.status_code = 204
