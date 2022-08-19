@@ -727,7 +727,8 @@ def organization_list_for_user(context, data_dict):
 
     context['with_capacity'] = True
     orgs_list = model_dictize.group_list_dictize(orgs_and_capacities, context,
-        with_package_counts=asbool(data_dict.get('include_dataset_count')))
+        with_package_counts=asbool(data_dict.get('include_dataset_count')),
+        include_translated=asbool(data_dict.get('include_translated')))
     return orgs_list
 
 

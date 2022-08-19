@@ -2182,14 +2182,15 @@ def groups_available(am_member=False):
 
 @core_helper
 def organizations_available(
-        permission='manage_group', include_dataset_count=False):
+        permission='manage_group', include_dataset_count=False, include_translated=False):
     '''Return a list of organizations that the current user has the specified
     permission for.
     '''
     context = {'user': c.user}
     data_dict = {
         'permission': permission,
-        'include_dataset_count': include_dataset_count}
+        'include_dataset_count': include_dataset_count,
+        'include_translated': include_translated}
     return logic.get_action('organization_list_for_user')(context, data_dict)
 
 
@@ -2838,6 +2839,9 @@ def get_translated(data_dict, field):
     except KeyError:
         val = data_dict.get(field, '')
         return _(val) if val and isinstance(val, string_types) else val
+    except TypeError:
+        val = json.loads(data_dict[field + u'_translated'])
+        return val[language]
 
 
 @core_helper
