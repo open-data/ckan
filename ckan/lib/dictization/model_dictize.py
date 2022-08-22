@@ -33,8 +33,7 @@ def group_list_dictize(obj_list, context,
                        with_package_counts=True,
                        include_groups=False,
                        include_tags=False,
-                       include_extras=False,
-                       include_translated=False):
+                       include_extras=False):
 
     group_dictize_context = dict(context.items())
     # Set options to avoid any SOLR queries for each group, which would
@@ -45,7 +44,6 @@ def group_list_dictize(obj_list, context,
             'include_groups': include_groups,
             'include_tags': include_tags,
             'include_extras': include_extras,
-            'include_translated': include_translated,
             'include_users': False,  # too slow - don't allow
             }
     if with_package_counts and 'dataset_counts' not in group_dictize_context:
@@ -292,7 +290,6 @@ def group_dictize(group, context,
                   include_tags=True,
                   include_users=True,
                   include_extras=True,
-                  include_translated=True,
                   packages_field='datasets',
                   **kw):
     '''
@@ -314,14 +311,6 @@ def group_dictize(group, context,
     if include_extras:
         result_dict['extras'] = extras_dict_dictize(
             group._extras, context)
-
-    if include_translated:
-        translated_dict = translated_dict_dictize(
-            group._extras, context)
-
-        for translated in translated_dict:
-            if translated['key'] not in result_dict:
-                result_dict[translated['key']] = translated['value']
 
     context['with_capacity'] = True
 
