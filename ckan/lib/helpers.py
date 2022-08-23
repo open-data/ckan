@@ -2834,9 +2834,9 @@ def license_options(existing_license_id=None):
 def get_translated(data_dict, field):
     language = i18n.get_lang()
     try:
-        return data_dict[field + u'_translated'][language]
+        return data_dict.__dict__[field + u'_translated'][language]
     except KeyError:
-        val = data_dict.get(field, '')
+        val = data_dict.__dict__.get(field, '')
         return _(val) if val and isinstance(val, string_types) else val
 
 
