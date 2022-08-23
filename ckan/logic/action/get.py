@@ -726,18 +726,9 @@ def organization_list_for_user(context, data_dict):
             (org, group_ids_to_capacities[org.id]) for org in orgs_q.all()]
 
     context['with_capacity'] = True
-    return_list = []
-    for org, cap in orgs_and_capacities:
-        return_list.append(logic.get_action('organization_show')(
-                                context,
-                                {'id': org.id,
-                                'include_dataset_count': False,
-                                'include_datasets': False,
-                                'include_tags': False,
-                                'include_users': False,
-                                'include_groups': False,
-                                'include_followers': False}))
-    return return_list
+    orgs_list = model_dictize.group_list_dictize(orgs_and_capacities, context,
+        with_package_counts=asbool(data_dict.get('include_dataset_count')))
+    return orgs_list
 
 
 def license_list(context, data_dict):

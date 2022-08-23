@@ -2833,13 +2833,18 @@ def license_options(existing_license_id=None):
 @core_helper
 def get_translated(data_dict, field):
     language = i18n.get_lang()
-    if hasattr( data_dict, '__dict__' ):
+    if hasattr(data_dict, '__dict__'):
         data_dict = data_dict.__dict__
     try:
         return data_dict[field + u'_translated'][language]
     except KeyError:
         val = data_dict.get(field, '')
+        if val is None:
+            val = ''
         return _(val) if val and isinstance(val, string_types) else val
+    except TypeError:
+        val = json.loads(data_dict[field + u'_translated'])
+        return val[language]
 
 
 @core_helper
