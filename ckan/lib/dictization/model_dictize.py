@@ -85,16 +85,6 @@ def extras_dict_dictize(extras_dict, context):
 
     return sorted(result_list, key=lambda x: x["key"])
 
-def translated_dict_dictize(translated_dict, context):
-    result_list = []
-    for name, translated in six.iteritems(translated_dict):
-        dictized = d.table_dictize(translated, context)
-        if not translated.state == 'active' or '_translated' not in translated.key:
-            continue
-        value = dictized["value"]
-        result_list.append(dictized)
-
-    return sorted(result_list, key=lambda x: x["key"])
 
 def extras_list_dictize(extras_list, context):
     result_list = []
