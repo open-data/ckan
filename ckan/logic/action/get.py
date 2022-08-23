@@ -731,7 +731,12 @@ def organization_list_for_user(context, data_dict):
         return_list.append(logic.get_action('organization_show')(
                                 context,
                                 {'id': org.id,
-                                'include_dataset_count': asbool(data_dict.get('include_dataset_count'))}))
+                                'include_dataset_count': False,
+                                'include_datasets': False,
+                                'include_tags': False,
+                                'include_users': False,
+                                'include_groups': False,
+                                'include_followers': False}))
     return return_list
 
 
