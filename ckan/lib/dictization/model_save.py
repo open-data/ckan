@@ -65,6 +65,8 @@ def resource_dict_save(res_dict, context):
     obj.state = u'active'
     obj.extras = new_extras
 
+    #TODO: check original session.query(model.Resource).get(id) against final obj, if same return obj. Skip the session.add if same...
+
     session.add(obj)
     return obj
 
