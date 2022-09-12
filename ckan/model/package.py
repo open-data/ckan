@@ -89,10 +89,12 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
 
     @property
     def resources(self):
-        #TODO: turn this into a db query return on resources where package_id = self.id
-        return [resource for resource in
-                self.resources_all
-                if resource.state != 'deleted']
+        import ckan.model as model
+        query = meta.Session.query(model.Resource)
+        query = query.filter(model.Resource.package_id == self.id)
+        query = query.filter(model.Resource.state != 'deleted')
+        resources = query.all()
+        return resources
 
     def related_packages(self):
         return [self]

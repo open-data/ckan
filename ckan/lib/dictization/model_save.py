@@ -23,7 +23,7 @@ def resource_dict_save(res_dict, context):
     id = res_dict.get("id")
     obj = None
     if id:
-        obj = session.query(model.Resource).get(id)
+        obj = originalObj = session.query(model.Resource).get(id)
     if not obj:
         new = True
         obj = model.Resource()
@@ -65,7 +65,8 @@ def resource_dict_save(res_dict, context):
     obj.state = u'active'
     obj.extras = new_extras
 
-    #TODO: check original session.query(model.Resource).get(id) against final obj, if same return obj. Skip the session.add if same...
+    if originalObj == obj:
+        return obj
 
     session.add(obj)
     return obj
