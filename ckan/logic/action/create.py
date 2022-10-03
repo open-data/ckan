@@ -336,14 +336,21 @@ def resource_create(context, data_dict):
     resource = updated_pkg_dict['resources'][-1]
 
     #  Add the default views to the new resource
-    logic.get_action('resource_create_default_resource_views')(
-        {'model': context['model'],
-         'user': context['user'],
-         'ignore_auth': True
-         },
-        {'resource': resource,
-         'package': updated_pkg_dict
-         })
+    try:
+        logic.get_action('resource_create_default_resource_views')(
+            {'model': context['model'],
+            'user': context['user'],
+            'ignore_auth': True
+            },
+            {'resource': resource,
+            'package': updated_pkg_dict
+            })
+    except ValidationError as e:
+        if e.error_dict is not None:
+            log.debug('resource_create_default_resource_views validate_errs=%r user=%s package=%s data=%r',
+                e.error_dict, context['user'],
+                pkg_dict['name'] if pkg_dict else '',
+                resource)
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.after_create(context, resource)
