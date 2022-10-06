@@ -410,35 +410,31 @@ def _where_clauses(data_dict, fields_types):
     return clauses
 
 
-def _textsearch_query(lang, q, plain):
-    u'''
-    :param lang: language for to_tsvector
-    :param q: string to search _full_text or dict to search columns
-    :param plain: True to use plainto_tsquery, False for to_tsquery
+def _textsearch_query(data_dict):
+    q = data_dict.get('q')
+    lang = _fts_lang(data_dict.get('language'))
 
-    return (query, rank_columns) based on passed text/dict query
-    rank_columns is a {alias: statement} dict where alias is "rank" for
-    _full_text queries, and "rank <column-name>" for column search
-    '''
     if not q:
-        return '', {}
+        return '', ''
 
     statements = []
-    rank_columns = {}
+    rank_columns = []
+    plain = data_dict.get('plain', True)
     if isinstance(q, string_types):
         query, rank = _build_query_and_rank_statements(
             lang, q, plain)
         statements.append(query)
-        rank_columns[u'rank'] = rank
+        rank_columns.append(rank)
     elif isinstance(q, dict):
         for field, value in q.iteritems():
             query, rank = _build_query_and_rank_statements(
                 lang, value, plain, field)
             statements.append(query)
-            rank_columns[u'rank ' + field] = rank
+            rank_columns.append(rank)
 
     statements_str = ', ' + ', '.join(statements)
-    return statements_str, rank_columns
+    rank_columns_str = ', '.join(rank_columns)
+    return statements_str, rank_columns_str
 
 
 def _build_query_and_rank_statements(lang, query, plain, field=None):
@@ -682,7 +678,7 @@ def _insert_links(data_dict, limit, offset):
 
     # change the offset in the url
     parsed = list(urlparse.urlparse(urlstring))
-    query = urllib2.unquote(parsed[4])
+    query = parsed[4]
 
     arguments = dict(urlparse.parse_qsl(query))
     arguments_start = dict(arguments)
@@ -1252,6 +1248,9 @@ def search_data(context, data_dict):
         distinct = 'DISTINCT'
     else:
         distinct = ''
+
+    if not sort and not distinct:
+        sort = ['_id']
 
     if sort:
         sort_clause = 'ORDER BY %s' % (', '.join(sort)).replace('%', '%%')
