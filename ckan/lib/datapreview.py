@@ -18,7 +18,7 @@ from ckan.common import _
 log = logging.getLogger(__name__)
 
 
-DEFAULT_RESOURCE_VIEW_TYPES = ['image_view', 'recline_view']
+DEFAULT_RESOURCE_VIEW_TYPES = []
 
 
 def res_format(resource):
