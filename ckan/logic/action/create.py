@@ -348,9 +348,9 @@ def resource_create(context, data_dict):
     except ValidationError as e:
         if e.error_dict is not None:
             log.debug('resource_create_default_resource_views validate_errs=%r user=%s package=%s data=%r',
-                e.error_dict, context['user'],
-                pkg_dict['name'] if pkg_dict else '',
-                resource)
+                       e.error_dict, context['user'],
+                       pkg_dict['name'] if pkg_dict else '',
+                       resource)
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.after_create(context, resource)
