@@ -532,6 +532,7 @@ class SearchIndexCommand(CkanCommand):
                                                                     for the whole ckan instance
       search-index list-orphans                                     - lists any non-existant packages from the search-index
       search-index clear-orphans                                    - clears any non-existant packages from the search-index
+      search-index list-unindexed [-p]                              - lists packages that exist in the database but not in the index.
     '''
 
     summary = __doc__.split('\n')[0]
@@ -564,6 +565,10 @@ class SearchIndexCommand(CkanCommand):
 immediately available on the search, but slows significantly the process.
 Default is false.''')
 
+        self.parser.add_option('-p', '--include-private', dest='include_private',
+                               action='store_true', default=False,
+                               help='Include private packages while listing unindexed packages.')
+
     def command(self):
         if not self.args:
             # default to printing help
@@ -589,6 +594,8 @@ Default is false.''')
             self.list_orphans()
         elif cmd == 'clear-orphans':
             self.clear_orphans()
+        elif cmd == 'list-unindexed':
+            self.list_unindexed()
         else:
             print('Command %s not recognized' % cmd)
 
@@ -670,6 +677,39 @@ Default is false.''')
                     orphaned_package_id
                 ))
             self.clear(orphaned_package_id)
+
+
+    def get_unindexed(self):
+        search = None
+        indexed_package_ids = []
+        while search is None or len(indexed_package_ids) < search['count']:
+            search = logic.get_action('package_search')({}, {
+                    'q': '*:*',
+                    'fl': 'id',
+                    'start': len(indexed_package_ids),
+                    'rows': 1000,
+                    'include_private': self.options.include_private})
+            indexed_package_ids += {r['id'] for r in search['results']}
+
+        filter = lambda: model.Package.private if self.options.include_private else model.Package.private==False
+        package_ids = {r[0] for r in model.Session.query(model.Package.id).filter(filter())}
+
+        unindexed_package_ids = []
+
+        for package_id in package_ids:
+            if package_id not in indexed_package_ids:
+                unindexed_package_ids.append(package_id)
+
+        return unindexed_package_ids
+
+
+    def list_unindexed(self):
+        unindexed_package_ids = self.get_unindexed()
+        if len(unindexed_package_ids):
+            click.echo(unindexed_package_ids)
+        click.echo("Found {} unindexed package(s).".format(
+            len(unindexed_package_ids)
+        ))
 
 
     def rebuild_fast(self):
