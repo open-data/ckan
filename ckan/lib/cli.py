@@ -691,8 +691,8 @@ Default is false.''')
                     'include_private': self.options.include_private})
             indexed_package_ids += {r['id'] for r in search['results']}
 
-        filter = lambda: model.Package.private if self.options.include_private else model.Package.private==False
-        package_ids = {r[0] for r in model.Session.query(model.Package.id).filter(filter())}
+        package_ids = {r[0] for r in model.Session.query(model.Package.id).filter(
+            (lambda: model.Package.private if self.options.include_private else model.Package.private==False)())}
 
         unindexed_package_ids = []
 
