@@ -485,17 +485,21 @@ class UserController(base.BaseController):
                 except NotFound:
                     pass
             else:
-                user_list = logic.get_action(u'user_list')(context, {
-                    u'email': id
-                })
+                # we do a query here because ckanext-canada disables
+                # the user-list action for non-logged in users
+                user_list = []
+                query = model.Session.query(model.User.name)
+                query = query.filter_by(email=id)
+                for user in query.all():
+                    user_list.append(user[0])
                 if user_list:
                     # send reset emails for *all* user accounts with this email
                     # (otherwise we'd have to silently fail - we can't tell the
                     # user, as that would reveal the existence of accounts with
                     # this email address)
-                    for user_dict in user_list:
+                    for username in user_list:
                         logic.get_action(u'user_show')(
-                            context, {u'id': user_dict[u'id']})
+                            context, {u'id': username})
                         user_objs.append(context[u'user_obj'])
 
             if not user_objs:
