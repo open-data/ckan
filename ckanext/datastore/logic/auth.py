@@ -43,7 +43,7 @@ def datastore_delete(context: Context, data_dict: DataDict):
     return datastore_auth(context, data_dict)
 
 
-def datastore_records_delete(context, data_dict):
+def datastore_records_delete(context: Context, data_dict: DataDict):
     return datastore_auth(context, data_dict)
 
 
