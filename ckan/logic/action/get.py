@@ -616,8 +616,15 @@ def group_list_authz(context, data_dict):
         if package:
             groups = set(groups) - set(package.get_groups())
 
-    group_list = model_dictize.group_list_dictize(groups, context)
-    return group_list
+    validated_groups = []
+    for group in groups:
+        validated_group = logic.get_action('group_show')(
+            plugins.toolkit.fresh_context(context),
+            {'id': group.id})
+        if validated_group:
+            validated_groups.append(validated_group)
+
+    return validated_groups
 
 
 def organization_list_for_user(context, data_dict):
@@ -726,9 +733,18 @@ def organization_list_for_user(context, data_dict):
             (org, group_ids_to_capacities[org.id]) for org in orgs_q.all()]
 
     context['with_capacity'] = True
-    orgs_list = model_dictize.group_list_dictize(orgs_and_capacities, context,
-        with_package_counts=asbool(data_dict.get('include_dataset_count')))
-    return orgs_list
+    validated_organizations = []
+    for org, capacity in orgs_and_capacities:
+        validated_org_and_capacity = logic.get_action('organization_show')(
+            plugins.toolkit.fresh_context(context),
+            {'id': org.id,
+            'include_dataset_count': asbool(data_dict.get('include_dataset_count'))})
+        if validated_org_and_capacity:
+            if capacity:
+                validated_org_and_capacity['capacity'] = capacity
+            validated_organizations.append(validated_org_and_capacity)
+
+    return validated_organizations
 
 
 def license_list(context, data_dict):
@@ -1007,6 +1023,51 @@ def package_show(context, data_dict):
     if not package_dict:
         package_dict = model_dictize.package_dictize(pkg, context)
         package_dict_validated = False
+
+        # groups
+        # simple dictized list of groups from group_show
+        # only including extras for translations
+        # and excluding everything else for speed
+        groups = []
+        group_ids = (model.Session.query(model.Group.id)
+                    .join(model.Member, model.Group.id == model.Member.group_id)
+                    # type_ignore_reason: incomplete SQLAlchemy types
+                    .filter(_and_(model.Member.table_id == pkg.id,
+                                    model.Member.state == model.core.State.ACTIVE,  # type: ignore
+                                    model.Group.is_organization == False)).all())
+        for group_id in group_ids:
+            group = logic.get_action('group_show')(
+                plugins.toolkit.fresh_context(context),
+                {'id': getattr(group_id, 'id'),
+                'include_datasets': False,
+                'include_dataset_count': False,
+                'include_extras': True,
+                'include_users': False,
+                'include_groups': False,
+                'include_tags': False,
+                'include_followers': False})
+            if group:
+                groups.append(group)
+        package_dict["groups"] = groups
+
+        # owning organization
+        # simple dictized organization from organization_show
+        # only including extras for translations
+        # and excluding everything else for speed
+        package_dict["organization"] = None
+        if pkg.owner_org:
+            organization = logic.get_action('organization_show')(
+                plugins.toolkit.fresh_context(context),
+                {'id': pkg.owner_org,
+                'include_datasets': False,
+                'include_dataset_count': False,
+                'include_extras': True,
+                'include_users': False,
+                'include_groups': False,
+                'include_tags': False,
+                'include_followers': False})
+            if organization:
+                package_dict["organization"] = organization
 
     if include_tracking:
         # page-view tracking summary data
@@ -1918,11 +1979,24 @@ def package_search(context, data_dict):
     for field_name in ('groups', 'organization'):
         group_names.extend(facets.get(field_name, {}).keys())
 
-    groups = (session.query(model.Group.name, model.Group.title)
-                    .filter(model.Group.name.in_(group_names))
+    groups = (session.query(model.Group.name,
+                            model.Group.title,
+                            model.GroupExtra.value)  # type: ignore
+                    # type_ignore_reason: incomplete SQLAlchemy types
+                    .outerjoin(model.GroupExtra,  # type: ignore
+                               model.Group.id == model.GroupExtra.group_id  # type: ignore
+                               and model.GroupExtra.key == 'title_translated'  # type: ignore
+                               and model.GroupExtra.active == model.core.State.ACTIVE)  # type: ignore
+                    .filter(model.Group.name.in_(group_names))  # type: ignore
                     .all()
               if group_names else [])
-    group_titles_by_name = dict(groups)
+    group_titles_by_name = dict()
+    for name, title, title_translated in groups:
+        group_titles_by_name[name] = {
+            'title': title,
+            'title_translated': json.loads(title_translated) \
+                                if title_translated is not None \
+                                else None}
 
     # Transform facets into a more useful data structure.
     restructured_facets = {}
@@ -1936,6 +2010,13 @@ def package_search(context, data_dict):
             new_facet_dict['name'] = key_
             if key in ('groups', 'organization'):
                 display_name = group_titles_by_name.get(key_, key_)
+                if 'title_translated' in display_name \
+                    and display_name['title_translated'] is not None:
+                    display_name = plugins.toolkit.h.get_translated(
+                        display_name, 'title')
+                elif 'title' in display_name \
+                      and display_name['title'] is not None:
+                      display_name = display_name['title']
                 display_name = display_name if display_name and display_name.strip() else key_
                 new_facet_dict['display_name'] = display_name
             elif key == 'license_id':
@@ -3011,9 +3092,11 @@ def followee_list(context, data_dict):
 
     def display_name(followee):
         '''Return a display name for the given user, group or dataset dict.'''
-        display_name = followee.get('display_name')
+        display_name = plugins.toolkit.h.get_translated(followee, 'title') \
+                       or followee.get('display_name')
         fullname = followee.get('fullname')
-        title = followee.get('title')
+        title = plugins.toolkit.h.get_translated(followee, 'title') \
+                or followee.get('title')
         name = followee.get('name')
         return display_name or fullname or title or name
 
@@ -3109,8 +3192,14 @@ def dataset_followee_list(context, data_dict):
     datasets = [dataset for dataset in datasets if dataset is not None]
 
     # Dictize the list of Package objects.
-    return [model_dictize.package_dictize(dataset, context)
-            for dataset in datasets]
+    validated_datasets = []
+    for dataset in datasets:
+        validated_dataset = logic.get_action('package_show')(
+            plugins.toolkit.fresh_context(context),
+            {'id': dataset.id})
+        if validated_dataset:
+            validated_datasets.append(validated_dataset)
+    return validated_datasets
 
 
 def group_followee_list(context, data_dict):
@@ -3162,7 +3251,15 @@ def _group_or_org_followee_list(context, data_dict, is_org=False):
               if group is not None and group.is_organization == is_org]
 
     # Dictize the list of Group objects.
-    return [model_dictize.group_dictize(group, context) for group in groups]
+    validated_groups = []
+    for group in groups:
+        validated_group = logic.get_action(
+            'organization_show' if is_org else 'group_show')(
+            plugins.toolkit.fresh_context(context),
+            {'id': group.id})
+        if validated_group:
+            validated_groups.append(validated_group)
+    return validated_groups
 
 
 @logic.validate(logic.schema.default_dashboard_activity_list_schema)

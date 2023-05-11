@@ -1372,11 +1372,23 @@ def linked_user(user, maxlength=0, avatar=20):
 
 
 @core_helper
+@maintain.deprecated("helpers.group_name_to_title()"
+                     " is deprecated and will be removed"
+                     " in a future version of CKAN.",
+                     since="2.10.0")
 def group_name_to_title(name):
+    """
+    Deprecated: will be removed in a future version of CKAN.
+    """
     group = model.Group.by_name(name)
-    if group is not None:
-        return group.display_name
-    return name
+    if group is None:
+        return name
+    group_dict = logic.get_action(u'%s_show' % group.type)(
+                    {}, {u'id': group.id})
+    if group_dict is None:
+        return name
+    return p.toolkit.h.get_translated(group_dict, 'title') \
+        or group_dict['name']
 
 
 @core_helper
