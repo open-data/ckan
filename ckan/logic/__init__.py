@@ -781,3 +781,15 @@ def _import_module_functions(module_path):
         except AttributeError:
             pass
     return functions_dict
+
+
+def fresh_context(context):
+    """ Copy just the minimum fields into a new context
+        for cases in which we reuse the context and
+        we want a clean version with minimum fields """
+    new_context = {
+        k: context[k] for k in (
+            'model', 'session', 'user', 'auth_user_obj', 'ignore_auth'
+        ) if k in context
+    }
+    return new_context

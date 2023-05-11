@@ -114,7 +114,8 @@ class _Toolkit(object):
         'mail_recipient',
         # Email a user
         'mail_user',
-
+        # refresh Context
+        'fresh_context',
         # Fully defined in this file ##
         'add_template_directory',
         'add_resource',
@@ -306,6 +307,8 @@ For example: ``bar = toolkit.aslist(config.get('ckan.foo.bar', []))``
         )
         t['mail_recipient'] = mailer.mail_recipient
         t['mail_user'] = mailer.mail_user
+
+        t['fresh_context'] = logic.fresh_context
 
         # class functions
         t['render_snippet'] = self._render_snippet

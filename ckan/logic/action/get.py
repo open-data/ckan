@@ -1984,10 +1984,11 @@ def package_search(context, data_dict):
                             model.GroupExtra.value)  # type: ignore
                     # type_ignore_reason: incomplete SQLAlchemy types
                     .outerjoin(model.GroupExtra,  # type: ignore
-                               model.Group.id == model.GroupExtra.group_id  # type: ignore
-                               and model.GroupExtra.key == 'title_translated'  # type: ignore
-                               and model.GroupExtra.active == model.core.State.ACTIVE)  # type: ignore
+                               _and_(model.Group.id == model.GroupExtra.group_id,  # type: ignore
+                                     model.GroupExtra.key == 'title_translated',  # type: ignore
+                                     model.GroupExtra.state == model.core.State.ACTIVE))  # type: ignore
                     .filter(model.Group.name.in_(group_names))  # type: ignore
+                    .filter(model.Group.state == model.core.State.ACTIVE)  # type: ignore
                     .all()
               if group_names else [])
     group_titles_by_name = dict()
