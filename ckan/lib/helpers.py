@@ -1374,8 +1374,7 @@ def linked_user(user, maxlength=0, avatar=20):
 @core_helper
 @maintain.deprecated("helpers.group_name_to_title()"
                      " is deprecated and will be removed"
-                     " in a future version of CKAN.",
-                     since="2.10.0")
+                     " in a future version of CKAN.")
 def group_name_to_title(name):
     """
     Deprecated: will be removed in a future version of CKAN.
