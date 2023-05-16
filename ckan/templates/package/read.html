@@ -33,7 +33,8 @@
 
   {% block package_resources %}
     {# (canada fork only): prevent Resource edit/manage links when in activity archive "view" #}
-    {% snippet "package/snippets/resources_list.html", pkg=pkg, resources=pkg.resources, is_activity_archive=is_activity_archive %}
+    {% snippet "package/snippets/resources_list.html", pkg=pkg, resources=pkg.resources,
+      can_edit=h.check_access('package_update', {'id':pkg.id }), is_activity_archive=is_activity_archive %}
   {% endblock %}
 
   {% block package_tags %}
