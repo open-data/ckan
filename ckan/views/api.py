@@ -296,9 +296,10 @@ def action(logic_function, ver=API_DEFAULT_VERSION):
         context[u'user'] = None
         context[u'auth_user_obj'] = None
 
-    # return the context and request_data for extra logging (canada fork only)
+    # return the context, request_data, and return_dict
+    # for Recombinant access and extra logging (canada fork only)
     if ver == -1:
-        return context, request_data
+        return context, request_data, return_dict
 
     # Call the action function, catch any exception
     try:
