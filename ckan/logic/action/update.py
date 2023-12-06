@@ -265,6 +265,8 @@ def package_update(context, data_dict):
     :rtype: dictionary
 
     '''
+    #TODO: add data_dict or context key,value for resource id from reasource action methods:
+    #   resource_update(resource_patch inclusive) resource_create resource_delete
     model = context['model']
     session = context['session']
     name_or_id = data_dict.get('id') or data_dict.get('name')
@@ -318,6 +320,9 @@ def package_update(context, data_dict):
 
         resource_uploads.append(upload)
 
+    #TODO: pop new data_dict or context key,value and use the resource_id here if exists
+    # otherwise do the setup resources
+
     # setup resources
     current_resource_ids = []
     for current_resource in pkg.resources:
@@ -346,10 +351,6 @@ def package_update(context, data_dict):
 
         for resource_id in deleted_resource_ids:
             # before_delete takes (context, dict:{"id": <str>}, current_resources)
-            log.info("    ")
-            log.info("DEBUGGING::package_update")
-            log.info("resource.before_delete -- %s", resource_id)
-            log.info("    ")
             plugin.before_delete(context, {"id": resource_id}, pkg.resources)
 
         for i, posted_resource in enumerate(data_dict.get('resources', [])):
@@ -371,22 +372,10 @@ def package_update(context, data_dict):
                     data_dict['datastore_active'] = resource.extras['datastore_active']
 
                 # before_update takes (context, current_resource, posted_resource)
-                log.info("    ")
-                log.info("DEBUGGING::package_update")
-                log.info("resource.before_update -- %s", resource_id)
-                log.info("    ")
-                log.info(n)
-                log.info("    ")
-                log.info(pkg.resources[n])
-                log.info("    ")
-                plugin.before_update(context, pkg.resources[n], data_dict['resources'][i])
+                plugin.before_update(context, model_dictize.resource_dictize(pkg.resources[n], context), data_dict['resources'][i])
 
             if resource_id in new_resource_ids:
                 # before_create takes (context, posted_resource)
-                log.info("    ")
-                log.info("DEBUGGING::package_update")
-                log.info("resource.before_create -- %s", resource_id)
-                log.info("    ")
                 plugin.before_create(context, data_dict['resources'][i])
 
     data, errors = lib_plugins.plugin_validate(
@@ -432,30 +421,18 @@ def package_update(context, data_dict):
 
         for resource_id in deleted_resource_ids:
             # after_delete takes (context, current_resources)
-            log.info("    ")
-            log.info("DEBUGGING::package_update")
-            log.info("resource.after_delete -- %s", resource_id)
-            log.info("    ")
             plugin.after_delete(context, pkg.resources)
 
         for created_or_updated_resource in pkg.resources:
 
-            resource = model.Resource.get(created_or_updated_resource.id)
+            resource = model_dictize.resource_dictize(model.Resource.get(created_or_updated_resource.id), context)
 
             if resource_id in updated_resource_ids:
                 # before_update takes (context, updated_resource)
-                log.info("    ")
-                log.info("DEBUGGING::package_update")
-                log.info("resource.after_update -- %s", resource_id)
-                log.info("    ")
                 plugin.after_update(context, resource)
 
             if resource_id in new_resource_ids:
                 # before_create takes (context, created_resource)
-                log.info("    ")
-                log.info("DEBUGGING::package_update")
-                log.info("resource.after_create -- %s", resource_id)
-                log.info("    ")
                 plugin.after_create(context, resource)
 
     # Create activity
