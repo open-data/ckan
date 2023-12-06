@@ -208,6 +208,14 @@ def package_create(context, data_dict):
 
         item.after_create(context, data)
 
+    # run Resources through after_create
+    for plugin in plugins.PluginImplementations(plugins.IResourceController):
+
+        for created_resource in pkg.resources:
+            resource = _get_action('resource_show')(context, {'id': created_resource.id})
+            # before_create takes (context, created_resource)
+            plugin.after_create(context, resource)
+
     # Make sure that a user provided schema is not used in create_views
     # and on package_show
     context.pop('schema', None)
@@ -296,9 +304,6 @@ def resource_create(context, data_dict):
 
     _check_access('resource_create', context, data_dict)
 
-    for plugin in plugins.PluginImplementations(plugins.IResourceController):
-        plugin.before_create(context, data_dict)
-
     if 'resources' not in pkg_dict:
         pkg_dict['resources'] = []
 
@@ -345,9 +350,6 @@ def resource_create(context, data_dict):
         {'resource': resource,
          'package': updated_pkg_dict
          })
-
-    for plugin in plugins.PluginImplementations(plugins.IResourceController):
-        plugin.after_create(context, resource)
 
     return resource
 

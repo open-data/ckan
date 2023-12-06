@@ -98,9 +98,6 @@ def resource_update(context, data_dict):
             'datastore_active' not in data_dict):
         data_dict['datastore_active'] = resource.extras['datastore_active']
 
-    for plugin in plugins.PluginImplementations(plugins.IResourceController):
-        plugin.before_update(context, pkg_dict['resources'][n], data_dict)
-
     pkg_dict['resources'][n] = data_dict
 
     try:
@@ -120,9 +117,6 @@ def resource_update(context, data_dict):
              'ignore_auth': True},
             {'package': updated_pkg_dict,
              'resource': resource})
-
-    for plugin in plugins.PluginImplementations(plugins.IResourceController):
-        plugin.after_update(context, resource)
 
     return resource
 
@@ -324,6 +318,77 @@ def package_update(context, data_dict):
 
         resource_uploads.append(upload)
 
+    # setup resources
+    current_resource_ids = []
+    for current_resource in pkg.resources:
+        current_resource_ids.append(current_resource.id)
+
+    posted_resource_ids = []
+    for posted_resource in data_dict.get('resources', []):
+        posted_resource_ids.append(posted_resource.get('id'))
+
+    deleted_resource_ids = []
+    for resource_id in current_resource_ids:
+        if resource_id not in posted_resource_ids:  # the resource is going to be deleted
+            deleted_resource_ids.append(resource_id)
+
+    updated_resource_ids = []
+    new_resource_ids = []
+    for resource_id in posted_resource_ids:
+        resource = model.Resource.get(resource_id)
+        if resource:  # the resource exists in the DB
+            updated_resource_ids.append(resource_id)
+        else:  # the resource is going to be created via package_dict_save
+            new_resource_ids.append(resource_id)
+
+    # run Resources through before_update or before_create or before_delete plugin hooks
+    for plugin in plugins.PluginImplementations(plugins.IResourceController):
+
+        for resource_id in deleted_resource_ids:
+            # before_delete takes (context, dict:{"id": <str>}, current_resources)
+            log.info("    ")
+            log.info("DEBUGGING::package_update")
+            log.info("resource.before_delete -- %s", resource_id)
+            log.info("    ")
+            plugin.before_delete(context, {"id": resource_id}, pkg.resources)
+
+        for i, posted_resource in enumerate(data_dict.get('resources', [])):
+
+            resource_id = posted_resource.get('id')
+
+            if resource_id in updated_resource_ids:
+                resource = model.Resource.get(resource_id)
+                for n, r in enumerate(pkg.resources):
+                    if r.id == resource_id:
+                        break
+                else:
+                    log.error('Could not find resource %s after all', resource_id)
+                    raise NotFound(_('Resource was not found.'))
+
+                # Persist the datastore_active extra if already present and not provided
+                if ('datastore_active' in resource.extras and
+                        'datastore_active' not in data_dict):
+                    data_dict['datastore_active'] = resource.extras['datastore_active']
+
+                # before_update takes (context, current_resource, posted_resource)
+                log.info("    ")
+                log.info("DEBUGGING::package_update")
+                log.info("resource.before_update -- %s", resource_id)
+                log.info("    ")
+                log.info(n)
+                log.info("    ")
+                log.info(pkg.resources[n])
+                log.info("    ")
+                plugin.before_update(context, pkg.resources[n], data_dict['resources'][i])
+
+            if resource_id in new_resource_ids:
+                # before_create takes (context, posted_resource)
+                log.info("    ")
+                log.info("DEBUGGING::package_update")
+                log.info("resource.before_create -- %s", resource_id)
+                log.info("    ")
+                plugin.before_create(context, data_dict['resources'][i])
+
     data, errors = lib_plugins.plugin_validate(
         package_plugin, context, data_dict, schema, 'package_update')
     log.debug('package_update validate_errs=%r user=%s package=%s data=%r',
@@ -361,6 +426,37 @@ def package_update(context, data_dict):
         item.edit(pkg)
 
         item.after_update(context, data)
+
+    # run Resources through after_update or after_create or after_delete plugin hooks
+    for plugin in plugins.PluginImplementations(plugins.IResourceController):
+
+        for resource_id in deleted_resource_ids:
+            # after_delete takes (context, current_resources)
+            log.info("    ")
+            log.info("DEBUGGING::package_update")
+            log.info("resource.after_delete -- %s", resource_id)
+            log.info("    ")
+            plugin.after_delete(context, pkg.resources)
+
+        for created_or_updated_resource in pkg.resources:
+
+            resource = model.Resource.get(created_or_updated_resource.id)
+
+            if resource_id in updated_resource_ids:
+                # before_update takes (context, updated_resource)
+                log.info("    ")
+                log.info("DEBUGGING::package_update")
+                log.info("resource.after_update -- %s", resource_id)
+                log.info("    ")
+                plugin.after_update(context, resource)
+
+            if resource_id in new_resource_ids:
+                # before_create takes (context, created_resource)
+                log.info("    ")
+                log.info("DEBUGGING::package_update")
+                log.info("resource.after_create -- %s", resource_id)
+                log.info("    ")
+                plugin.after_create(context, resource)
 
     # Create activity
     if not pkg.private or asbool(config.get('ckan.record_private_activity', False)):
