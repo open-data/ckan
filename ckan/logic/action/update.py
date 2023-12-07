@@ -102,6 +102,7 @@ def resource_update(context, data_dict):
 
     try:
         context['use_cache'] = False
+        context['_updating_resource'] = id
         updated_pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
         try:
@@ -265,10 +266,9 @@ def package_update(context, data_dict):
     :rtype: dictionary
 
     '''
-    #TODO: add data_dict or context key,value for resource id from reasource action methods:
-    #   resource_update(resource_patch inclusive) resource_create resource_delete
     model = context['model']
     session = context['session']
+    updating_resource_id = context.pop('_updating_resource', None)
     name_or_id = data_dict.get('id') or data_dict.get('name')
     if name_or_id is None:
         raise ValidationError({'id': _('Missing value')})
@@ -320,9 +320,6 @@ def package_update(context, data_dict):
 
         resource_uploads.append(upload)
 
-    #TODO: pop new data_dict or context key,value and use the resource_id here if exists
-    # otherwise do the setup resources
-
     # setup resources
     current_resource_ids = []
     for current_resource in pkg.resources:
@@ -330,7 +327,7 @@ def package_update(context, data_dict):
 
     posted_resource_ids = []
     for posted_resource in data_dict.get('resources', []):
-        posted_resource_ids.append(posted_resource.get('id'))
+        posted_resource_ids.append(_get_or_bust(posted_resource, "id"))
 
     deleted_resource_ids = []
     for resource_id in current_resource_ids:
@@ -346,6 +343,9 @@ def package_update(context, data_dict):
         else:  # the resource is going to be created via package_dict_save
             new_resource_ids.append(resource_id)
 
+    if updating_resource_id:
+        updated_resource_ids = [updating_resource_id]
+
     # run Resources through before_update or before_create or before_delete plugin hooks
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
 
@@ -358,9 +358,9 @@ def package_update(context, data_dict):
             resource_id = posted_resource.get('id')
 
             if resource_id in updated_resource_ids:
-                resource = model.Resource.get(resource_id)
                 for n, r in enumerate(pkg.resources):
                     if r.id == resource_id:
+                        resource = pkg.resources[n]
                         break
                 else:
                     log.error('Could not find resource %s after all', resource_id)
@@ -368,8 +368,8 @@ def package_update(context, data_dict):
 
                 # Persist the datastore_active extra if already present and not provided
                 if ('datastore_active' in resource.extras and
-                        'datastore_active' not in data_dict):
-                    data_dict['datastore_active'] = resource.extras['datastore_active']
+                        'datastore_active' not in data_dict['resources'][i]):
+                    data_dict['resources'][i]['datastore_active'] = resource.extras['datastore_active']
 
                 # before_update takes (context, current_resource, posted_resource)
                 plugin.before_update(context, model_dictize.resource_dictize(pkg.resources[n], context), data_dict['resources'][i])
@@ -423,9 +423,9 @@ def package_update(context, data_dict):
             # after_delete takes (context, current_resources)
             plugin.after_delete(context, pkg.resources)
 
-        for created_or_updated_resource in pkg.resources:
+        for i, created_or_updated_resource in enumerate(pkg.resources):
 
-            resource = model_dictize.resource_dictize(model.Resource.get(created_or_updated_resource.id), context)
+            resource = model_dictize.resource_dictize(pkg.resources[i], context)
 
             if resource_id in updated_resource_ids:
                 # before_update takes (context, updated_resource)

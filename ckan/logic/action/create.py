@@ -171,6 +171,14 @@ def package_create(context, data_dict):
                 # to ensure they still work
                 package_plugin.check_data_dict(data_dict)
 
+     # run Resources through before_create plugin hook
+    for plugin in plugins.PluginImplementations(plugins.IResourceController):
+
+        for i, posted_resource in enumerate(data_dict.get('resources', [])):
+
+            # before_create takes (context, posted_resource)
+            plugin.before_create(context, data_dict['resources'][i])
+
     data, errors = lib_plugins.plugin_validate(
         package_plugin, context, data_dict, schema, 'package_create')
     log.debug('package_create validate_errs=%r user=%s package=%s data=%r',
@@ -208,13 +216,12 @@ def package_create(context, data_dict):
 
         item.after_create(context, data)
 
-    # run Resources through after_create
+    # run Resources through after_create plugin hook
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
 
         for created_resource in pkg.resources:
-            resource = _get_action('resource_show')(context, {'id': created_resource.id})
             # before_create takes (context, created_resource)
-            plugin.after_create(context, resource)
+            plugin.after_create(context, model_dictize.resource_dictize(model.Resource.get(created_resource.id), context))
 
     # Make sure that a user provided schema is not used in create_views
     # and on package_show
