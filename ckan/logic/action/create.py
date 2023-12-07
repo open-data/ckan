@@ -171,13 +171,21 @@ def package_create(context, data_dict):
                 # to ensure they still work
                 package_plugin.check_data_dict(data_dict)
 
-     # run Resources through before_create plugin hook
-    for plugin in plugins.PluginImplementations(plugins.IResourceController):
+    for new_resource in data_dict.get('resources', []):
 
-        for i, posted_resource in enumerate(data_dict.get('resources', [])):
+        upload = uploader.get_resource_uploader(new_resource)
 
-            # before_create takes (context, posted_resource)
-            plugin.before_create(context, data_dict['resources'][i])
+        if 'mimetype' not in new_resource:
+            if hasattr(upload, 'mimetype'):
+                new_resource['mimetype'] = upload.mimetype
+
+        if 'size' not in new_resource:
+            if hasattr(upload, 'filesize'):
+                new_resource['size'] = upload.filesize
+
+        for plugin in plugins.PluginImplementations(plugins.IResourceController):
+
+            plugin.before_create(context, new_resource)
 
     data, errors = lib_plugins.plugin_validate(
         package_plugin, context, data_dict, schema, 'package_create')
@@ -216,13 +224,6 @@ def package_create(context, data_dict):
 
         item.after_create(context, data)
 
-    # run Resources through after_create plugin hook
-    for plugin in plugins.PluginImplementations(plugins.IResourceController):
-
-        for created_resource in pkg.resources:
-            # before_create takes (context, created_resource)
-            plugin.after_create(context, model_dictize.resource_dictize(model.Resource.get(created_resource.id), context))
-
     # Make sure that a user provided schema is not used in create_views
     # and on package_show
     context.pop('schema', None)
@@ -233,6 +234,13 @@ def package_create(context, data_dict):
             {'model': context['model'], 'user': context['user'],
              'ignore_auth': True},
             {'package': data})
+
+    for plugin in plugins.PluginImplementations(plugins.IResourceController):
+
+        for new_resource in pkg.resources:
+            plugin.after_create(context,
+                                model_dictize.resource_dictize(
+                                    new_resource ,context))
 
     # Create activity
     if not pkg.private or asbool(config.get('ckan.record_private_activity', False)):
@@ -298,7 +306,6 @@ def resource_create(context, data_dict):
 
     '''
     model = context['model']
-    user = context['user']
 
     package_id = _get_or_bust(data_dict, 'package_id')
     if not data_dict.get('url'):
@@ -313,16 +320,6 @@ def resource_create(context, data_dict):
 
     if 'resources' not in pkg_dict:
         pkg_dict['resources'] = []
-
-    upload = uploader.get_resource_uploader(data_dict)
-
-    if 'mimetype' not in data_dict:
-        if hasattr(upload, 'mimetype'):
-            data_dict['mimetype'] = upload.mimetype
-
-    if 'size' not in data_dict:
-        if hasattr(upload, 'filesize'):
-            data_dict['size'] = upload.filesize
 
     pkg_dict['resources'].append(data_dict)
 
@@ -339,24 +336,11 @@ def resource_create(context, data_dict):
 
     # Get out resource_id resource from model as it will not appear in
     # package_show until after commit
-    upload.upload(context['package'].resources[-1].id,
-                  uploader.get_max_resource_size())
-
     model.repo.commit()
 
     #  Run package show again to get out actual last_resource
     updated_pkg_dict = _get_action('package_show')(context, {'id': package_id})
     resource = updated_pkg_dict['resources'][-1]
-
-    #  Add the default views to the new resource
-    logic.get_action('resource_create_default_resource_views')(
-        {'model': context['model'],
-         'user': context['user'],
-         'ignore_auth': True
-         },
-        {'resource': resource,
-         'package': updated_pkg_dict
-         })
 
     return resource
 
