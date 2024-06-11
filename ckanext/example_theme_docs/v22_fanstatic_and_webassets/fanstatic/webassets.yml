@@ -1,4 +1,0 @@
-scripts:
-  output: example_theme/example_theme.js
-  contents:
-    - example_theme.js

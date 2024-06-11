@@ -1,8 +1,13 @@
 # encoding: utf-8
+from __future__ import annotations
 
 import re
 import logging
-import six
+from typing import Any, NoReturn, Optional, Union, cast, Dict
+from pyparsing import (
+    Word, QuotedString, Suppress, OneOrMore, Group, alphanums
+)
+from pyparsing.exceptions import ParseException
 import pysolr
 
 from ckan.common import asbool
@@ -15,16 +20,17 @@ from ckan.common import config
 from ckan.lib.search.common import (
     make_connection, SearchError, SearchQueryError
 )
+from ckan.types import Context
+
 
 log = logging.getLogger(__name__)
 
-_open_licenses = None
+_open_licenses: Optional[list[str]] = None
 
 VALID_SOLR_PARAMETERS = set([
     'q', 'fl', 'fq', 'rows', 'sort', 'start', 'wt', 'qf', 'bf', 'boost',
     'facet', 'facet.mincount', 'facet.limit', 'facet.field',
-    'extras', 'fq_list', 'tie', 'defType', 'mm', 'df',
-    'facet.range.end', 'facet.range', 'facet.range.gap', 'facet.range.start'
+    'extras', 'fq_list', 'tie', 'defType', 'mm', 'df'
 ])
 
 # for (solr) package searches, this specifies the fields that are searched
@@ -33,11 +39,13 @@ QUERY_FIELDS = "name^4 title^4 tags^2 groups^2 text"
 
 solr_regex = re.compile(r'([\\+\-&|!(){}\[\]^"~*?:])')
 
-def escape_legacy_argument(val):
+def escape_legacy_argument(val: str) -> str:
     # escape special chars \+-&|!(){}[]^"~*?:
     return solr_regex.sub(r'\\\1', val)
 
-def convert_legacy_parameters_to_solr(legacy_params):
+
+def convert_legacy_parameters_to_solr(
+        legacy_params: dict[str, Any]) -> dict[str, Any]:
     '''API v1 and v2 allowed search params that the SOLR syntax does not
     support, so use this function to convert those to SOLR syntax.
     See tests for examples.
@@ -47,13 +55,13 @@ def convert_legacy_parameters_to_solr(legacy_params):
     options = QueryOptions(**legacy_params)
     options.validate()
     solr_params = legacy_params.copy()
-    solr_q_list = []
+    solr_q_list: list[str] = []
     if solr_params.get('q'):
         solr_q_list.append(solr_params['q'].replace('+', ' '))
     non_solr_params = set(legacy_params.keys()) - VALID_SOLR_PARAMETERS
     for search_key in non_solr_params:
         value_obj = legacy_params[search_key]
-        value = value_obj.replace('+', ' ') if isinstance(value_obj, six.string_types) else value_obj
+        value = value_obj.replace('+', ' ') if isinstance(value_obj, str) else value_obj
         if search_key == 'all_fields':
             if value:
                 solr_params['fl'] = '*'
@@ -66,7 +74,7 @@ def convert_legacy_parameters_to_solr(legacy_params):
         elif search_key == 'tags':
             if isinstance(value_obj, list):
                 tag_list = value_obj
-            elif isinstance(value_obj, six.string_types):
+            elif isinstance(value_obj, str):
                 tag_list = [value_obj]
             else:
                 raise SearchQueryError('Was expecting either a string or JSON list for the tags parameter: %r' % value)
@@ -85,7 +93,52 @@ def convert_legacy_parameters_to_solr(legacy_params):
     return solr_params
 
 
-class QueryOptions(dict):
+def _parse_local_params(local_params: str) -> list[Union[str, list[str]]]:
+    """
+    Parse a local parameters section as return it as a list, eg:
+
+    {!dismax qf=myfield v='some value'} -> ['dismax', ['qf', 'myfield'], ['v', 'some value']]
+
+
+    {!type=dismax qf=myfield v='some value'} -> [['type', 'dismax'], ['qf', 'myfield'], ['v', 'some value']]
+
+    """
+    key = Word(alphanums + "_")
+    value = QuotedString('"') | QuotedString("'") | Word(alphanums + "_$")
+    pair = Group(key + Suppress("=") + value)
+    expression = Suppress("{!") + OneOrMore(pair | key) + Suppress("}")
+
+    return expression.parse_string(local_params).as_list()
+
+
+def _get_local_query_parser(q: str) -> str:
+    """
+    Given a Solr parameter, extract any custom query parsers used in the
+    local parameters, .e.g. q={!child ...}...
+    """
+    qp_type = ""
+    q = q.strip()
+    if not q.startswith("{!"):
+        return qp_type
+
+    try:
+        local_params = q[:q.rindex("}") + 1]
+        parts = _parse_local_params(local_params)
+    except (ParseException, ValueError) as e:
+        raise SearchQueryError(f"Could not parse incoming local parameters: {e}")
+
+    if isinstance(parts[0], str):
+        # Most common form of defining the query parser type e.g. {!knn ...}
+        qp_type = parts[0]
+    else:
+        # Alternative syntax e.g. {!type=knn ...}
+        type_part = [p for p in parts if p[0] == "type"]
+        if type_part:
+            qp_type = type_part[0][1]
+    return qp_type
+
+
+class QueryOptions(Dict[str, Any]):
     """
     Options specify aspects of the search query which are only tangentially related
     to the query terms (such as limits, etc.).
@@ -97,7 +150,15 @@ class QueryOptions(dict):
     INTEGER_OPTIONS = ['offset', 'limit']
     UNSUPPORTED_OPTIONS = ['filter_by_downloadable', 'filter_by_openness']
 
-    def __init__(self, **kwargs):
+    limit: int
+    offset: int
+    order_by: str
+    return_objects: bool
+    ref_entity_with_attr: str
+    all_fields: bool
+    search_tags: bool
+
+    def __init__(self, **kwargs: Any) -> None:
         from ckan.lib.search import DEFAULT_OPTIONS
 
         # set values according to the defaults
@@ -107,7 +168,7 @@ class QueryOptions(dict):
 
         super(QueryOptions, self).__init__(**kwargs)
 
-    def validate(self):
+    def validate(self) -> None:
         for key, value in self.items():
             if key in self.BOOLEAN_OPTIONS:
                 try:
@@ -120,13 +181,13 @@ class QueryOptions(dict):
                 except ValueError:
                     raise SearchQueryError('Value for search option %r must be an integer but received %r' % (key, value))
             elif key in self.UNSUPPORTED_OPTIONS:
-                    raise SearchQueryError('Search option %r is not supported' % key)
+                raise SearchQueryError('Search option %r is not supported' % key)
             self[key] = value
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return self.get(name)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any):
         self[name] = value
 
 
@@ -135,13 +196,16 @@ class SearchQuery(object):
     A query is ... when you ask the search engine things. SearchQuery is intended
     to be used for only one query, i.e. it sets state. Definitely not thread-safe.
     """
+    count: int
+    results: list[Any]
+    facets: dict[str, Any]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.results = []
         self.count = 0
 
     @property
-    def open_licenses(self):
+    def open_licenses(self) -> list[str]:
         # this isn't exactly the very best place to put these, but they stay
         # there persistently.
         # TODO: figure out if they change during run-time.
@@ -153,13 +217,19 @@ class SearchQuery(object):
                     _open_licenses.append(license.id)
         return _open_licenses
 
-    def get_all_entity_ids(self, max_results=1000):
+    def get_all_entity_ids(self, max_results: int=1000) -> list[str]:
         """
         Return a list of the IDs of all indexed packages.
         """
         return []
 
-    def run(self, query=None, terms=[], fields={}, facet_by=[], options=None, **kwargs):
+    def run(self,
+            query: Optional[Union[str, dict[str, Any]]] = None,
+            terms: Optional[list[str]] = None,
+            fields: Optional[dict[str, Any]] = None,
+            facet_by: Optional[list[str]] = None,
+            options: Optional[QueryOptions] = None,
+            **kwargs: Any) -> NoReturn:
         raise SearchError("SearchQuery.run() not implemented!")
 
     # convenience, allows to query(..)
@@ -168,7 +238,11 @@ class SearchQuery(object):
 
 class TagSearchQuery(SearchQuery):
     """Search for tags."""
-    def run(self, query=None, fields=None, options=None, **kwargs):
+    def run(self,
+            query: Optional[Union[str, list[str]]] = None,
+            fields: Optional[dict[str, Any]] = None,
+            options: Optional[QueryOptions] = None,
+            **kwargs: Any) -> dict[str, Any]:
         query = [] if query is None else query
         fields = {} if fields is None else fields
 
@@ -177,15 +251,15 @@ class TagSearchQuery(SearchQuery):
         else:
             options.update(kwargs)
 
-        if isinstance(query, six.string_types):
+        if isinstance(query, str):
             query = [query]
 
-        query = query[:] # don't alter caller's query list.
+        query = query[:]  # don't alter caller's query list.
         for field, value in fields.items():
             if field in ('tag', 'tags'):
                 query.append(value)
 
-        context = {'model': model, 'session': model.Session}
+        context = cast(Context, {'model': model, 'session': model.Session})
         data_dict = {
             'query': query,
             'offset': options.get('offset'),
@@ -208,27 +282,31 @@ class TagSearchQuery(SearchQuery):
 
 class ResourceSearchQuery(SearchQuery):
     """Search for resources."""
-    def run(self, fields={}, options=None, **kwargs):
+    def run(self,
+            fields: Optional[dict[str, Any]] = None,
+            options: Optional[QueryOptions] = None,
+            **kwargs: Any) -> dict[str, Any]:
         if options is None:
             options = QueryOptions(**kwargs)
         else:
             options.update(kwargs)
 
-        context = {
+        context = cast(Context,{
             'model': model,
             'session': model.Session,
             'search_query': True,
-        }
+        })
 
         # Transform fields into structure required by the resource_search
         # action.
-        query = []
+        query: list[str] = []
 
-        for field, terms in fields.items():
-            if isinstance(terms, six.string_types):
-                terms = terms.split()
-            for term in terms:
-                query.append(':'.join([field, term]))
+        if fields:
+            for field, terms in fields.items():
+                if isinstance(terms, str):
+                    terms = terms.split()
+                for term in terms:
+                    query.append(':'.join([field, term]))
 
         data_dict = {
             'query': query,
@@ -252,7 +330,7 @@ class ResourceSearchQuery(SearchQuery):
 
 
 class PackageSearchQuery(SearchQuery):
-    def get_all_entity_ids(self, max_results=1000):
+    def get_all_entity_ids(self, max_results: int = 1000) -> list[str]:
         """
         Return a list of the IDs of all indexed packages.
         """
@@ -264,35 +342,32 @@ class PackageSearchQuery(SearchQuery):
         data = conn.search(query, fq=fq, rows=max_results, fl='id')
         return [r.get('id') for r in data.docs]
 
-    def get_index(self,reference):
+    def get_index(self, reference: str) -> dict[str, Any]:
         query = {
             'rows': 1,
-            'q': 'name:"%s" OR id:"%s"' % (reference,reference),
+            'q': 'name:"%s" OR id:"%s"' % (reference, reference),
             'wt': 'json',
-            'fq': 'site_id:"%s" ' % config.get('ckan.site_id') + '+entity_type:package'
-        }
-
-        try:
-            if query['q'].startswith('{!'):
-                raise SearchError('Local parameters are not supported.')
-        except KeyError:
-            pass
+            'fq': 'site_id:"%s" ' % config.get('ckan.site_id') + '+entity_type:package'}
 
         conn = make_connection(decode_dates=False)
         log.debug('Package query: %r' % query)
         try:
             solr_response = conn.search(**query)
         except pysolr.SolrError as e:
-            raise SearchError('SOLR returned an error running query: %r Error: %r' %
-                              (query, e))
+            raise SearchError(
+                'SOLR returned an error running query: %r Error: %r' %
+                (query, e))
 
         if solr_response.hits == 0:
-            raise SearchError('Dataset not found in the search index: %s' % reference)
+            raise SearchError('Dataset not found in the search index: %s' %
+                              reference)
         else:
-            return solr_response.docs[0]
+            return cast("list[dict[str, Any]]", solr_response.docs)[0]
 
-
-    def run(self, query, permission_labels=None, **kwargs):
+    def run(self,
+            query: dict[str, Any],
+            permission_labels: Optional[list[str]] = None,
+            **kwargs: Any) -> dict[str, Any]:
         '''
         Performs a dataset search using the given query.
 
@@ -338,7 +413,7 @@ class PackageSearchQuery(SearchQuery):
         fq.append('+site_id:%s' % solr_literal(config.get('ckan.site_id')))
 
         # filter for package status
-        if not '+state:' in query.get('fq', ''):
+        if not any('+state:' in _item for _item in fq):
             fq.append('+state:active')
 
         # only return things we should be able to see
@@ -349,7 +424,7 @@ class PackageSearchQuery(SearchQuery):
 
         # faceting
         query['facet'] = query.get('facet', 'true')
-        query['facet.limit'] = query.get('facet.limit', config.get('search.facets.limit', '50'))
+        query['facet.limit'] = query.get('facet.limit', config.get('search.facets.limit'))
         query['facet.mincount'] = query.get('facet.mincount', 1)
 
         # return the package ID and search scores
@@ -371,11 +446,18 @@ class PackageSearchQuery(SearchQuery):
         query.setdefault("df", "text")
         query.setdefault("q.op", "AND")
 
-        try:
-            if query['q'].startswith('{!'):
-                raise SearchError('Local parameters are not supported.')
-        except KeyError:
-            pass
+        def _check_query_parser(param: str, value: Any):
+            if isinstance(value, str) and value.strip().startswith("{!"):
+                if not _get_local_query_parser(value) in config["ckan.search.solr_allowed_query_parsers"]:
+                   raise SearchError(f"Local parameters are not supported in param '{param}'.")
+
+        for param in query.keys():
+            if isinstance(query[param], str):
+                _check_query_parser(param, query[param])
+            elif isinstance(query[param], list):
+                for item in query[param]:
+                    _check_query_parser(param, item)
+
 
         conn = make_connection(decode_dates=False)
         log.debug('Package query: %r' % query)
@@ -394,7 +476,7 @@ class PackageSearchQuery(SearchQuery):
             raise SearchError('SOLR returned an error running query: %r Error: %r' %
                               (query, e))
         self.count = solr_response.hits
-        self.results = solr_response.docs
+        self.results = cast("list[Any]", solr_response.docs)
 
 
         # #1683 Filter out the last row that is sometimes out of order
@@ -412,22 +494,20 @@ class PackageSearchQuery(SearchQuery):
 
         # if just fetching the id or name, return a list instead of a dict
         if query.get('fl') in ['id', 'name']:
-            self.results = [r.get(query.get('fl')) for r in self.results]
+            self.results = [r.get(query['fl']) for r in self.results]
 
         # get facets and convert facets list to a dict
         self.facets = solr_response.facets.get('facet_fields', {})
-        for field, values in six.iteritems(self.facets):
+        for field, values in self.facets.items():
             self.facets[field] = dict(zip(values[0::2], values[1::2]))
-
-        self.facet_ranges = solr_response.facets.get('facet_ranges', {})
 
         return {'results': self.results, 'count': self.count}
 
 
-def solr_literal(t):
+def solr_literal(t: str) -> str:
     '''
     return a safe literal string for a solr query. Instead of escaping
-    each of + - && || ! ( ) { } [ ] ^ " ~ * ? : \ / we're just dropping
+    each of + - && || ! ( ) { } [ ] ^ " ~ * ? : \\ / we're just dropping
     double quotes -- this method currently only used by tokens like site_id
     and permission labels.
     '''

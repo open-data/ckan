@@ -88,6 +88,7 @@
   <form id="filtered-datatables-download" method="POST" action="{{ h.url_for(
                                                                   'datatablesview.filtered_download',
                                                                   resource_view_id=resource_view.id) -}}">
+    {{ h.csrf_input() }}
     <input type="hidden" name="filters" value="{{ request.args.get('filters', '')|e -}}" />
   </form>
 </div>
@@ -106,7 +107,10 @@
   {{- _('Data last updated') }}: {{ local_friendly_datetime(res.last_modified) }}&#10;
   {{- _('Metadata last updated') }}: {{ local_friendly_datetime(res.metadata_modified) }}&#10;
   {{- _('Created') }}: {{ local_friendly_datetime(res.created) }}&#10;
-  {{- res.format or res.mimetype_inner or res.mimetype or _('unknown') }} {% if 'size' in res %}( {{ h.SI_number_span(res.size)|striptags }} ){% endif %}&#10;"
+  {{- res.format or res.mimetype_inner or res.mimetype or _('unknown') -}}&nbsp;
+  {%- if res.size|int != 0 -%}
+   ( {{ h.SI_number_span(res.size)|striptags }} )
+  {%- endif -%}
 </div>
 {%- endblock -%}
 {%- block styles -%}

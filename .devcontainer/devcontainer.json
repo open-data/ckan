@@ -40,7 +40,7 @@
 		"mtxr.sqltools",
 		"mtxr.sqltools-driver-pg"
 	],
-	
+
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [5000, 5432, 8983, 6379, 8800],
 
@@ -53,7 +53,7 @@
      },
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"onCreateCommand": "pip install --user --upgrade -r requirement-setuptools.txt && pip install --user -r requirements.txt && pip install --user -r dev-requirements.txt",
+	"onCreateCommand": "pip install --user -r requirements.txt && pip install --user -r dev-requirements.txt",
 	"postCreateCommand": "./.devcontainer/setup.sh",
 	"postAttachCommand": "ckan run",
 

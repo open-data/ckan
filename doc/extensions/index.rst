@@ -40,4 +40,4 @@ features by developing your own CKAN extensions.
    validators
    translating-extensions
    flask-migration
-   custom-data-dictionary
+   signals

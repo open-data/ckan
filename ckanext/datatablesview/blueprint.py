@@ -1,10 +1,11 @@
 # encoding: utf-8
+from __future__ import annotations
 
-from six.moves.urllib.parse import urlencode
-from typing import Any, List
+from typing import Any
+from urllib.parse import urlencode
 
 from flask import Blueprint
-from six import text_type
+
 
 from ckan.common import json
 from ckan.lib.helpers import decode_view_request_filters
@@ -14,8 +15,8 @@ import re
 datatablesview = Blueprint(u'datatablesview', __name__)
 
 
-def merge_filters(view_filters,
-                  user_filters):
+def merge_filters(view_filters: dict[str, Any],
+                  user_filters: dict[str, Any] | None) -> dict[str, Any]:
     u'''
     view filters are built as part of the view, user filters
     are selected by the user interacting with the view. Any filters
@@ -43,14 +44,14 @@ def merge_filters(view_filters,
     return filters
 
 
-def ajax(resource_view_id):
+def ajax(resource_view_id: str):
     resource_view = get_action(u'resource_view_show'
-                               )(None, {
+                               )({}, {
                                    u'id': resource_view_id
                                })
 
     draw = int(request.form[u'draw'])
-    search_text = text_type(request.form[u'search[value]'])
+    search_text = str(request.form[u'search[value]'])
     offset = int(request.form[u'start'])
     limit = int(request.form[u'length'])
     view_filters = resource_view.get(u'filters', {})
@@ -59,7 +60,7 @@ def ajax(resource_view_id):
 
     datastore_search = get_action(u'datastore_search')
     unfiltered_response = datastore_search(
-        None, {
+        {}, {
             u"resource_id": resource_view[u'resource_id'],
             u"limit": 0,
             u"filters": view_filters,
@@ -76,9 +77,6 @@ def ajax(resource_view_id):
         if u'order[%d][column]' % i not in request.form:
             break
         sort_by_num = int(request.form[u'order[%d][column]' % i])
-        # workaround for _id not in show columns but forced on display:
-        if '_id' not in cols:
-            sort_by_num -= 1
         sort_order = (
             u'desc' if request.form[u'order[%d][dir]' %
                                     i] == u'desc' else u'asc'
@@ -91,9 +89,9 @@ def ajax(resource_view_id):
     while True:
         if u'columns[%d][search][value]' % i not in request.form:
             break
-        v = text_type(request.form[u'columns[%d][search][value]' % i])
+        v = str(request.form[u'columns[%d][search][value]' % i])
         if v:
-            k = text_type(request.form[u'columns[%d][name]' % i])
+            k = str(request.form[u'columns[%d][name]' % i])
             # replace non-alphanumeric characters with FTS wildcard (_)
             v = re.sub(r'[^0-9a-zA-Z\-]+', '_', v)
             # append ':*' so we can do partial FTS searches
@@ -108,7 +106,7 @@ def ajax(resource_view_id):
 
     try:
         response = datastore_search(
-            None, {
+            {}, {
                 u"q": search_text,
                 u"resource_id": resource_view[u'resource_id'],
                 u'plain': False,
@@ -124,13 +122,11 @@ def ajax(resource_view_id):
         dtdata = {u'error': query_error}
     else:
         data = []
-        null_label = h.datatablesview_null_label()
         for row in response[u'records']:
-            record = {colname: text_type(null_label if row.get(colname, u'')
-                                   is None else row.get(colname, u''))
+            record = {colname: str(row.get(colname, u''))
                       for colname in cols}
             # the DT_RowId is used in DT to set an element id for each record
-            record['DT_RowId'] = 'row' + text_type(row.get(u'_id', u''))
+            record['DT_RowId'] = 'row' + str(row.get(u'_id', u''))
             data.append(record)
 
         dtdata = {
@@ -143,21 +139,21 @@ def ajax(resource_view_id):
     return json.dumps(dtdata)
 
 
-def filtered_download(resource_view_id):
+def filtered_download(resource_view_id: str):
     params = json.loads(request.form[u'params'])
     resource_view = get_action(u'resource_view_show'
-                               )(None, {
+                               )({}, {
                                    u'id': resource_view_id
                                })
 
-    search_text = text_type(params[u'search'][u'value'])
+    search_text = str(params[u'search'][u'value'])
     view_filters = resource_view.get(u'filters', {})
     user_filters = decode_view_request_filters()
     filters = merge_filters(view_filters, user_filters)
 
     datastore_search = get_action(u'datastore_search')
     unfiltered_response = datastore_search(
-        None, {
+        {}, {
             u"resource_id": resource_view[u'resource_id'],
             u"limit": 0,
             u"filters": view_filters,

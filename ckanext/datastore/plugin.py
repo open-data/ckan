@@ -1,13 +1,15 @@
 # encoding: utf-8
+from __future__ import annotations
 
 import logging
-
-from six import string_types
+import os
+from typing import Any, Callable, Union, cast
 
 import ckan.plugins as p
-import ckan.logic as logic
-import ckan.model as model
 from ckan.model.core import State
+
+from ckan.types import Action, AuthFunction, Context
+from ckan.common import CKANConfig
 
 import ckanext.datastore.helpers as datastore_helpers
 import ckanext.datastore.logic.action as action
@@ -23,19 +25,22 @@ import ckanext.datastore.blueprint as view
 from ckanext.datastore.logic import validators
 
 log = logging.getLogger(__name__)
-_get_or_bust = logic.get_or_bust
 
 DEFAULT_FORMATS = []
 
-ValidationError = p.toolkit.ValidationError
+
+def sql_functions_allowlist_file():
+    return os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "allowed_functions.txt"
+    )
 
 
+@p.toolkit.blanket.config_declarations
 class DatastorePlugin(p.SingletonPlugin):
     p.implements(p.IConfigurable, inherit=True)
     p.implements(p.IConfigurer)
     p.implements(p.IActions)
     p.implements(p.IAuthFunctions)
-    p.implements(p.IRoutes, inherit=True)
     p.implements(p.IResourceController, inherit=True)
     p.implements(p.ITemplateHelpers)
     p.implements(p.IForkObserver, inherit=True)
@@ -46,8 +51,9 @@ class DatastorePlugin(p.SingletonPlugin):
 
     resource_show_action = None
 
-    def __new__(cls, *args, **kwargs):
-        idatastore_extensions = p.PluginImplementations(interfaces.IDatastore)
+    def __new__(cls: Any, *args: Any, **kwargs: Any) -> Any:
+        idatastore_extensions: Any = p.PluginImplementations(
+            interfaces.IDatastore)
         idatastore_extensions = idatastore_extensions.extensions()
 
         if idatastore_extensions and idatastore_extensions[0].__class__ != cls:
@@ -56,7 +62,8 @@ class DatastorePlugin(p.SingletonPlugin):
                    '"ckan.plugins" in your CKAN .ini file and try again.')
             raise DatastoreException(msg)
 
-        return super(cls, cls).__new__(cls, *args, **kwargs)
+        return cast("DatastorePlugin",
+                    super(cls, cls).__new__(cls, *args, **kwargs))
 
     # IDatastoreBackend
 
@@ -68,7 +75,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
     # IConfigurer
 
-    def update_config(self, config):
+    def update_config(self, config: CKANConfig):
         DatastoreBackend.register_backends()
         DatastoreBackend.set_active_backend(config)
 
@@ -80,14 +87,14 @@ class DatastorePlugin(p.SingletonPlugin):
 
     # IConfigurable
 
-    def configure(self, config):
+    def configure(self, config: CKANConfig):
         self.config = config
         self.backend.configure(config)
 
     # IActions
 
-    def get_actions(self):
-        actions = {
+    def get_actions(self) -> dict[str, Action]:
+        actions: dict[str, Action] = {
             'datastore_create': action.datastore_create,
             'datastore_upsert': action.datastore_upsert,
             'datastore_delete': action.datastore_delete,
@@ -107,7 +114,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
     # IAuthFunctions
 
-    def get_auth_functions(self):
+    def get_auth_functions(self) -> dict[str, AuthFunction]:
         return {
             'datastore_create': auth.datastore_create,
             'datastore_upsert': auth.datastore_upsert,
@@ -124,7 +131,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
     # IResourceController
 
-    def before_show(self, resource_dict):
+    def before_resource_show(self, resource_dict: dict[str, Any]):
         # Modify the resource url of datastore resources so that
         # they link to the datastore dumps.
         if resource_dict.get('url_type') == 'datastore':
@@ -137,7 +144,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
         return resource_dict
 
-    def after_delete(self, context, resources):
+    def after_resource_delete(self, context: Context, resources: Any):
         model = context['model']
         pkg = context['package']
         res_query = model.Session.query(model.Resource)
@@ -160,7 +167,8 @@ class DatastorePlugin(p.SingletonPlugin):
 
     # IDatastore
 
-    def datastore_validate(self, context, data_dict, fields_types):
+    def datastore_validate(self, context: Context, data_dict: dict[str, Any],
+                           fields_types: dict[str, str]):
         column_names = list(fields_types.keys())
 
         filters = data_dict.get('filters', {})
@@ -168,15 +176,15 @@ class DatastorePlugin(p.SingletonPlugin):
             if key in fields_types:
                 del filters[key]
 
-        q = data_dict.get('q')
+        q: Union[str, dict[str, Any], Any] = data_dict.get('q')
         if q:
-            if isinstance(q, string_types):
+            if isinstance(q, str):
                 del data_dict['q']
                 column_names.append(u'rank')
             elif isinstance(q, dict):
                 for key in list(q.keys()):
                     if key in fields_types and isinstance(q[key],
-                                                          string_types):
+                                                          str):
                         column_names.append(u'rank ' + key)
                         del q[key]
 
@@ -186,7 +194,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
         language = data_dict.get('language')
         if language:
-            if isinstance(language, string_types):
+            if isinstance(language, str):
                 del data_dict['language']
 
         plain = data_dict.get('plain')
@@ -213,7 +221,7 @@ class DatastorePlugin(p.SingletonPlugin):
         if limit:
             is_positive_int = datastore_helpers.validate_int(limit,
                                                              non_negative=True)
-            is_all = isinstance(limit, string_types) and limit.lower() == 'all'
+            is_all = isinstance(limit, str) and limit.lower() == 'all'
             if is_positive_int or is_all:
                 del data_dict['limit']
 
@@ -224,15 +232,24 @@ class DatastorePlugin(p.SingletonPlugin):
             if is_positive_int:
                 del data_dict['offset']
 
+        full_text = data_dict.get('full_text')
+        if full_text:
+            if isinstance(full_text, str):
+                del data_dict['full_text']
+
         return data_dict
 
-    def datastore_delete(self, context, data_dict, fields_types, query_dict):
+    def datastore_delete(self, context: Context, data_dict: dict[str, Any],
+                         fields_types: dict[str, str],
+                         query_dict: dict[str, Any]):
         hook = getattr(self.backend, 'datastore_delete', None)
         if hook:
             query_dict = hook(context, data_dict, fields_types, query_dict)
         return query_dict
 
-    def datastore_search(self, context, data_dict, fields_types, query_dict):
+    def datastore_search(self, context: Context, data_dict: dict[str, Any],
+                         fields_types: dict[str, str],
+                         query_dict: dict[str, Any]):
         hook = getattr(self.backend, 'datastore_search', None)
         if hook:
             query_dict = hook(context, data_dict, fields_types, query_dict)
@@ -240,18 +257,23 @@ class DatastorePlugin(p.SingletonPlugin):
 
     # ITemplateHelpers
 
-    def get_helpers(self):
+    def get_helpers(self) -> dict[str, Callable[..., object]]:
+        conf_dictionary = datastore_helpers.datastore_dictionary
+        conf_sql_enabled = datastore_helpers.datastore_search_sql_enabled
+        # (canada fork only): backport master `datastore_rw_resource_url_types`
+        conf_rw_resource_url_types = datastore_helpers.datastore_rw_resource_url_types
+
         return {
-            'datastore_dictionary': datastore_helpers.datastore_dictionary,
-            'datastore_search_sql_enabled': datastore_helpers.datastore_search_sql_enabled,
-            'datastore_rw_resource_url_types': datastore_helpers.datastore_rw_resource_url_types,
+            'datastore_dictionary': conf_dictionary,
+            'datastore_search_sql_enabled': conf_sql_enabled,
+            'datastore_rw_resource_url_types': conf_rw_resource_url_types,
         }
 
     # IForkObserver
 
     def before_fork(self):
         try:
-            before_fork = self.backend.before_fork
+            before_fork = self.backend.before_fork  # type: ignore
         except AttributeError:
             pass
         else:

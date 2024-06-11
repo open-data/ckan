@@ -1,24 +1,17 @@
 # encoding: utf-8
 
+from typing import Any
 import logging
 import os
-import json
 
 import click
-import sqlalchemy as sa
 
 from ckan.model import parse_db_config
 from ckan.common import config
 import ckan.logic as logic
 
 import ckanext.datastore as datastore_module
-from ckanext.datastore.backend.postgres import (
-    identifier,
-    literal_string,
-    get_read_engine,
-    get_write_engine,
-    _get_raw_field_info,
-)
+from ckanext.datastore.backend.postgres import identifier
 from ckanext.datastore.blueprint import DUMP_FORMATS, dump_to
 
 log = logging.getLogger(__name__)
@@ -67,7 +60,8 @@ def set_permissions():
     click.echo(sql)
 
 
-def permissions_sql(maindb, datastoredb, mainuser, writeuser, readuser):
+def permissions_sql(maindb: str, datastoredb: str, mainuser: str,
+                    writeuser: str, readuser: str):
     template_filename = os.path.join(
         os.path.dirname(datastore_module.__file__), u'set_permissions.sql'
     )
@@ -92,26 +86,28 @@ def permissions_sql(maindb, datastoredb, mainuser, writeuser, readuser):
 @click.option(u'--format', default=u'csv', type=click.Choice(DUMP_FORMATS))
 @click.option(u'--offset', type=click.IntRange(0, None), default=0)
 @click.option(u'--limit', type=click.IntRange(0))
-@click.option(u'--bom', is_flag=True)  # FIXME: options based on format
+@click.option(u'--bom', is_flag=True)
 @click.pass_context
-def dump(ctx, resource_id, output_file, format, offset, limit, bom):
+def dump(ctx: Any, resource_id: str, output_file: Any, format: str,
+         offset: int, limit: int, bom: bool):
     u'''Dump a datastore resource.
     '''
     flask_app = ctx.meta['flask_app']
+    user = logic.get_action('get_site_user')(
+            {'ignore_auth': True}, {})
     with flask_app.test_request_context():
-        dump_to(
-            resource_id,
-            output_file,
-            fmt=format,
-            offset=offset,
-            limit=limit,
-            options={u'bom': bom},
-            sort=u'_id',
-            search_params={}
-        )
+        for block in dump_to(resource_id,
+                             fmt=format,
+                             offset=offset,
+                             limit=limit,
+                             options={u'bom': bom},
+                             sort=u'_id',
+                             search_params={},
+                             user=user['name']):
+            output_file.write(block)
 
 
-def _parse_db_config(config_key=u'sqlalchemy.url'):
+def _parse_db_config(config_key: str = u'sqlalchemy.url'):
     db_config = parse_db_config(config_key)
     if not db_config:
         click.secho(
@@ -179,58 +175,5 @@ def purge():
     click.echo('Dropped %s tables' % drop_count)
 
 
-@datastore.command(
-    'upgrade',
-    short_help='upgrade datastore field info for plugin_data support'
-)
-def upgrade():
-    '''Move field info to _info so that plugins may add private information
-    to each field for their own purposes.'''
-
-    site_user = logic.get_action('get_site_user')({'ignore_auth': True}, {})
-
-    result = logic.get_action('datastore_search')(
-        {'user': site_user['name']},
-        {'resource_id': '_table_metadata', 'limit': 32000}
-    )
-
-    count = 0
-    skipped = 0
-    noinfo = 0
-    read_connection = get_read_engine()
-    for record in result['records']:
-        if record['alias_of']:
-            continue
-
-        raw_fields, old = _get_raw_field_info(read_connection, record['name'])
-        if not old:
-            if not raw_fields:
-                noinfo += 1
-            else:
-                skipped += 1
-            continue
-
-        alter_sql = []
-        with get_write_engine().begin() as connection:
-            for fid, fvalue in raw_fields.items():
-                raw = {'_info': fvalue}
-                # ' ' prefix for data version
-                raw_sql = literal_string(' ' + json.dumps(
-                    raw, ensure_ascii=False, separators=(',', ':')))
-                alter_sql.append(u'COMMENT ON COLUMN {0}.{1} is {2}'.format(
-                    identifier(record['name']),
-                    identifier(fid),
-                    raw_sql))
-
-            if alter_sql:
-                connection.execute(sa.text(';'.join(alter_sql)))
-                count += 1
-            else:
-                noinfo += 1
-
-    click.echo('Upgraded %d tables (%d already upgraded, %d no info)' % (
-        count, skipped, noinfo))
-
-
 def get_commands():
-    return (set_permissions, dump, purge, upgrade)
+    return (set_permissions, dump, purge)

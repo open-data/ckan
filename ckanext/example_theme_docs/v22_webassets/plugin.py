@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+from ckan.common import CKANConfig
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
@@ -10,7 +11,7 @@ def most_popular_groups():
     # Get a list of all the site's groups from CKAN, sorted by number of
     # datasets.
     groups = toolkit.get_action(u'group_list')(
-        data_dict={u'sort': u'package_count desc', u'all_fields': True})
+        {}, {u'sort': u'package_count desc', u'all_fields': True})
 
     # Truncate the list to the 10 most popular groups only.
     groups = groups[:10]
@@ -27,7 +28,7 @@ class ExampleThemePlugin(plugins.SingletonPlugin):
     # Declare that this plugin will implement ITemplateHelpers.
     plugins.implements(plugins.ITemplateHelpers)
 
-    def update_config(self, config):
+    def update_config(self, config: CKANConfig):
 
         # Add this plugin's templates dir to CKAN's extra_template_paths, so
         # that CKAN will use this plugin's custom templates.
@@ -37,12 +38,12 @@ class ExampleThemePlugin(plugins.SingletonPlugin):
         # that CKAN will use this plugin's custom static files.
         toolkit.add_public_directory(config, u'public')
 
-        # Register this plugin's fanstatic directory with CKAN.
-        # Here, 'fanstatic' is the path to the fanstatic directory
+        # Register this plugin's assets directory with CKAN.
+        # Here, 'assets' is the path to the webassets directory
         # (relative to this plugin.py file), and 'example_theme' is the name
         # that we'll use to refer to this assets directory from CKAN
         # templates.
-        toolkit.add_resource(u'fanstatic', u'example_theme')
+        toolkit.add_resource(u'assets', u'example_theme')
 
     def get_helpers(self):
         u'''Register the most_popular_groups() function above as a template

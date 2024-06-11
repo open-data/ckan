@@ -1,8 +1,11 @@
 # encoding: utf-8
+from __future__ import annotations
 
-from six.moves import zip_longest
+from typing import Any, Optional, cast, Union
+from itertools import zip_longest
 
-from flask import Blueprint, Response
+from flask import Blueprint
+from flask.wrappers import Response
 from flask.views import MethodView
 
 import ckan.lib.navl.dictization_functions as dict_fns
@@ -12,8 +15,9 @@ from ckan.logic import (
 )
 from ckan.plugins.toolkit import (
     ObjectNotFound, NotAuthorized, get_action, get_validator, _, request,
-    abort, render, c, h, g, ValidationError
+    abort, render, g, h
 )
+from ckan.types import Schema, ValidatorFactory
 from ckanext.datastore.logic.schema import (
     list_of_strings_or_string,
     json_validator,
@@ -29,50 +33,17 @@ from ckanext.datastore.writer import (
 int_validator = get_validator(u'int_validator')
 boolean_validator = get_validator(u'boolean_validator')
 ignore_missing = get_validator(u'ignore_missing')
-one_of = get_validator(u'one_of')
-default = get_validator(u'default')
+one_of = cast(ValidatorFactory, get_validator(u'one_of'))
+default = cast(ValidatorFactory, get_validator(u'default'))
 unicode_only = get_validator(u'unicode_only')
-resource_id_validator = get_validator(u'resource_id_validator')
 
 DUMP_FORMATS = u'csv', u'tsv', u'json', u'xml'
 PAGINATE_BY = 32000
 
 datastore = Blueprint(u'datastore', __name__)
 
-# (canada fork only): exclude _id field from Blueprint dump
-from ckan.plugins.toolkit import missing, StopOnError
-from flask import has_request_context
-from six import text_type
-def exclude_id_from_ds_dump(key, data, errors, context):
-    """
-    Always set the list of fields to dump from the DataStore. Excluding to _id column.
 
-    This validator is only used in the dump_schema.
-    """
-    value = data.get(key)
-
-    if not has_request_context() and not hasattr(request, 'view_args') and 'resource_id' not in request.view_args:
-        # treat as ignore, as outside of Blueprint/Request context.
-        data.pop(key, None)
-        raise StopOnError
-
-    resource_id = request.view_args['resource_id']
-
-    if value is missing or value is None:
-        ds_info = get_action('datastore_info')(context, {'id': resource_id})
-        # _id is never returned from datastore_info
-        value = [field['id'] for field in ds_info.get('fields', [])]
-    else:
-        # fields accepts string or list of strings
-        if isinstance(value, text_type):
-            value = value.split(',')
-        if isinstance(value, list) and '_id' in value:
-            value.remove('_id')
-
-    data[key] = value
-
-
-def dump_schema():
+def dump_schema() -> Schema:
     return {
         u'offset': [default(0), int_validator],
         u'limit': [ignore_missing, int_validator],
@@ -83,12 +54,12 @@ def dump_schema():
         u'distinct': [ignore_missing, boolean_validator],
         u'plain': [ignore_missing, boolean_validator],
         u'language': [ignore_missing, unicode_only],
-        u'fields': [exclude_id_from_ds_dump, list_of_strings_or_string],  # (canada fork only): exclude _id field from Blueprint dump
+        u'fields': [ignore_missing, list_of_strings_or_string],
         u'sort': [default(u'_id'), list_of_strings_or_string],
     }
 
 
-def dump(resource_id):
+def dump(resource_id: str):
     try:
         get_action('datastore_search')({}, {'resource_id': resource_id,
                                             'limit': 0})
@@ -164,39 +135,40 @@ def dump(resource_id):
 
 class DictionaryView(MethodView):
 
-    def _prepare(self, id, resource_id):
+    def _prepare(self, id: str, resource_id: str) -> dict[str, Any]:
         try:
             # resource_edit_base template uses these
-            pkg_dict = get_action(u'package_show')({}, {'id': id})
-            resource = get_action(u'resource_show')({}, {'id': resource_id})
-            rec = get_action(u'datastore_info')({}, {'id': resource_id})
+            pkg_dict = get_action(u'package_show')({}, {u'id': id})
+            resource = get_action(u'resource_show')({}, {u'id': resource_id})
+            rec = get_action(u'datastore_search')(
+                {}, {
+                    u'resource_id': resource_id,
+                    u'limit': 0
+                }
+            )
             return {
                 u'pkg_dict': pkg_dict,
                 u'resource': resource,
                 u'fields': [
-                    f for f in rec.get('fields', [])
-                    if not f[u'id'].startswith(u'_')
+                    f for f in rec[u'fields'] if not f[u'id'].startswith(u'_')
                 ]
             }
 
         except (ObjectNotFound, NotAuthorized):
             abort(404, _(u'Resource not found'))
 
-    def get(self, id, resource_id, data=None, errors=None, error_summary=None):
+    def get(self, id: str, resource_id: str):
         u'''Data dictionary view: show field labels and descriptions'''
 
-        template_vars = self._prepare(id, resource_id)
-        template_vars['data'] = data or {}
-        template_vars['errors'] = errors or {}
-        template_vars['error_summary'] = error_summary
+        data_dict = self._prepare(id, resource_id)
 
         # global variables for backward compatibility
-        c.pkg_dict = template_vars[u'pkg_dict']
-        c.resource = template_vars[u'resource']
+        g.pkg_dict = data_dict[u'pkg_dict']
+        g.resource = data_dict[u'resource']
 
-        return render('datastore/dictionary.html', template_vars)
+        return render(u'datastore/dictionary.html', data_dict)
 
-    def post(self, id, resource_id):
+    def post(self, id: str, resource_id: str):
         u'''Data dictionary view: edit field labels and descriptions'''
         data_dict = self._prepare(id, resource_id)
         fields = data_dict[u'fields']
@@ -205,34 +177,18 @@ class DictionaryView(MethodView):
         if not isinstance(info, list):
             info = []
         info = info[:len(fields)]
-        custom = data.get('fields')
-        if not isinstance(custom, list):
-            custom = []
 
-        try:
-            get_action('datastore_create')(
-                {}, {
-                    'resource_id': resource_id,
-                    'force': True,
-                    'fields': [dict(
-                        cu or {},
-                        id=f['id'],
-                        type=f['type'],
-                        info=fi if isinstance(fi, dict) else {}
-                    ) for f, fi, cu in zip_longest(fields, info, custom)]
-                }
-            )
-        except ValidationError as e:
-            errors = e.error_dict
-            # flatten field errors for summary
-            error_summary = {}
-            field_errors = errors.get('fields', [])
-            if isinstance(field_errors, list):
-                for i, f in enumerate(field_errors, 1):
-                    if isinstance(f, dict) and f:
-                        error_summary[_('Field %d') % i] = ', '.join(
-                            v for vals in f.values() for v in vals)
-            return self.get(id, resource_id, data, errors, error_summary)
+        get_action(u'datastore_create')(
+            {}, {
+                u'resource_id': resource_id,
+                u'force': True,
+                u'fields': [{
+                    u'id': f[u'id'],
+                    u'type': f[u'type'],
+                    u'info': fi if isinstance(fi, dict) else {}
+                } for f, fi in zip_longest(fields, info)]
+            }
+        )
 
         h.flash_success(
             _(
@@ -247,7 +203,9 @@ class DictionaryView(MethodView):
 
 
 def dump_to(
-    resource_id, fmt, offset, limit, options, sort, search_params, user
+    resource_id: str, fmt: str, offset: int,
+    limit: Optional[int], options: dict[str, Any], sort: str,
+    search_params: dict[str, Any], user: str
 ):
     if fmt == 'csv':
         writer_factory = csv_writer
@@ -266,10 +224,10 @@ def dump_to(
 
     bom = options.get('bom', False)
 
-    def start_stream_writer(fields):
+    def start_stream_writer(fields: list[dict[str, Any]]):
         return writer_factory(fields, bom=bom)
 
-    def stream_result_page(offs, lim):
+    def stream_result_page(offs: int, lim: Union[None, int]):
         return get_action('datastore_search')(
             {'user': user},
             dict({
@@ -283,7 +241,8 @@ def dump_to(
             }, **search_params)
         )
 
-    def stream_dump(offset, limit, paginate_by, result):
+    def stream_dump(offset: int, limit: Union[None, int],
+                    paginate_by: int, result: dict[str, Any]):
         with start_stream_writer(result['fields']) as writer:
             while True:
                 if limit is not None and limit <= 0:
