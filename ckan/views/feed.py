@@ -334,6 +334,66 @@ def _parse_url_params() -> tuple[dict[str, Any], dict[str, Any]]:
     return data_dict, params
 
 
+def dataset(id):
+    # (canada fork only): custom single dataset feed
+    _data_dict, params = _parse_url_params()
+    context = {
+        u'model': model,
+        u'session': model.Session,
+        u'user': g.user,
+        u'auth_user_obj': g.userobj
+    }
+    try:
+        pkg_dict = logic.get_action(u'package_show')(context, {'id': id})
+    except logic.NotFound:
+        base.abort(404, _(u'Dataset not found'))
+    except logic.NotAuthorized:
+        base.abort(403, _(u'Not authorized to see this page'))
+
+    self_link = _feed_url(params,
+                          controller=u'feeds',
+                          action=u'dataset',
+                          id=id)
+
+    alternate_link = _feed_url(params,
+                               controller=u'dataset',
+                               action=u'read',
+                               id=id)
+
+    guid = _create_atom_id(u'/feeds/dataset/%s.atom' % id)
+
+    enclosure = _enclosure(pkg_dict,
+                           u'package_show',
+                           id=pkg_dict['id'],
+                           **params)
+
+    site_title = config.get(u'ckan.site_title')
+    title = _(u'%s - Dataset: "%s"') % \
+             (site_title, h.get_translated(pkg_dict, 'title'))
+    desc = _(u'Recently created or updated resources on %s '
+             'for dataset: %s') % \
+            (site_title, h.get_translated(pkg_dict, 'title'))
+
+    # dataset resources have no paging
+    # so we can ignore the feeds paging
+    nav_urls = _navigation_urls(
+        params,
+        item_count=len(pkg_dict['resources']),
+        limit=len(pkg_dict['resources']),
+        controller=u'dataset',
+        action=u'read')
+
+    return output_feed(
+        pkg_dict['resources'],
+        feed_title=title,
+        feed_description=desc,
+        navigation_urls=nav_urls,
+        feed_guid=guid,
+        feed_self_link=self_link,
+        feed_enclosure=enclosure,
+        feed_alternate_link=alternate_link)
+
+
 def general() -> Response:
     data_dict, params = _parse_url_params()
     data_dict['q'] = u'*:*'
@@ -581,6 +641,9 @@ def _create_atom_id(resource_path: str,
 
 
 # Routing
+# (canada fork only): custom single dataset feed
+feeds.add_url_rule(u'/dataset/<string:id>.atom', methods=[u'GET'],
+                   view_func=dataset)
 feeds.add_url_rule(u'/dataset.atom', methods=[u'GET'], view_func=general)
 feeds.add_url_rule(u'/custom.atom', methods=[u'GET'], view_func=custom)
 feeds.add_url_rule(u'/tag/<string:id>.atom', methods=[u'GET'], view_func=tag)
