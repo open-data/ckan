@@ -6,13 +6,13 @@
 
 {% block resource_content %}
   {% block package_archive_notice %}
-    <div id="activity-archive-notice" class="alert alert-danger">
+    <div id="activity-archive-notice" class="alert alert-danger"><p>
       {% trans url=h.url_for(pkg.type ~ '.read', id=pkg.id) %}
       You're currently viewing an old version of this dataset.
       Data files may not match the old version of the metadata.
       <a href="{{ url }}">View the current version</a>.
                 {% endtrans %}
-    </div>
+    </p></div>
   {% endblock %}
   {{ super() }}
 {% endblock %}
