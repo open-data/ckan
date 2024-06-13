@@ -911,6 +911,13 @@ def sysadmin() -> Response:
         )
     except logic.NotFound:
         return base.abort(404, _(u'User not found'))
+    except logic.ValidationError as e:
+        # only print the error messages into separate flash messages.
+        # (canada fork only)
+        for _k, err_messages in e.error_dict.items():
+            for err_message in err_messages:
+                h.flash_error(_(err_message))
+        return h.redirect_to('admin.index')
 
     if status:
         h.flash_success(
