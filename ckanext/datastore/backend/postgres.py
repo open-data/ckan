@@ -2266,7 +2266,9 @@ def create_function(name: str, arguments: Iterable[dict[str, Any]],
         or_replace=u'OR REPLACE' if or_replace else u'',
         name=identifier(name),
         args=u', '.join(
-            u'{argname} {argtype}'.format(
+            u'{argmode} {argname} {argtype}'.format(
+                # (canada fork only): adds argmode capability
+                argmode=a['argmode'] if 'argmode' in a else '',
                 argname=identifier(a['argname']),
                 argtype=identifier(a['argtype']))
             for a in arguments),
