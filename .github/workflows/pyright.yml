@@ -1,5 +1,7 @@
 name: Check types
-on: [pull_request]
+on:
+  workflow_dispatch:  # (canada fork only): disable Core repo workflows
+# on: [pull_request]
 env:
   NODE_VERSION: '16'
   PYTHON_VERSION: '3.7'

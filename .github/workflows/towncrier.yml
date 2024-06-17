@@ -1,5 +1,7 @@
 name: Changelog entries
-on: [pull_request]
+on:
+  workflow_dispatch:  # (canada fork only): disable Core repo workflows
+# on: [pull_request]
 
 permissions:
   contents: read

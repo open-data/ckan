@@ -6,13 +6,14 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [master]
-  schedule:
-    - cron: '0 3 * * 2'
+  workflow_dispatch:  # (canada fork only): disable Core repo workflows
+  # push:
+  #   branches: [master]
+  # pull_request:
+  #   # The branches below must be a subset of the branches above
+  #   branches: [master]
+  # schedule:
+  #   - cron: '0 3 * * 2'
 
 permissions:
   contents: read
