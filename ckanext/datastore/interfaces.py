@@ -189,11 +189,13 @@ class IDatastoreBackend(interfaces.Interface):
 
 class IDataDictionaryForm(interfaces.Interface):
     """
-    Allow data dictionary validation and per-plugin data storage
+    Allow data dictionary validation and per-plugin data storage by extending
+    the datastore_create schema and adding values to fields returned from
+    datastore_info
     """
     _reverse_iteration_order = True
 
-    def update_schema(self, schema: Schema) -> Schema:
+    def update_datastore_create_schema(self, schema: Schema) -> Schema:
         """
         Return a modified schema for handling field input in the data
         dictionary form and datastore_create parameters.
@@ -205,19 +207,31 @@ class IDataDictionaryForm(interfaces.Interface):
         data for that plugin.
 
         e.g. a statistics plugin that needs to store per-column information
-        might store this with plugin_data by inserting values like:
+        might store this with plugin_data by inserting values like::
 
-            {0: {'statistics': {'minimum': 34, ...}, ...}, ...}
+          {0: {'statistics': {'minimum': 34, ...}, ...}, ...}
 
-                                ^ the data stored for this field+plugin
-                  ^ the name of the plugin
-             ^ 0 for the first field passed in fields
+          #                   ^ the data stored for this field+plugin
+          #     ^ the name of the plugin
+          #^ 0 for the first field passed in fields
 
         Values not removed from field info by validation will be available in
         the field `info` dict returned from `datastore_search` and
         `datastore_info`
         """
         return schema
+
+    def update_datastore_info_field(
+            self,
+            field: dict[str, Any],
+            plugin_data: dict[str, Any]):
+        """
+        Return a modified version of the `datastore_info` field dict
+        based on this field's plugin_data to provide additional
+        information to users and existing values for new form fields
+        in the data dictionary page.
+        """
+        return field
 
 
 class IDatastoreInfoField(interfaces.Interface):
