@@ -1970,10 +1970,12 @@ def package_search(context: Context, data_dict: DataDict) -> ActionResult.Packag
 
         count = query.count
         facets = query.facets
+        facet_ranges = query.facet_ranges  # (canada fork only): add facet ranges
 
     search_results: dict[str, Any] = {
         'count': count,
         'facets': facets,
+        'facet_ranges': facet_ranges,  # (canada fork only): add facet ranges
         'results': results,
         'sort': data_dict['sort']
     }

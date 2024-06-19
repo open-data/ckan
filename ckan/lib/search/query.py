@@ -30,7 +30,8 @@ _open_licenses: Optional[list[str]] = None
 VALID_SOLR_PARAMETERS = set([
     'q', 'fl', 'fq', 'rows', 'sort', 'start', 'wt', 'qf', 'bf', 'boost',
     'facet', 'facet.mincount', 'facet.limit', 'facet.field',
-    'extras', 'fq_list', 'tie', 'defType', 'mm', 'df'
+    'extras', 'fq_list', 'tie', 'defType', 'mm', 'df',
+    'facet.range.end', 'facet.range', 'facet.range.gap', 'facet.range.start'  # (canada fork only): add facet ranges
 ])
 
 # for (solr) package searches, this specifies the fields that are searched
@@ -500,6 +501,8 @@ class PackageSearchQuery(SearchQuery):
         self.facets = solr_response.facets.get('facet_fields', {})
         for field, values in self.facets.items():
             self.facets[field] = dict(zip(values[0::2], values[1::2]))
+
+        self.facet_ranges = solr_response.facets.get('facet_ranges', {})  # (canada fork only): add facet ranges
 
         return {'results': self.results, 'count': self.count}
 
