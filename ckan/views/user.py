@@ -742,7 +742,7 @@ class PerformResetView(MethodView):
             u'user': id,
             u'keep_email': True,
             u'schema': _perform_reset_form_to_db_schema(),
-        }
+        })
 
         try:
             logic.check_access(u'user_reset', context)
