@@ -9,7 +9,6 @@
     <a class="btn btn-primary dropdown-toggle" role="button" id="dropdownView" data-bs-toggle="dropdown" aria-expanded="false" href="#">
       <i class="fa fa-plus-square"></i>
       {{ _('New view') }}
-      <span class="caret"></span>
     </a>
     <ul class="dropdown-menu" aria-labelledby="dropdownView">
       {% for option in h.get_allowed_view_types(resource, pkg_dict)  %}
