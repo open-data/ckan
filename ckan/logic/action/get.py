@@ -630,8 +630,7 @@ def group_list_authz(context: Context,
 
 
 def organization_list_for_user(context: Context,
-                               data_dict: DataDict,
-                               org_type: bool = True) -> ActionResult.OrganizationListForUser:
+                               data_dict: DataDict) -> ActionResult.OrganizationListForUser:
     '''Return the organizations that the user has a given permission for.
 
     Specifically it returns the list of organizations that the currently
@@ -682,6 +681,9 @@ def organization_list_for_user(context: Context,
         user = user_obj.name
     else:
         user = context['user']
+
+    # (canada fork only): fix critical log
+    org_type = data_dict.pop('org_type', True)
 
     _check_access('organization_list_for_user', context, data_dict)
     sysadmin = authz.is_sysadmin(user)

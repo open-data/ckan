@@ -2020,8 +2020,9 @@ def organizations_available(permission: str = 'manage_group',
     context: Context = {'user': user }
     data_dict = {
         'permission': permission,
-        'include_dataset_count': include_dataset_count}
-    return logic.get_action('organization_list_for_user')(context, data_dict, org_type=org_type)
+        'include_dataset_count': include_dataset_count,
+        'org_type': org_type}  # (canada fork only): fix critical log
+    return logic.get_action('organization_list_for_user')(context, data_dict)
 
 
 #TODO: add helper to get group member count from logic.get_action('member_list')(context, data_dict)
