@@ -747,7 +747,7 @@ def organization_list_for_user(context: Context,
     context['with_capacity'] = True
     orgs_list = model_dictize.group_list_dictize(orgs_and_capacities, context,
         with_package_counts=asbool(data_dict.get('include_dataset_count')),
-        include_groups=org_type)
+        include_groups=False)  # (canada fork only): never include groups in dictization for speed purposes. FIXME:
     return orgs_list
 
 
