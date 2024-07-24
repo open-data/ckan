@@ -346,7 +346,7 @@ def package_update(
         changed_resources = original_package['resources']
 
     resource_uploads = []
-    for resource in data_dict.get('resources', []):
+    for resource in changed_resources or []:
         # file uploads/clearing
         upload = uploader.get_resource_uploader(resource)
 
@@ -406,6 +406,16 @@ def package_update(
     pkg, change = model_save.package_dict_save(
         data, context, include_plugin_data, copy_resources)
 
+    log.info('    ')
+    log.info('DEBUGGING::package_update::post package_dict_save')
+    log.info('    ')
+    log.info(change)
+    log.info('    ')
+    log.info(resource_uploads)
+    log.info('    ')
+    log.info(changed_resources)
+    log.info('    ')
+
     if change:
         if not data.get('metadata_modified'):
             pkg.metadata_modified = datetime.datetime.utcnow()
@@ -419,15 +429,26 @@ def package_update(
         # Needed to let extensions know the new resources ids
         model.Session.flush()
         if changed_resources:
+            log.info('    ')
+            log.info('DEBUGGING::package_update::change -> changed_resources')
+            log.info('    ')
             resiter = iter(changed_resources)
             uploaditer = iter(resource_uploads)
             for i in range(len(pkg.resources)):
+                log.info('    ')
+                log.info('DEBUGGING::package_update::STEP 1::loop')
+                log.info('    ')
                 if i in copy_resources:
+                    log.info('    ')
+                    log.info('DEBUGGING::package_update::STEP 2::no actual change, continue')
+                    log.info('    ')
                     continue
                 resource = next(resiter)
                 upload = next(uploaditer)
                 resource['id'] = pkg.resources[i].id
-
+                log.info('    ')
+                log.info('DEBUGGING::package_update::STEP 3::uploading resource by id %s' % resource['id'])
+                log.info('    ')
                 upload.upload(resource['id'], uploader.get_max_resource_size())
 
         for item in plugins.PluginImplementations(plugins.IPackageController):
