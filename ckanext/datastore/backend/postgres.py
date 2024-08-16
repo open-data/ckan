@@ -934,6 +934,29 @@ def create_table(context, data_dict, plugin_data):
     sql_fields = u", ".join([u'{0} {1}'.format(
         identifier(f['id']), f['type']) for f in fields])
 
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    foreign_keys = data_dict.get('foreign_keys')
+    foreign_fields = []
+    if foreign_keys:
+        for f_table_name, column_name_map in foreign_keys.items():
+            fk_counter = 1
+            for p_column_name, f_column_name in column_name_map.items():
+                log.debug('Trying to build foreign key constraint for {0}.{1} on column {2}'.format(
+                    f_table_name,
+                    f_table_name,
+                    p_column_name
+                ))
+                foreign_fields.append('CONSTRAINT {0} FOREIGN KEY ({1}) REFERENCES {2}({3})'.format(
+                    identifier('fk_%s_%s' % (f_table_name, fk_counter)),
+                    identifier(p_column_name),
+                    identifier(f_table_name),
+                    identifier(f_column_name)
+                ))
+                fk_counter += 1
+    if foreign_fields:
+        sql_fields += ", %s" % ", ".join(foreign_fields)
+
     sql_string = u'CREATE TABLE {0} ({1});'.format(
         identifier(data_dict['resource_id']),
         sql_fields
@@ -1024,6 +1047,27 @@ def alter_table(context, data_dict, plugin_data):
             identifier(data_dict['resource_id']),
             identifier(f['id']),
             f['type']))
+
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    foreign_keys = data_dict.get('foreign_keys')
+    if foreign_keys:
+        for f_table_name, column_name_map in foreign_keys.items():
+            fk_counter = 1
+            for p_column_name, f_column_name in column_name_map.items():
+                log.debug('Trying to build foreign key constraint for {0}.{1} on column {2}'.format(
+                    f_table_name,
+                    f_table_name,
+                    p_column_name
+                ))
+                alter_sql.append('ALTER TABLE {0} ADD CONSTRAINT {1} FOREIGN KEY ({2}) REFERENCES {3}({4})'.format(
+                    identifier(data_dict['resource_id']),
+                    identifier('fk_%s_%s' % (f_table_name, fk_counter)),
+                    identifier(p_column_name),
+                    identifier(f_table_name),
+                    identifier(f_column_name)
+                ))
+                fk_counter += 1
 
     if plugin_data or any('info' in f for f in supplied_fields):
         raw_field_info, _old = _get_raw_field_info(

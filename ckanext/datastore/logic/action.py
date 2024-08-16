@@ -65,6 +65,9 @@ def datastore_create(context, data_dict):
     :type records: list of dictionaries
     :param primary_key: fields that represent a unique key (optional)
     :type primary_key: list or comma separated string
+    :param foreign_keys: tables and fields that represent foreign keys (optional)
+    :type foreign_keys: dict of table names and field ids, e.g. {'table_name':
+                        ['field_id1', 'field_id2']}
     :param indexes: indexes on table (optional)
     :type indexes: list or comma separated string
     :param triggers: trigger functions to apply to this table on update/insert.
