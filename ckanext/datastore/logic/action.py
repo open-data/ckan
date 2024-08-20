@@ -379,6 +379,7 @@ def datastore_info(context, data_dict):
         - is_index
         - notnull
         - uniquekey
+        - foreignkey
 
     '''
     backend = DatastoreBackend.get_active_backend()

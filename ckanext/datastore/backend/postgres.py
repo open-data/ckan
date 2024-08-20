@@ -45,6 +45,9 @@ from ckanext.datastore.backend import InvalidDataError
 log = logging.getLogger(__name__)
 
 _pg_types = {}
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
+_pg_foreign_constraints = []
 _type_names = set()
 _engines = {}
 
@@ -59,6 +62,9 @@ _PG_ERR_CODE = {
     'permission_denied': '42501',
     'duplicate_table': '42P07',
     'duplicate_alias': '42712',
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    'no_unique_constraint': '42830',
 }
 
 _DATE_FORMATS = ['%Y-%m-%d',
@@ -317,6 +323,16 @@ def _get_fields(connection, resource_id):
     return fields
 
 
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
+def _get_foreign_constraints(connection, resource_id):
+    u'''
+    return a list of foreign constraint names.
+    '''
+    _cache_foreign_constraints(connection, resource_id)
+    return _pg_foreign_constraints
+
+
 def _cache_types(connection):
     if not _pg_types:
         results = connection.execute(
@@ -343,6 +359,18 @@ def _cache_types(connection):
             return _cache_types(connection)
 
         register_composite('nested', connection.connection.connection, True)
+
+
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
+def _cache_foreign_constraints(connection, resource_id):
+    if not _pg_foreign_constraints:
+        results = connection.execute(
+            'SELECT constraint_name FROM information_schema.table_constraints'
+            ' WHERE constraint_type = \'FOREIGN KEY\' AND table_name = \'{0}\';'.format(
+                resource_id))
+        for result in results:
+            _pg_foreign_constraints.append(result[0])
 
 
 def _pg_version_is_at_least(connection, version):
@@ -582,6 +610,15 @@ def _generate_index_name(resource_id, field):
     value = (resource_id + field).encode('utf-8')
     return hashlib.sha1(value).hexdigest()
 
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
+def _generate_constraint_name(foreign_table, primary_fields, foreign_fields):
+    value = '{0}_{1}_{2}'.format(
+        '-'.join(k for k in primary_fields),
+        foreign_table,
+        '-'.join(v for v in foreign_fields)
+    ).encode('utf-8')
+    return 'fk_%s' % hashlib.sha1(value).hexdigest()
 
 def _get_fts_index_method():
     method = config.get('ckan.datastore.default_fts_index_method')
@@ -940,20 +977,20 @@ def create_table(context, data_dict, plugin_data):
     foreign_fields = []
     if foreign_keys:
         for f_table_name, column_name_map in foreign_keys.items():
-            fk_counter = 1
-            for p_column_name, f_column_name in column_name_map.items():
-                log.debug('Trying to build foreign key constraint for {0}.{1} on column {2}'.format(
-                    f_table_name,
-                    f_table_name,
-                    p_column_name
-                ))
-                foreign_fields.append('CONSTRAINT {0} FOREIGN KEY ({1}) REFERENCES {2}({3})'.format(
-                    identifier('fk_%s_%s' % (f_table_name, fk_counter)),
-                    identifier(p_column_name),
-                    identifier(f_table_name),
-                    identifier(f_column_name)
-                ))
-                fk_counter += 1
+            constraint_name = _generate_constraint_name(f_table_name, column_name_map.keys(), column_name_map.values())
+            log.debug('Trying to build foreign key constraint {0} for column(s) {1}({2}) on foreign column(s) {3}({4})'.format(
+                identifier(constraint_name),
+                identifier(data_dict['resource_id']),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
+            foreign_fields.append('CONSTRAINT {0} FOREIGN KEY ({1}) REFERENCES {2}({3})'.format(
+                identifier(constraint_name),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
     if foreign_fields:
         sql_fields += ", %s" % ", ".join(foreign_fields)
 
@@ -998,6 +1035,10 @@ def alter_table(context, data_dict, plugin_data):
     '''
     supplied_fields = data_dict.get('fields', [])
     current_fields = _get_fields(
+        context['connection'], data_dict['resource_id'])
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    current_foreign_constraints = _get_foreign_constraints(
         context['connection'], data_dict['resource_id'])
     if not supplied_fields:
         supplied_fields = current_fields
@@ -1053,21 +1094,24 @@ def alter_table(context, data_dict, plugin_data):
     foreign_keys = data_dict.get('foreign_keys')
     if foreign_keys:
         for f_table_name, column_name_map in foreign_keys.items():
-            fk_counter = 1
-            for p_column_name, f_column_name in column_name_map.items():
-                log.debug('Trying to build foreign key constraint for {0}.{1} on column {2}'.format(
-                    f_table_name,
-                    f_table_name,
-                    p_column_name
-                ))
-                alter_sql.append('ALTER TABLE {0} ADD CONSTRAINT {1} FOREIGN KEY ({2}) REFERENCES {3}({4})'.format(
-                    identifier(data_dict['resource_id']),
-                    identifier('fk_%s_%s' % (f_table_name, fk_counter)),
-                    identifier(p_column_name),
-                    identifier(f_table_name),
-                    identifier(f_column_name)
-                ))
-                fk_counter += 1
+            constraint_name = _generate_constraint_name(f_table_name, column_name_map.keys(), column_name_map.values())
+            if constraint_name in current_foreign_constraints:
+                log.debug('Foreign key constraint {0} already exists, skipping...'.format(constraint_name))
+                continue
+            log.debug('Trying to build foreign key constraint {0} for column(s) {1}({2}) on foreign column(s) {3}({4})'.format(
+                identifier(constraint_name),
+                identifier(data_dict['resource_id']),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
+            alter_sql.append('ALTER TABLE {0} ADD CONSTRAINT {1} FOREIGN KEY ({2}) REFERENCES {3}({4})'.format(
+                identifier(data_dict['resource_id']),
+                identifier(constraint_name),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
 
     if plugin_data or any('info' in f for f in supplied_fields):
         raw_field_info, _old = _get_raw_field_info(
@@ -2033,6 +2077,19 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                     }
                 })
             raise
+        # (canada fork only): foreign keys
+        # TODO: upstream contrib!!
+        except ProgrammingError as e:
+            if e.orig.pgcode == _PG_ERR_CODE['no_unique_constraint']:
+                raise ValidationError({
+                    'constraints': ['Cannot insert records or create index'
+                                    ' because of uniqueness constraint'],
+                    'info': {
+                        'orig': str(e.orig),
+                        'pgcode': e.orig.pgcode
+                    }
+                })
+            raise
         except DataError as e:
             raise ValidationError({
                 'data': e.message,
@@ -2097,6 +2154,8 @@ class DatastorePostgresqlBackend(DatastoreBackend):
     def resource_fields(self, id):
 
         info = {'meta': {}, 'fields': []}
+
+        #TODO: get foreign constrains and put into `foreignkey` for fields...
 
         try:
             engine = self._get_read_engine()
