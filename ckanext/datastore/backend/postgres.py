@@ -2030,9 +2030,10 @@ class DatastorePostgresqlBackend(DatastoreBackend):
         try:
             # check if table exists
             if 'filters' not in data_dict:
-                # (canada fork only): change CASCADE -> RESTRICT
+                # (canada fork only): change CASCADE -> RESTRICT???
+                # TODO: discuss this for deleting foreign keys...
                 context['connection'].execute(
-                    u'DROP TABLE "{0}" RESTRICT'.format(
+                    u'DROP TABLE "{0}" CASCADE'.format(
                         data_dict['resource_id'])
                 )
             else:
@@ -2047,8 +2048,8 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             if e.orig.pgcode == _PG_ERR_CODE['row_referenced_constraint'] or e.orig.pgcode == _PG_ERR_CODE['table_referenced_constraint']:
                 # FIXME: better error message??
                 raise ValidationError({
-                    'constraints': ['Cannot delete records or table'
-                                    ' because of a reference to another table.'],
+                    'foreign_constraints': ['Cannot delete records or table'
+                                            ' because of a reference to another table.'],
                     'info': {
                         'orig': str(e.orig),
                         'pgcode': e.orig.pgcode
@@ -2129,8 +2130,8 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             if e.orig.pgcode == _PG_ERR_CODE['no_unique_constraint']:
                 # FIXME: better error message??
                 raise ValidationError({
-                    'constraints': ['Cannot insert records or create index'
-                                    ' because of uniqueness constraint'],
+                    'foreign_constraints': ['Cannot insert records or create index'
+                                            ' because of a foreign constraint'],
                     'info': {
                         'orig': str(e.orig),
                         'pgcode': e.orig.pgcode
@@ -2381,7 +2382,9 @@ def create_function(name, arguments, rettype, definition, or_replace):
                 # validator OneOf checks for safety of argmode
                 argmode=a['argmode'] if 'argmode' in a else '',
                 argname=identifier(a['argname']),
-                argtype=identifier(a['argtype']))
+                # (canada fork only): support literal type boolean
+                # TODO: upstream contrib!! make better with constant list of psql literals.
+                argtype=identifier(a['argtype']) if a['argtype'] != 'boolean' else a['argtype'])
             for a in arguments),
         rettype=identifier(rettype),
         definition=literal_string(definition))
