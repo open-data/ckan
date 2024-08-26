@@ -349,6 +349,9 @@ def datastore_upsert(context, data_dict):
     return result
 
 
+# (canada fork only): allow GET request
+# TODO: upstream contrib??
+@logic.side_effect_free
 def datastore_info(context, data_dict):
     '''
     Returns detailed metadata about a resource.
