@@ -22,8 +22,8 @@ this.ckan.module('table-toggle-more', function($) {
           '<tr class="toggle-show toggle-show-more">',
           '<td colspan="'+cols+'">',
           '<small>',
-          '<a href="#" class="show-more">' + this._('Show more') + '</a>',
-          '<a href="#" class="show-less">' + this._('Hide') + '</a>',
+          '<a href="javascript:void(0);" class="show-more">' + this._('Show more') + '</a>',
+          '<a href="javascript:void(0);" class="show-less">' + this._('Hide') + '</a>',
           '</small>',
           '</td>',
           '</tr>'
@@ -37,9 +37,19 @@ this.ckan.module('table-toggle-more', function($) {
 
        var seperator = $(template_seperator).insertAfter($('.toggle-more:last-child', this.el));
         $(template_more).insertAfter(seperator);
-
-        $('.show-more', this.el).on('click', this._onShowMore);
-        $('.show-less', this.el).on('click', this._onShowLess);
+        // (canada fork only): jquery version issues w/ recombinant preview
+        //FIXME: binding not working properly!!!
+        console.log($('table').find('a.show-more'));
+        setTimeout(function(){
+          console.log('WORKING!!!');
+          console.log($('table').find('a.show-more'));
+          $('table').find('a.show-more').off('click.Show');
+          $('table').find('a.show-more').on('click.Show', this._onShowMore);
+          $('table').find('a.show-less').off('click.Hide');
+          $('table').find('a.show-less').on('click.Hide', this._onShowLess);
+        }, 500);
+        // $('.show-more', this.el).on('click', this._onShowMore);
+        // $('.show-less', this.el).on('click', this._onShowLess);
       }
     },
 
