@@ -1665,21 +1665,28 @@ def upsert(context, data_dict):
     Any error results in total failure! For now pass back the actual error.
     Should be transactional.
     '''
-    backend = DatastorePostgresqlBackend.get_active_backend()
-    engine = backend._get_write_engine()
-    context['connection'] = engine.connect()
+    # (canada fork only): use contextual connection for deferring commits
+    #TODO: upstream contrib??
+    connection = context.get('connection', None)
+    trans = None
+    if not connection:
+        backend = DatastorePostgresqlBackend.get_active_backend()
+        engine = backend._get_write_engine()
+        connection = engine.connect()
+        trans = connection.begin()
     timeout = context.get('query_timeout', _TIMEOUT)
 
-    trans = context['connection'].begin()
     try:
         # check if table already existes
-        context['connection'].execute(
+        connection.execute(
             u'SET LOCAL statement_timeout TO {0}'.format(timeout))
-        upsert_data(context, data_dict)
-        if data_dict.get(u'dry_run', False):
-            trans.rollback()
-        else:
-            trans.commit()
+        # (canada fork only): use contextual connection for deferring commits
+        upsert_data(dict(context, connection=connection), data_dict)
+        if trans:  # (canada fork only): use contextual connection for deferring commits
+            if data_dict.get(u'dry_run', False):
+                trans.rollback()
+            else:
+                trans.commit()
         return _unrename_json_field(data_dict)
     except IntegrityError as e:
         if e.orig.pgcode == _PG_ERR_CODE['unique_violation']:
@@ -1705,10 +1712,14 @@ def upsert(context, data_dict):
             })
         raise
     except Exception as e:
-        trans.rollback()
+        # (canada fork only): use contextual connection for deferring commits
+        if trans:
+            trans.rollback()
         raise
     finally:
-        context['connection'].close()
+        # (canada fork only): use contextual connection for deferring commits
+        if not context.get('defer_commit') and not context.get('connection'):
+            connection.close()
 
 
 def search(context, data_dict):
