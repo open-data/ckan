@@ -61,6 +61,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_FACET_NAMES = u'organization groups tags res_format license_id'
 
+# (canada fork only): FIXME: heading a11y issues.
 MARKDOWN_TAGS = set([
     'del', 'dd', 'dl', 'dt', 'h1', 'h2',
     'h3', 'img', 'kbd', 'p', 'pre', 's',
