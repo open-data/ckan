@@ -2,6 +2,9 @@
 
 {% set group_type = h.default_group_type('group') %}
 
+{# (canada fork only): fix title TODO: upstream contrib!! #}
+{% block subtitle %}{{ user.display_name }} {{ g.template_title_delimiter }} {{ h.humanize_entity_type('group', group_type, 'facet label') or _('Groups') }}{% endblock %}
+
 {% block primary_content_inner %}
   <h2 class="hide-heading">{{ h.humanize_entity_type('group', group_type, 'facet label') or _('Groups') }}</h2>
   {% if groups_available %}

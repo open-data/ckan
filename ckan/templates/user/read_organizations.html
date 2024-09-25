@@ -2,8 +2,12 @@
 
 {% set group_type = h.default_group_type('organization') %}
 
+{# (canada fork only): fix title TODO: upstream contrib!! #}
+{% block subtitle %}{{ user.display_name }} {{ g.template_title_delimiter }} {{ _('Organizations') }}{% endblock %}
+
 {% block primary_content_inner %}
-  <h2 class="hide-heading">{{ h.humanize_entity_type('organization', group_type, 'facet label') or _('Organizations') }}</h2>
+  {# (canada fork only): no humanization on our setup #}
+  <h2 class="hide-heading">{{ _('Organizations') }}</h2>
   {% if orgs_available %}
     <div class="wide">
       {% snippet "organization/snippets/organization_list.html", organizations=orgs_available, show_capacity=True %}
