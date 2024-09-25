@@ -20,11 +20,14 @@ def default_authenticate(identity: 'Mapping[str, Any]') -> Optional["User"]:
         user_obj = User.by_email(login)
 
     if user_obj is None:
-        log.debug('Login failed - username or email %r not found', login)
+        # (canada fork only): set info level log
+        log.info('Login failed - username or email %r not found', login)
     elif not user_obj.is_active:
-        log.debug('Login as %r failed - user isn\'t active', login)
+        # (canada fork only): set info level log
+        log.info('Login as %r failed - user isn\'t active', login)
     elif not user_obj.validate_password(identity['password']):
-        log.debug('Login as %r failed - password not valid', login)
+        # (canada fork only): set info level log
+        log.info('Login as %r failed - password not valid', login)
     else:
         return user_obj
     signals.failed_login.send(login)

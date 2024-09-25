@@ -1,0 +1,1 @@
+Change the log level in `default_authenticate` from `debug` to `info` for the canada fork only. Related to https://github.com/open-data/ckanext-security/pull/8
