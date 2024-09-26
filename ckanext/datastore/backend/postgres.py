@@ -28,8 +28,11 @@ import ckanext.datastore.interfaces as interfaces
 
 from psycopg2.extras import register_default_json, register_composite
 import distutils.version
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
 from sqlalchemy.exc import (ProgrammingError, IntegrityError,
-                            DBAPIError, DataError, DatabaseError)
+                            DBAPIError, DataError, DatabaseError,
+                            InternalError)
 
 import ckan.model as model
 import ckan.plugins as plugins
@@ -59,6 +62,11 @@ _PG_ERR_CODE = {
     'permission_denied': '42501',
     'duplicate_table': '42P07',
     'duplicate_alias': '42712',
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    'no_unique_constraint': '42830',
+    'row_referenced_constraint': '23503',
+    'table_referenced_constraint': '2BP01'
 }
 
 _DATE_FORMATS = ['%Y-%m-%d',
@@ -315,6 +323,50 @@ def _get_fields(connection, resource_id):
                 'type': _get_type(connection, field[1])
             })
     return fields
+
+
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
+def _get_foreign_constraints(connection, resource_id, return_constraint_names=False):
+    u'''
+    return a list of foreign constraint names.
+    '''
+    # p.conrelid: The table this constraint is on
+    # p.conindid: The index supporting this constraint
+    # p.confrelid: The referenced table
+    # p.confupdtype: Foreign key update action code (#TODO: support `cascade`??)
+    # p.confdeltype: Foreign key deletion action code (#TODO: support `cascade`??)
+    # p.conkey: List of the constrained columns (int2, pg_attribute.attnun {The number of the column})
+    # p.confkey: List of the referenced columns (int2, pg_attribute.attnun {The number of the column})
+    #FIXME: this is just super broken.
+    foreign_constraints = {} if not return_constraint_names else []
+    foreign_constraints_sql = sqlalchemy.text(u'''
+        SELECT
+        p.conname as constraint_name,
+        c1.relname as foreign_table,
+        co1.column_name as foreign_column,
+        co2.column_name as primary_column
+        FROM pg_constraint p
+        LEFT JOIN pg_class c1 ON c1.oid = p.confrelid
+        LEFT JOIN pg_class c2 ON c2.oid = p.conrelid
+        LEFT JOIN information_schema.columns co1 ON
+            (SELECT relname FROM pg_class WHERE oid = p.confrelid) = co1.table_name
+            AND co1.ordinal_position = ANY(p.confkey)
+        LEFT JOIN information_schema.columns co2 ON
+            (SELECT relname FROM pg_class WHERE oid = p.conrelid) = co2.table_name
+            AND co2.ordinal_position = ANY(p.conkey)
+        WHERE p.contype = 'f'
+            AND c2.relname = '{0}'
+        ORDER BY p.oid;
+    '''.format(resource_id))
+    foreign_constraints_results = connection.execute(foreign_constraints_sql)
+    for result in foreign_constraints_results.fetchall():
+        if return_constraint_names:
+            foreign_constraints.append(result.constraint_name)
+            continue
+        foreign_constraints[result.foreign_table] = {}
+        foreign_constraints[result.foreign_table][result.primary_column] = result.foreign_column
+    return foreign_constraints
 
 
 def _cache_types(connection):
@@ -582,6 +634,15 @@ def _generate_index_name(resource_id, field):
     value = (resource_id + field).encode('utf-8')
     return hashlib.sha1(value).hexdigest()
 
+# (canada fork only): foreign keys
+# TODO: upstream contrib!!
+def _generate_constraint_name(foreign_table, primary_fields, foreign_fields):
+    value = '{0}_{1}_{2}'.format(
+        '-'.join(k for k in primary_fields),
+        foreign_table,
+        '-'.join(v for v in foreign_fields)
+    ).encode('utf-8')
+    return 'fk_%s' % hashlib.sha1(value).hexdigest()
 
 def _get_fts_index_method():
     method = config.get('ckan.datastore.default_fts_index_method')
@@ -934,6 +995,32 @@ def create_table(context, data_dict, plugin_data):
     sql_fields = u", ".join([u'{0} {1}'.format(
         identifier(f['id']), f['type']) for f in fields])
 
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    foreign_keys = data_dict.get('foreign_keys')
+    foreign_fields = []
+    if foreign_keys:
+        for f_table_name, column_name_map in foreign_keys.items():
+            constraint_name = _generate_constraint_name(f_table_name, column_name_map.keys(), column_name_map.values())
+            log.debug('Trying to build foreign key constraint {0} for column(s) {1}({2}) on foreign column(s) {3}({4})'.format(
+                identifier(constraint_name),
+                identifier(data_dict['resource_id']),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
+            #TODO: allow for deletion and update enum??
+            # might be able to do this just for upstream. for now, we can force restrict delete and cascade update.
+            # a = no action, r = restrict, c = cascade, n = set null, d = set default
+            foreign_fields.append('CONSTRAINT {0} FOREIGN KEY ({1}) REFERENCES {2}({3}) ON DELETE RESTRICT ON UPDATE RESTRICT'.format(
+                identifier(constraint_name),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
+    if foreign_fields:
+        sql_fields += ", " + ", ".join(foreign_fields)
+
     sql_string = u'CREATE TABLE {0} ({1});'.format(
         identifier(data_dict['resource_id']),
         sql_fields
@@ -976,6 +1063,11 @@ def alter_table(context, data_dict, plugin_data):
     supplied_fields = data_dict.get('fields', [])
     current_fields = _get_fields(
         context['connection'], data_dict['resource_id'])
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    current_foreign_constraints = _get_foreign_constraints(
+        context['connection'], data_dict['resource_id'],
+        return_constraint_names=True)
     if not supplied_fields:
         supplied_fields = current_fields
     check_fields(context, supplied_fields)
@@ -1024,6 +1116,42 @@ def alter_table(context, data_dict, plugin_data):
             identifier(data_dict['resource_id']),
             identifier(f['id']),
             f['type']))
+
+    # (canada fork only): foreign keys
+    # TODO: upstream contrib!!
+    foreign_keys = data_dict.get('foreign_keys')
+    if foreign_keys is not None:
+        constraints = set()
+        for f_table_name, column_name_map in foreign_keys.items():
+            constraint_name = _generate_constraint_name(f_table_name, column_name_map.keys(), column_name_map.values())
+            constraints.add(constraint_name)
+            if constraint_name in current_foreign_constraints:
+                log.debug('Foreign key constraint {0} already exists, skipping...'.format(constraint_name))
+                continue
+            log.debug('Trying to build foreign key constraint {0} for column(s) {1}({2}) on foreign column(s) {3}({4})'.format(
+                identifier(constraint_name),
+                identifier(data_dict['resource_id']),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
+            #TODO: allow for deletion and update enum??
+            # might be able to do this just for upstream. for now, we can force restrict delete and cascade update.
+            # a = no action, r = restrict, c = cascade, n = set null, d = set default
+            alter_sql.append('ALTER TABLE {0} ADD CONSTRAINT {1} FOREIGN KEY ({2}) REFERENCES {3}({4}) ON DELETE RESTRICT ON UPDATE RESTRICT;'.format(
+                identifier(data_dict['resource_id']),
+                identifier(constraint_name),
+                ','.join(identifier(k) for k in column_name_map.keys()),
+                identifier(f_table_name),
+                ','.join(identifier(v) for v in column_name_map.values())
+            ))
+        #TODO: test when upstream contrib.
+        remove_foreign_constraints = set(current_foreign_constraints) - constraints
+        for constraint_name in remove_foreign_constraints:
+            alter_sql.append('ALTER TABLE {0} DROP CONSTRAINT {1};'.format(
+                identifier(data_dict['resource_id']),
+                identifier(constraint_name)
+            ))
 
     if plugin_data or any('info' in f for f in supplied_fields):
         raw_field_info, _old = _get_raw_field_info(
@@ -1537,21 +1665,28 @@ def upsert(context, data_dict):
     Any error results in total failure! For now pass back the actual error.
     Should be transactional.
     '''
-    backend = DatastorePostgresqlBackend.get_active_backend()
-    engine = backend._get_write_engine()
-    context['connection'] = engine.connect()
+    # (canada fork only): use contextual connection for deferring commits
+    #TODO: upstream contrib??
+    connection = context.get('connection', None)
+    trans = None
+    if not connection:
+        backend = DatastorePostgresqlBackend.get_active_backend()
+        engine = backend._get_write_engine()
+        connection = engine.connect()
+        trans = connection.begin()
     timeout = context.get('query_timeout', _TIMEOUT)
 
-    trans = context['connection'].begin()
     try:
         # check if table already existes
-        context['connection'].execute(
+        connection.execute(
             u'SET LOCAL statement_timeout TO {0}'.format(timeout))
-        upsert_data(context, data_dict)
-        if data_dict.get(u'dry_run', False):
-            trans.rollback()
-        else:
-            trans.commit()
+        # (canada fork only): use contextual connection for deferring commits
+        upsert_data(dict(context, connection=connection), data_dict)
+        if trans:  # (canada fork only): use contextual connection for deferring commits
+            if data_dict.get(u'dry_run', False):
+                trans.rollback()
+            else:
+                trans.commit()
         return _unrename_json_field(data_dict)
     except IntegrityError as e:
         if e.orig.pgcode == _PG_ERR_CODE['unique_violation']:
@@ -1577,10 +1712,14 @@ def upsert(context, data_dict):
             })
         raise
     except Exception as e:
-        trans.rollback()
+        # (canada fork only): use contextual connection for deferring commits
+        if trans:
+            trans.rollback()
         raise
     finally:
-        context['connection'].close()
+        # (canada fork only): use contextual connection for deferring commits
+        if not context.get('defer_commit') and not context.get('connection'):
+            connection.close()
 
 
 def search(context, data_dict):
@@ -1912,6 +2051,8 @@ class DatastorePostgresqlBackend(DatastoreBackend):
         try:
             # check if table exists
             if 'filters' not in data_dict:
+                # (canada fork only): change CASCADE -> RESTRICT???
+                # TODO: discuss this for deleting foreign keys...
                 context['connection'].execute(
                     u'DROP TABLE "{0}" CASCADE'.format(
                         data_dict['resource_id'])
@@ -1921,6 +2062,22 @@ class DatastorePostgresqlBackend(DatastoreBackend):
 
             trans.commit()
             return _unrename_json_field(data_dict)
+        # (canada fork only): foreign keys
+        # TODO: upstream contrib!!
+        #FIXME: flagged issue, referencing someone else's table will limit their table from the constraints.
+        except (IntegrityError, ProgrammingError, InternalError) as e:
+            trans.rollback()
+            if e.orig.pgcode == _PG_ERR_CODE['row_referenced_constraint'] or e.orig.pgcode == _PG_ERR_CODE['table_referenced_constraint']:
+                # FIXME: better error message??
+                raise ValidationError({
+                    'foreign_constraints': ['Cannot delete records or table'
+                                            ' because of a reference to another table.'],
+                    'info': {
+                        'orig': str(e.orig),
+                        'pgcode': e.orig.pgcode
+                    }
+                })
+            raise
         except Exception:
             trans.rollback()
             raise
@@ -1983,6 +2140,20 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                 raise ValidationError({
                     'constraints': ['Cannot insert records or create index'
                                     'because of uniqueness constraint'],
+                    'info': {
+                        'orig': str(e.orig),
+                        'pgcode': e.orig.pgcode
+                    }
+                })
+            raise
+        # (canada fork only): foreign keys
+        # TODO: upstream contrib!!
+        except ProgrammingError as e:
+            if e.orig.pgcode == _PG_ERR_CODE['no_unique_constraint']:
+                # FIXME: better error message??
+                raise ValidationError({
+                    'foreign_constraints': ['Cannot insert records or create index'
+                                            ' because of a foreign constraint'],
                     'info': {
                         'orig': str(e.orig),
                         'pgcode': e.orig.pgcode
@@ -2111,6 +2282,11 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                 aliases.append(alias[0])
             info['meta']['aliases'] = aliases
 
+            # (canada fork only): foreign keys
+            # TODO: upstream contrib!!
+            #FIXME: fix later, multiple column foreign keys and ordered dict/lists?
+            #info['foreign_keys'] = _get_foreign_constraints(engine, id)
+
             # get the data dictionary for the resource
             with engine.connect() as conn:
                 data_dictionary = _result_fields(
@@ -2119,6 +2295,8 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                     None
                 )
 
+            # (canada fork only): foreign keys
+            # TODO: upstream contrib!!
             schema_sql = sqlalchemy.text(u'''
                 SELECT
                 f.attname AS column_name,
@@ -2133,7 +2311,11 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                     WHEN p.contype = 'u' THEN True
                     WHEN p.contype = 'p' THEN True
                     ELSE False
-                END AS uniquekey
+                END AS uniquekey,
+                CASE
+                    WHEN p.contype = 'f' THEN True
+                    ELSE False
+                END AS foreignkeys
                 FROM pg_attribute f
                 JOIN pg_class c ON c.oid = f.attrelid
                 JOIN pg_type t ON t.oid = f.atttypid
@@ -2153,11 +2335,14 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                 colname = row.column_name
                 if colname.startswith('_'):  # Skip internal rows
                     continue
+                # (canada fork only): foreign keys
+                # TODO: upstream contrib!!
                 colinfo = {'native_type': row.native_type,
                            'notnull': row.notnull,
                            'index_name': row.index_name,
                            'is_index': row.is_index,
-                           'uniquekey': row.uniquekey}
+                           'uniquekey': row.uniquekey,
+                           'foreignkeys': row.foreignkeys}
                 schemainfo[colname] = colinfo
 
             for field in data_dictionary:
@@ -2214,7 +2399,10 @@ def create_function(name, arguments, rettype, definition, or_replace):
                 # validator OneOf checks for safety of argmode
                 argmode=a['argmode'] if 'argmode' in a else '',
                 argname=identifier(a['argname']),
-                argtype=identifier(a['argtype']))
+                # (canada fork only): support literal type boolean
+                # TODO: upstream contrib!! make better with constant list of psql literals.
+                # FIXME: psql has some literals that do not work in double quotes.
+                argtype=identifier(a['argtype']) if a['argtype'] != 'boolean' else a['argtype'])
             for a in arguments),
         rettype=identifier(rettype),
         definition=literal_string(definition))
