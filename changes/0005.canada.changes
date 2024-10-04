@@ -1,0 +1,1 @@
+Added `ckan_phase` block to the `package_form` template to allow for no-phased dataset forms.
