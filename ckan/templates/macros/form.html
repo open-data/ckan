@@ -128,12 +128,14 @@ options     - A list/tuple of fields to be used as <options>.
   {% macro markdown(name, id='', label='', value='', placeholder='', error="", classes=[], attrs={'class': 'form-control'}, is_required=false) %}
   {% set classes = (classes|list) %}
   {% do classes.append('control-full') %}
-  {% set markdown_tooltip = "<pre><p>__Bold text__ or _italic text_</p><p># title<br>## secondary title<br>### etc</p><p>* list<br>* of<br>* items</p><p>http://auto.link.ed/</p></pre><p><b><a href='http://daringfireball.net/projects/markdown/syntax' target='_blank'>Full markdown syntax</a></b></p><p class='text-muted'><b>Please note:</b> HTML tags are stripped out for security reasons</p>" %}
+  {# (canada fork only): custom markdown limits and help text, i18n #}
+  {% set markdown_tooltip = _("<pre><p>__bold text__</p><p>_italic text_</p><p>* list<br>* of<br>* items</p><p>1. numbered<br>2. list<br>3. of items</p><p>https://auto.link.ed/</p><p>[Formatted Link](https://formatted.link)</p><p>> block quote</p></pre><p class='text-muted'><b>Please note:</b> HTML tags are stripped out for security reasons</p>") %}
 
   {%- set extra_html = caller() if caller -%}
   {% call input_block(id or name, label or name, error, classes, control_classes=["editor"], extra_html=extra_html, is_required=is_required) %}
   <textarea id="{{ id or name }}" name="{{ name }}" cols="20" rows="5" placeholder="{{ placeholder }}" {{ attributes(attrs) }}>{{ value | empty_and_escape }}</textarea>
-  <span class="editor-info-block">{% trans %}You can use <a href="#markdown" title="Markdown quick reference" data-target="popover" data-content="{{ markdown_tooltip }}" data-html="true">Markdown formatting</a> here{% endtrans %}</span>
+  {# (canada fork only): i18n #}
+  <span class="editor-info-block">{{ _('You can use <a href="#markdown" title="Markdown quick reference" data-target="popover" data-content="{}" data-html="true">Markdown formatting</a> here').format(markdown_tooltip) }}</span>
   {% endcall %}
   {% endmacro %}
 
