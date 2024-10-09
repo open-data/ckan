@@ -8,8 +8,10 @@ then itself be extended to add/remove blocks of functionality. #}
   {% block stages %}
     {{ h.snippet('package/snippets/stages.html', stages=stage, dataset_type=dataset_type) }}
   {% endblock %}
-
-  <input type="hidden" name="_ckan_phase" value="dataset_new_1" />
+  {# (canada fork only): add ckan_phase block #}
+  {% block ckan_phase %}
+    <input type="hidden" name="_ckan_phase" value="dataset_new_1" />
+  {% endblock %}
   {# pkg_name used in 3 stage edit #}
   <input type="hidden" name="pkg_name" value="{{ data.id }}" />
   {% block errors %}{{ form.errors(error_summary) }}{% endblock %}

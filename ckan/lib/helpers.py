@@ -68,9 +68,11 @@ Helper = TypeVar("Helper", bound=Callable[..., Any])
 
 log = logging.getLogger(__name__)
 
+# (canada fork only): disallow a11y controlling tags
+#                     h1, h2, h3 (reason: non-semantic tags)
+#                     img (reason: alt text)
 MARKDOWN_TAGS = set([
-    'del', 'dd', 'dl', 'dt', 'h1', 'h2',
-    'h3', 'img', 'kbd', 'p', 'pre', 's',
+    'del', 'dd', 'dl', 'dt', 'kbd', 'p', 'pre', 's',
     'sup', 'sub', 'strike', 'br', 'hr'
 ]).union(ALLOWED_TAGS)
 

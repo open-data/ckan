@@ -125,6 +125,9 @@ def datastore_create_schema() -> Schema:
         },
         'delete_fields': [default(False), boolean_validator],
         'primary_key': [ignore_missing, list_of_strings_or_string],
+        # (canada fork only): foreign_keys
+        # TODO: upstream contrib!!
+        'foreign_keys': [ignore_missing, dict_only],
         'indexes': [ignore_missing, list_of_strings_or_string],
         'triggers': {
             'when': [
