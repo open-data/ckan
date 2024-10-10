@@ -2237,7 +2237,6 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             # TODO: upstream contrib!!
             #FIXME: flagged issue, referencing someone else's table will limit their table from the constraints.
             except (IntegrityError, ProgrammingError, InternalError) as e:
-                conn.rollback()
                 if e.orig.pgcode == _PG_ERR_CODE['row_referenced_constraint'] or e.orig.pgcode == _PG_ERR_CODE['table_referenced_constraint']:
                     # FIXME: better error message??
                     raise ValidationError({
@@ -2249,11 +2248,6 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                         }
                     })
                 raise
-            except Exception:
-                conn.rollback()
-                raise
-            finally:
-                conn.close()
 
     def create(
             self,
