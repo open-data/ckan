@@ -386,7 +386,8 @@ class EditView(MethodView):
             # getting the identity for current logged user
             identity = {
                 u'login': current_user.name,
-                u'password': data_dict[u'old_password']
+                u'password': data_dict[u'old_password'],
+                'for_edit_view': True,  # (canada fork only): suppress login flash message
             }
             auth_user = authenticator.ckan_authenticator(identity)
 
