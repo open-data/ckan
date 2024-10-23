@@ -301,7 +301,11 @@ class ApiTokenView(MethodView):
 def api_token_revoke(id: str, jti: str) -> Response:
     context = cast(Context, {u'model': model})
     try:
+        # (canada fork only): more flash messages
+        # TODO: upstream contrib!!
+        token = model.ApiToken.get(jti)
         logic.get_action(u'api_token_revoke')(context, {u'jti': jti})
+        h.flash_notice(_('Deleted API token %s') % getattr(token, 'name', ''))
     except logic.NotAuthorized:
         base.abort(403, _(u'Unauthorized to revoke API tokens.'))
     return h.redirect_to(u'user.api_tokens', id=id)
