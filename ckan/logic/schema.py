@@ -123,8 +123,9 @@ def default_create_package_schema(
         datasets_with_no_organization_cannot_be_private: Validator,
         empty: Validator, tag_string_convert: Validator,
         owner_org_validator: Validator, json_object: Validator,
-        ignore_not_sysadmin: Validator, license_choices: Validator):
-    return cast(Schema, {
+        ignore_not_sysadmin: Validator, license_choices: Validator,
+        isodate: Validator) -> Schema:
+    return {
         '__before': [duplicate_extras_key, ignore],
         'id': [empty_if_not_sysadmin, ignore_missing, unicode_safe,
                package_id_does_not_exist],
@@ -162,8 +163,9 @@ def default_create_package_schema(
             'name': [ignore_missing, unicode_safe],
             'title': [ignore_missing, unicode_safe],
             '__extras': [ignore],
-        }
-    })
+        },
+        'metadata_modified': [ignore_not_sysadmin, ignore_missing, isodate],
+    }
 
 
 @validator_args

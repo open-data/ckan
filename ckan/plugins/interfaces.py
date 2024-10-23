@@ -6,8 +6,10 @@ extend CKAN.
 '''
 from __future__ import annotations
 
-from typing import (Any, Callable, Iterable, Mapping, Optional, Sequence,
-                    TYPE_CHECKING, Type, Union)
+from typing import (
+    Any, Callable, Iterable, Mapping, Optional, Sequence,
+    TYPE_CHECKING, Type, Union, List,
+)
 
 from pyutilib.component.core import Interface as _pca_Interface
 
@@ -1307,6 +1309,18 @@ class IDatasetForm(Interface):
 
         '''
         return blueprint
+
+    def resource_validation_dependencies(
+            self, package_type: str) -> List[str]:
+        '''
+        Return a list of dataset field names that affect validation of
+        resource fields.
+
+        package_update and related actions skip re-validating unchanged
+        resources unless one of the resource validation dependencies
+        fields returned here has changed.
+        '''
+        return []
 
 
 class IGroupForm(Interface):
