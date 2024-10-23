@@ -20,10 +20,13 @@
                 {{ h.csrf_input() }}
                 <input type="hidden" value="{{ user }}" name="username" />
                 <input type="hidden" value="0" name="status" />
+                {# (canada fork only): add confirm action #}
                 <button
                   type="submit"
                   class="btn btn-danger btn-sm"
                   title="{{ _('Revoke Sysadmin permission') }}"
+                  data-module="confirm-action"
+                  data-module-with-data="true"
                 >
                   <i class="fa fa-times"></i>
                 </button>
