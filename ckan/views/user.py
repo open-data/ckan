@@ -669,9 +669,15 @@ def delete(id: str) -> Union[Response, Any]:
 
     if request.method == 'POST' and current_user.is_authenticated:
         if current_user.id == id:  # type: ignore
+            # (canada fork only): more flash messages
+            # TODO: upstream contrib!!
+            h.flash_notice(_('User %s deleted. You are now logged out.') % user_dict['name'])
             return logout()
         else:
             user_index = h.url_for(u'user.index')
+            # (canada fork only): more flash messages
+            # TODO: upstream contrib!!
+            h.flash_notice(_('User %s deleted.') % user_dict['name'])
             return h.redirect_to(user_index)
 
     # TODO: Remove
