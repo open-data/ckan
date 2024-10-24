@@ -43,7 +43,7 @@ this.ckan.module('autocomplete', function (jQuery) {
       this.setupAutoComplete();
     },
 
-    /* Sets up the auto complete plugin. 
+    /* Sets up the auto complete plugin.
      *
      * Returns nothing.
      */
@@ -73,7 +73,15 @@ this.ckan.module('autocomplete', function (jQuery) {
           }
         } else {
           settings.query = this._onQuery;
-          settings.createSearchChoice = this.formatTerm;
+          // (canada fork only): allow for createtags to be used independently from tags
+          // Disable creating new tags
+          if (!this.options.createtags) {
+            settings.createSearchChoice = function(params) {
+              return undefined;
+            }
+          }else{
+            settings.createSearchChoice = this.formatTerm;
+          }
         }
         settings.initSelection = this.formatInitialValue;
       }
