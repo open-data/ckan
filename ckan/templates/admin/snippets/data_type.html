@@ -19,6 +19,8 @@
 
 {# entities list can be of different types #}
 {% set items = [] %}
+{# (canada fork only): do not flop on url building for bad types #}
+{% set available_purge_types = h.available_purge_types() %}
 
     <!-- expanded by default to prevent problems with disabled js -->
     <div id="{{ ent_type }}" class="accordion-collapse collapse show p-2" aria-labelledby="heading-{{ ent_type }}"
@@ -28,9 +30,14 @@
         {% set title = entity.title or entity.name %}
           {% do items.append(title) %}
         <li>
-          <a href="{{ h.url_for(entity.type + '.read', id=entity.name) }}" title="{{ title }}">
-            {{ title|truncate(80) }}
-          </a>
+          {# (canada fork only): do not flop on url building for bad types #}
+          {% if entity.type in available_purge_types %}
+            <a href="{{ h.url_for(entity.type + '.read', id=entity.name) }}" title="{{ title }}">
+              {{ title|truncate(80) }}
+            </a>
+          {% else %}
+            <span title="{{ title }}">{{ title|truncate(80) }} <small class="text-warning">({{ entity.type or 'unknown' }} - {{ entity.id or 'unknown' }})</small></span>
+          {% endif %}
         </li>
         {% else %}
         <p>
