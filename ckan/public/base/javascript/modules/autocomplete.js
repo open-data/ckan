@@ -30,7 +30,9 @@ this.ckan.module('autocomplete', function (jQuery) {
       interval: 300,
       dropdownClass: '',
       containerClass: '',
-      minimumInputLength: 0
+      minimumInputLength: 0,
+      initial_value: '',  // (canada fork only): initial label
+      initial_label: ''  // (canada fork only): initial label
     },
 
     /* Sets up the module, binding methods, creating elements etc. Called
@@ -235,11 +237,21 @@ this.ckan.module('autocomplete', function (jQuery) {
     },
 
     formatTerm: function (term) {
+      // (canada fork only): initial label
+      if( this.options.initial_value.length > 0 ){
+        term = this.options.initial_value;
+      }
+      if( this.options.initial_label.length > 0 ){
+        label = this.options.initial_label;
+      }else{
+        label = term;
+      }
       term = jQuery.trim(term || '');
+      label = jQuery.trim(label || term);
 
       // Need to replace comma with a unicode character to trick the plugin
       // as it won't split this into multiple items.
-      return {id: term.replace(/,/g, '\u002C'), text: term};
+      return {id: term.replace(/,/g, '\u002C'), text: label};
     },
 
     /* Callback function that parses the initial field value.
