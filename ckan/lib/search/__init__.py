@@ -8,6 +8,11 @@ import warnings
 import base64
 import xml.dom.minidom
 
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+import json
+import datetime
+
 import requests
 
 from ckan.common import asbool, asint, config
@@ -139,8 +144,10 @@ class SynchronousSearchPlugin(p.SingletonPlugin):
             log.warn("Discarded Sync. indexing for: %s" % entity)
 
 
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
 def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
-            defer_commit=False, package_ids=None, quiet=False):
+            defer_commit=False, package_ids=None, quiet=False, in_background=False, group_id=None):
     '''
         Rebuilds the search index.
 
@@ -156,6 +163,24 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
     context = {'model': model, 'ignore_auth': True, 'validate': False,
         'use_cache': False}
 
+    # (canada fork only): background search index rebuilding
+    #TODO: upstream contrib!!
+    task = None
+    if in_background:
+        try:
+            if group_id:
+                _entity_id = group_id
+            else:
+                _entity_id = p.toolkit.config.get('ckan.site_id')
+            task = logic.get_action('task_status_show')(context, {'entity_id': _entity_id,
+                                                                  'task_type': 'search_rebuild',
+                                                                  'key': 'search_rebuild'})
+            task['state'] = 'running'
+            task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+            logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+        except logic.NotFound:
+            pass
+
     if package_id:
         pkg_dict = logic.get_action('package_show')(context,
             {'id': package_id})
@@ -168,6 +193,14 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
                 {'id': package_id})
             log.info('Indexing just package %r...', pkg_dict['name'])
             package_index.update_dict(pkg_dict, True)
+            # (canada fork only): background search index rebuilding
+            #TODO: upstream contrib!!
+            if in_background and task:
+                value = json.loads(task.get('value', '{}'))
+                value['indexed'] += 1
+                task['value'] = json.dumps(value)
+                task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+                logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
     else:
         package_ids = [r[0] for r in model.Session.query(model.Package.id).
                        filter(model.Package.state != 'deleted').all()]
@@ -203,9 +236,26 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
                     ),
                     defer_commit
                 )
+                # (canada fork only): background search index rebuilding
+                #TODO: upstream contrib!!
+                if in_background and task:
+                    value = json.loads(task.get('value', '{}'))
+                    value['indexed'] += 1
+                    value['total'] = total_packages
+                    task['value'] = json.dumps(value)
+                    task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+                    logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
             except Exception as e:
                 log.error(u'Error while indexing dataset %s: %s' %
                           (pkg_id, repr(e)))
+                # (canada fork only): background search index rebuilding
+                #TODO: upstream contrib!!
+                if in_background and task:
+                    value = json.loads(task.get('error', '{}'))
+                    value['error'][pkg_id] = str(e)
+                    task['value'] = json.dumps(value)
+                    task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+                    logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
                 if force:
                     log.error(text_traceback())
                     continue
@@ -214,6 +264,12 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
 
     model.Session.commit()
     log.info('Finished rebuilding search index.')
+    # (canada fork only): background search index rebuilding
+    #TODO: upstream contrib!!
+    if in_background and task:
+        task['state'] = 'complete'
+        task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+        logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
 
 
 def commit():

@@ -147,6 +147,33 @@ def organization_update(context, data_dict):
         return {'success': True}
 
 
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def reindex_organization_datasets(context, data_dict):
+    """
+    Only sysadmins can perform reindexing
+    """
+    return {'success': False}
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def reindex_group_datasets(context, data_dict):
+    """
+    Only sysadmins can perform reindexing
+    """
+    return {'success': False}
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def reindex_site(context, data_dict):
+    """
+    Only sysadmins can perform reindexing
+    """
+    return {'success': False}
+
+
 def group_change_state(context, data_dict):
     user = context['user']
     group = logic_auth.get_group_object(context, data_dict)

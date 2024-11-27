@@ -2,6 +2,11 @@
 
 import logging
 
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+import json
+import ckan.plugins as plugins
+
 from flask import Blueprint
 from flask.views import MethodView
 
@@ -240,6 +245,47 @@ class TrashView(MethodView):
         return actions.get(ent_type)
 
 
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def search_rebuild():
+    context = {
+        'model': model,
+        'session': model.Session,
+        'user': g.user,
+        'for_view': True,
+    }
+
+    try:
+        plugins.toolkit.check_access('reindex_site', context)
+    except logic.NotAuthorized:
+        return base.abort(403, _('Not authorized to see this page'))
+
+    if request.method == 'POST':
+        try:
+            job_dict = plugins.toolkit.get_action('reindex_site')(context, {})
+            if job_dict:
+                h.flash_success(_('Records are in queue to be re-indexed.'))
+            else:
+                h.flash_notice(_('Records already in queue to be re-indexed.'))
+        except logic.NotAuthorized:
+            h.flash_error(_('Unable to re-index records.'))
+
+    task = None
+    try:
+        #FIXME: task status not updated to pending from reindex_<type>_datasets, need session flush??
+        _entity_id = plugins.toolkit.config.get('ckan.site_id')
+        task = plugins.toolkit.get_action('task_status_show')(context, {'entity_id': _entity_id,
+                                                              'task_type': 'search_rebuild',
+                                                              'key': 'search_rebuild'})
+        task['value'] = json.loads(task.get('value', '{}'))
+    except logic.NotFound:
+        pass
+
+    extra_vars = {'job_info': task}
+
+    return base.render('admin/search_rebuild.html', extra_vars)
+
+
 admin.add_url_rule(
     u'/', view_func=index, methods=['GET'], strict_slashes=False
 )
@@ -247,3 +293,6 @@ admin.add_url_rule(u'/reset_config',
                    view_func=ResetConfigView.as_view(str(u'reset_config')))
 admin.add_url_rule(u'/config', view_func=ConfigView.as_view(str(u'config')))
 admin.add_url_rule(u'/trash', view_func=TrashView.as_view(str(u'trash')))
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+admin.add_url_rule('/search_rebuild', view_func=search_rebuild, methods=['GET', 'POST'])
