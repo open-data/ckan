@@ -919,7 +919,7 @@ def reindex_site(context, data_dict):
                                       kwargs={'force': True, 'in_background': True})
 
     # let search.rebuild calculate the total...
-    task['value'] =  json.dumps({'job_id': job.id, 'total': 0, 'indexed': 0})
+    task['value'] =  json.dumps({'job_id': job.id, 'total': None, 'indexed': 0})
     task['state'] = 'pending'
     task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
 

@@ -1213,7 +1213,6 @@ def search_rebuild(group_type, is_organization, id=None):
 
     task = None
     try:
-        #FIXME: task status not updated to pending from reindex_<type>_datasets, need session flush??
         task = logic.get_action('task_status_show')(context, {'entity_id': group_dict.get('id'),
                                                               'task_type': 'search_rebuild',
                                                               'key': 'search_rebuild'})

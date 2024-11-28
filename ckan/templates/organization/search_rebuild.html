@@ -5,23 +5,10 @@
 {% block subtitle %}{{ _('Rebuild Search Index') }} {{ g.template_title_delimiter }} {{ super() }}{% endblock %}
 
 {% block primary_content_inner %}
-  {%- set messages = {
-    'pending': _('In queue to re-index records.'),
-    'running': _('Currently re-indexing records.'),
-    'complete': _('All records indexed.'),
-    'unknown': _('Unknown')
-  } -%}
-  {%- set colors = {
-    'pending': 'info',
-    'running': 'primary',
-    'complete': 'success',
-    'unknown': 'secondary'
-  } -%}
   {% if job_info %}
     <div class="row">
-      <div class="col-md-12 text-{{ colors.get(job_info.get('state', 'unknown')) }}">
-        <p><strong>{{ messages.get(job_info.get('state', 'unknown')) }}</strong></p>
-        <p><em>{{ job_info.get('value', {}).get('indexed', _('N/A')) }}/{{ job_info.get('value', {}).get('total', _('N/A')) }}</em></p>
+      <div class="col-md-12">
+        <div data-module="progress-bar" data-module-endpoint="{{ h.url_for('util.search_rebuild_progress', entity_id=group_dict.get('id')) }}"></div>
       </div>
     </div>
     <hr />

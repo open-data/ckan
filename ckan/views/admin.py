@@ -272,7 +272,6 @@ def search_rebuild():
 
     task = None
     try:
-        #FIXME: task status not updated to pending from reindex_<type>_datasets, need session flush??
         _entity_id = plugins.toolkit.config.get('ckan.site_id')
         task = plugins.toolkit.get_action('task_status_show')(context, {'entity_id': _entity_id,
                                                               'task_type': 'search_rebuild',
@@ -281,7 +280,8 @@ def search_rebuild():
     except logic.NotFound:
         pass
 
-    extra_vars = {'job_info': task}
+    extra_vars = {'job_info': task,
+                  'site_id': _entity_id}
 
     return base.render('admin/search_rebuild.html', extra_vars)
 
