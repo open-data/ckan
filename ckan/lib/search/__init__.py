@@ -175,13 +175,13 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
         # (canada fork only): background search index rebuilding
         #TODO: upstream contrib!!
         total_packages = len(package_ids)
-        for counter, package_id in enumerate(package_ids):
+        for counter, package_id in enumerate(package_ids, 1):
             pkg_dict = logic.get_action('package_show')(context,
                 {'id': package_id})
             package_index.update_dict(pkg_dict, True)
             # (canada fork only): background search index rebuilding
             #TODO: upstream contrib!!
-            yield package_id, total_packages, (counter + 1), None
+            yield package_id, total_packages, counter, None
     else:
         package_ids = [r[0] for r in model.Session.query(model.Package.id).
                        filter(model.Package.state != 'deleted').all()]
@@ -203,7 +203,7 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
                 package_index.clear()
 
         total_packages = len(package_ids)
-        for counter, pkg_id in enumerate(package_ids):
+        for counter, pkg_id in enumerate(package_ids, 1):
             try:
                 package_index.update_dict(
                     logic.get_action('package_show')(context,
@@ -213,13 +213,13 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
                 )
                 # (canada fork only): background search index rebuilding
                 #TODO: upstream contrib!!
-                yield pkg_id, total_packages, (counter + 1), None
+                yield pkg_id, total_packages, counter, None
             except Exception as e:
                 log.error(u'Error while indexing dataset %s: %s' %
                           (pkg_id, repr(e)))
                 # (canada fork only): background search index rebuilding
                 #TODO: upstream contrib!!
-                yield pkg_id, total_packages, (counter + 1), str(e)
+                yield pkg_id, total_packages, counter, str(e)
                 if force:
                     log.error(text_traceback())
                     continue
