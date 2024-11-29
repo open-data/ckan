@@ -52,15 +52,15 @@ def reindex_packages(package_ids=None, group_id=None):
 
     value['job_id'] = get_current_job().id
 
-    for _dataset_id, _total, _indexed, _error in search.rebuild(force=True, package_ids=package_ids):
-        if not _error:
-            log.info('[%s/%s] Indexed dataset %s' % (_indexed, _total, _dataset_id))
+    for pkg_id, total, indexed, err in search.rebuild(force=True, package_ids=package_ids):
+        if not err:
+            log.info('[%s/%s] Indexed dataset %s' % (indexed, total, pkg_id))
         else:
-            log.error('[%s/%s] Failed to index dataset %s with error: %s' % (_indexed, _total, _dataset_id, _error))
-        value['indexed'] = _indexed
-        value['total'] = _total
-        if _error:
-            error[_dataset_id] = _error
+            log.error('[%s/%s] Failed to index dataset %s with error: %s' % (indexed, total, pkg_id, err))
+        value['indexed'] = indexed
+        value['total'] = total
+        if err:
+            error[pkg_id] = err
         task['value'] = json.dumps(value)
         task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
         logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
