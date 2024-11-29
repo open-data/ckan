@@ -44,6 +44,8 @@ def rebuild(
                                                    refresh=refresh,
                                                    defer_commit=(not commit_each)):
             if not verbose:
+                if err:
+                    click.echo('Failed to index dataset %s with error: %s' % (pkg_id, err))
                 continue
             if not err:
                 click.echo('[%s/%s] Indexed dataset %s' % (indexed, total, pkg_id))
