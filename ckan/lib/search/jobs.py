@@ -18,6 +18,21 @@ log = getLogger(__name__)
 
 
 def reindex_packages(package_ids=None, group_id=None):
+    """
+    Callback for a REDIS job
+
+    Uses task_status to track the state of a search.rebuild call.
+
+    This always commits each record in a forceful manner.
+
+    See ckan.lib.search.rebuild for more information.
+
+    :param package_ids: list of package IDs to pass to search.rebuild
+    :type package_ids: list
+
+    :param group_id: organization or group ID to reindex the records
+    :type group_id: string
+    """
     context = {
         'model': model,
         'ignore_auth': True,
