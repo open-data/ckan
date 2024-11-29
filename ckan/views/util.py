@@ -53,7 +53,7 @@ def search_rebuild_progress(entity_id):
 
     try:
         task_status = toolkit.get_action('task_status_show')(context, {'entity_id': entity_id,
-                                                                       'task_type': 'search_rebuild',
+                                                                       'task_type': 'reindex_packages',
                                                                        'key': 'search_rebuild'})
     except toolkit.NotAuthorized:
         return _finish_not_authz()

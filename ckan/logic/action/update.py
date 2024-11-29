@@ -837,7 +837,7 @@ def _reindex_group_or_org_in_background(context, data_dict, is_org=False):
     task = {
         'entity_id': group.id,
         'entity_type': 'group',
-        'task_type': 'search_rebuild',
+        'task_type': 'reindex_packages',
         'last_updated': str(datetime.datetime.now(datetime.timezone.utc)),
         'state': 'submitting',
         'key': 'search_rebuild',
@@ -846,7 +846,7 @@ def _reindex_group_or_org_in_background(context, data_dict, is_org=False):
     }
     try:
         existing_task = _get_action('task_status_show')(context, {'entity_id': group.id,
-                                                                  'task_type': 'search_rebuild',
+                                                                  'task_type': 'reindex_packages',
                                                                   'key': 'search_rebuild'})
         if existing_task.get('state') == 'pending':
             log.info('A pending task (%s) was found for this %s (%s). Skipping this duplicate task...',
@@ -867,7 +867,7 @@ def _reindex_group_or_org_in_background(context, data_dict, is_org=False):
     _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
 
     queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
-    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex, title=_('Rebuild Dataset Indices'), queue=queue_name,
+    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex_packages, title=_('Rebuild Dataset Indices'), queue=queue_name,
                                       kwargs={'package_ids': dataset_ids, 'group_id': group.id})
 
     return dictize_job(job)
@@ -905,7 +905,7 @@ def reindex_site_in_background(context, data_dict):
     task = {
         'entity_id': _entity_id,
         'entity_type': 'site',
-        'task_type': 'search_rebuild',
+        'task_type': 'reindex_packages',
         'last_updated': str(datetime.datetime.now(datetime.timezone.utc)),
         'state': 'submitting',
         'key': 'search_rebuild',
@@ -914,7 +914,7 @@ def reindex_site_in_background(context, data_dict):
     }
     try:
         existing_task = _get_action('task_status_show')(context, {'entity_id': _entity_id,
-                                                                  'task_type': 'search_rebuild',
+                                                                  'task_type': 'reindex_packages',
                                                                   'key': 'search_rebuild'})
         if existing_task.get('state') == 'pending':
             log.info('A pending task (%s) was found for this Site (%s). Skipping this duplicate task...',
@@ -934,7 +934,7 @@ def reindex_site_in_background(context, data_dict):
     _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
 
     queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
-    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex, title=_('Rebuild Dataset Indices'), queue=queue_name)
+    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex_packages, title=_('Rebuild Dataset Indices'), queue=queue_name)
 
     return dictize_job(job)
 

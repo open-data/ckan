@@ -17,7 +17,7 @@ from logging import getLogger
 log = getLogger(__name__)
 
 
-def reindex(package_ids=None, group_id=None):
+def reindex_packages(package_ids=None, group_id=None):
     context = {
         'model': model,
         'ignore_auth': True,
@@ -29,7 +29,7 @@ def reindex(package_ids=None, group_id=None):
     task = {
         'entity_id': _entity_id,
         'entity_type': 'group' if group_id else 'site',
-        'task_type': 'search_rebuild',
+        'task_type': 'reindex_packages',
         'last_updated': str(datetime.datetime.now(datetime.timezone.utc)),
         'state': 'running',
         'key': 'search_rebuild',
@@ -39,7 +39,7 @@ def reindex(package_ids=None, group_id=None):
 
     try:
         task = logic.get_action('task_status_show')(context, {'entity_id': _entity_id,
-                                                              'task_type': 'search_rebuild',
+                                                              'task_type': 'reindex_packages',
                                                               'key': 'search_rebuild'})
         task['state'] = 'running'
         task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))

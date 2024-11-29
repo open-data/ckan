@@ -274,7 +274,7 @@ def search_rebuild():
     try:
         _entity_id = plugins.toolkit.config.get('ckan.site_id')
         task = plugins.toolkit.get_action('task_status_show')(context, {'entity_id': _entity_id,
-                                                              'task_type': 'search_rebuild',
+                                                              'task_type': 'reindex_packages',
                                                               'key': 'search_rebuild'})
         task['value'] = json.loads(task.get('value', '{}'))
     except logic.NotFound:
