@@ -1198,9 +1198,9 @@ def search_rebuild(group_type, is_organization, id=None):
 
     if request.method == 'POST':
         try:
-            action = 'reindex_group_datasets_in_background'
+            action = 'group_packages_background_reindex'
             if is_organization:
-                action = 'reindex_organization_datasets_in_background'
+                action = 'organization_packages_background_reindex'
             job_dict = get_action(action)(context, {'id': id})
             if job_dict:
                 h.flash_success(_('Records are in queue to be re-indexed.'))

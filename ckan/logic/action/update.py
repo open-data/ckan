@@ -791,9 +791,9 @@ def _group_or_org_update(context, data_dict, is_org=False):
         if (plugins.toolkit.asbool(plugins.toolkit.config.get('ckan.search.reindex_after_group_or_org_update', False))
             and (group.title != current_title or group.name != current_name)):
             # only reindex if the title or name has changed
-            action = 'reindex_group_datasets'
+            action = 'group_packages_background_reindex'
             if is_org:
-                action = 'reindex_organization_datasets'
+                action = 'organization_packages_background_reindex'
             reindex_context = {
                 'model': model,
                 'user': user,
@@ -807,7 +807,7 @@ def _group_or_org_update(context, data_dict, is_org=False):
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def _reindex_group_or_org_in_background(context, data_dict, is_org=False):
+def _group_or_org_packages_background_reindex(context, data_dict, is_org=False):
     """
     Reindexes all of an organization's or group's datasets in a background job.
     """
@@ -875,25 +875,25 @@ def _reindex_group_or_org_in_background(context, data_dict, is_org=False):
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def reindex_organization_datasets_in_background(context, data_dict):
+def organization_packages_background_reindex(context, data_dict):
     """
     Reindexes all of an organization's datasets in a background job.
     """
-    return _reindex_group_or_org_in_background(context, data_dict, is_org=True)
+    return _group_or_org_packages_background_reindex(context, data_dict, is_org=True)
 
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def reindex_group_datasets_in_background(context, data_dict):
+def group_packages_background_reindex(context, data_dict):
     """
     Reindexes all of a groups's datasets in a background job.
     """
-    return _reindex_group_or_org_in_background(context, data_dict)
+    return _group_or_org_packages_background_reindex(context, data_dict)
 
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def reindex_site_in_background(context, data_dict):
+def site_packages_background_reindex(context, data_dict):
     """
     Reindexes all of the site's datasets in a background job.
     """
