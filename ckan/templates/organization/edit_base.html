@@ -24,7 +24,7 @@
     {{ h.build_nav_icon(group_type + '.manage_members', _('Members'), id=group_dict.name, icon='users') }}
     {# (canada fork only): background search index rebuilding #}
     {#  TODO: upstream contrib!! #}
-    {% if h.check_access('sysadmin') %}
+    {% if organization and h.check_access('reindex_organization_datasets', {'id': organization.id}) %}
       {{ h.build_nav_icon(group_type + '.search_rebuild', _('Rebuild Search Index'), id=group_dict.name, icon='database') }}
     {% endif %}
 {% endblock %}

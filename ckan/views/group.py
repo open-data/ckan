@@ -1198,9 +1198,9 @@ def search_rebuild(group_type, is_organization, id=None):
 
     if request.method == 'POST':
         try:
-            action = 'reindex_group_datasets'
+            action = 'reindex_group_datasets_in_background'
             if is_organization:
-                action = 'reindex_organization_datasets'
+                action = 'reindex_organization_datasets_in_background'
             job_dict = get_action(action)(context, {'id': id})
             if job_dict:
                 h.flash_success(_('Records are in queue to be re-indexed.'))
@@ -1227,6 +1227,9 @@ def search_rebuild(group_type, is_organization, id=None):
         'group_type': group_type,
         'group_dict': group_dict,
         'job_info': task,
+        'has_auto_index':
+            plugins.toolkit.asbool(
+                plugins.toolkit.config.get('ckan.search.reindex_after_group_or_org_update', False))
     }
 
     return base.render(

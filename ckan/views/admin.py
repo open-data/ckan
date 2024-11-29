@@ -262,7 +262,7 @@ def search_rebuild():
 
     if request.method == 'POST':
         try:
-            job_dict = plugins.toolkit.get_action('reindex_site')(context, {})
+            job_dict = plugins.toolkit.get_action('reindex_site_in_background')(context, {})
             if job_dict:
                 h.flash_success(_('Records are in queue to be re-indexed.'))
             else:

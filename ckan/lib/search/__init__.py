@@ -144,10 +144,10 @@ class SynchronousSearchPlugin(p.SingletonPlugin):
             log.warn("Discarded Sync. indexing for: %s" % entity)
 
 
-# (canada fork only): background search index rebuilding
+# (canada fork only): background search index rebuilding (remove quiet)
 #TODO: upstream contrib!!
 def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
-            defer_commit=False, package_ids=None, quiet=False, in_background=False, group_id=None):
+            defer_commit=False, package_ids=None):
     '''
         Rebuilds the search index.
 
@@ -163,44 +163,25 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
     context = {'model': model, 'ignore_auth': True, 'validate': False,
         'use_cache': False}
 
-    # (canada fork only): background search index rebuilding
-    #TODO: upstream contrib!!
-    task = None
-    if in_background:
-        try:
-            if group_id:
-                _entity_id = group_id
-            else:
-                _entity_id = p.toolkit.config.get('ckan.site_id')
-            task = logic.get_action('task_status_show')(context, {'entity_id': _entity_id,
-                                                                  'task_type': 'search_rebuild',
-                                                                  'key': 'search_rebuild'})
-            task['state'] = 'running'
-            task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
-            logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
-        except logic.NotFound:
-            pass
-
     if package_id:
         pkg_dict = logic.get_action('package_show')(context,
             {'id': package_id})
-        log.info('Indexing just package %r...', pkg_dict['name'])
         package_index.remove_dict(pkg_dict)
         package_index.insert_dict(pkg_dict)
+        # (canada fork only): background search index rebuilding
+        #TODO: upstream contrib!!
+        yield package_id, 1, 1, None
     elif package_ids is not None:
-        for package_id in package_ids:
+        # (canada fork only): background search index rebuilding
+        #TODO: upstream contrib!!
+        total_packages = len(package_ids)
+        for counter, package_id in enumerate(package_ids):
             pkg_dict = logic.get_action('package_show')(context,
                 {'id': package_id})
-            log.info('Indexing just package %r...', pkg_dict['name'])
             package_index.update_dict(pkg_dict, True)
             # (canada fork only): background search index rebuilding
             #TODO: upstream contrib!!
-            if in_background and task:
-                value = json.loads(task.get('value', '{}'))
-                value['indexed'] += 1
-                task['value'] = json.dumps(value)
-                task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
-                logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+            yield package_id, total_packages, (counter + 1), None
     else:
         package_ids = [r[0] for r in model.Session.query(model.Package.id).
                        filter(model.Package.state != 'deleted').all()]
@@ -223,12 +204,6 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
 
         total_packages = len(package_ids)
         for counter, pkg_id in enumerate(package_ids):
-            if not quiet:
-                sys.stdout.write(
-                    "\rIndexing dataset {0}/{1}".format(
-                        counter +1, total_packages)
-                )
-                sys.stdout.flush()
             try:
                 package_index.update_dict(
                     logic.get_action('package_show')(context,
@@ -238,24 +213,13 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
                 )
                 # (canada fork only): background search index rebuilding
                 #TODO: upstream contrib!!
-                if in_background and task:
-                    value = json.loads(task.get('value', '{}'))
-                    value['indexed'] += 1
-                    value['total'] = total_packages
-                    task['value'] = json.dumps(value)
-                    task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
-                    logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+                yield pkg_id, total_packages, (counter + 1), None
             except Exception as e:
                 log.error(u'Error while indexing dataset %s: %s' %
                           (pkg_id, repr(e)))
                 # (canada fork only): background search index rebuilding
                 #TODO: upstream contrib!!
-                if in_background and task:
-                    value = json.loads(task.get('error', '{}'))
-                    value['error'][pkg_id] = str(e)
-                    task['value'] = json.dumps(value)
-                    task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
-                    logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+                yield pkg_id, total_packages, (counter + 1), str(e)
                 if force:
                     log.error(text_traceback())
                     continue
@@ -264,12 +228,6 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
 
     model.Session.commit()
     log.info('Finished rebuilding search index.')
-    # (canada fork only): background search index rebuilding
-    #TODO: upstream contrib!!
-    if in_background and task:
-        task['state'] = 'complete'
-        task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
-        logic.get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
 
 
 def commit():

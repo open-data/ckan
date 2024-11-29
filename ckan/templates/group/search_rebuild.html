@@ -25,18 +25,20 @@
 
 {% block secondary_content %}
   {{ super() }}
-  {% block secondary_help %}
-    <div class="module module-narrow module-shallow">
-      <h2 class="module-heading">
-        <i class="fa fa-lg fa-info-circle"></i>
-        {{ _('Why re-index?') }}
-      </h2>
-      <div class="module-content">
-        {% trans %}
-          <p>If you update an Group's <strong>title</strong> or <strong>name,</strong> it's datasets in the SOLR Index will not have the new title or name.</p>
-          <p>To solve this, you can re-index all of the Group's records in a background job.</p>
-        {% endtrans %}
+  {% if not has_auto_index %}
+    {% block secondary_help %}
+      <div class="module module-narrow module-shallow">
+        <h2 class="module-heading">
+          <i class="fa fa-lg fa-info-circle"></i>
+          {{ _('Why re-index?') }}
+        </h2>
+        <div class="module-content">
+          {% trans %}
+            <p>If you update an Group's <strong>title</strong> or <strong>name,</strong> it's datasets in the SOLR Index will not have the new title or name.</p>
+            <p>To solve this, you can re-index all of the Group's records in a background job.</p>
+          {% endtrans %}
+        </div>
       </div>
-    </div>
-  {% endblock %}
+    {% endblock %}
+  {% endif %}
 {% endblock %}

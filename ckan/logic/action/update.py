@@ -28,6 +28,9 @@ import ckan.lib.uploader as uploader
 import ckan.lib.datapreview
 import ckan.lib.app_globals as app_globals
 from ckan.lib.jobs import dictize_job
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+import ckan.lib.search.jobs as search_jobs
 
 
 from ckan.common import _, request, asbool
@@ -785,7 +788,7 @@ def _group_or_org_update(context, data_dict, is_org=False):
         model.repo.commit()
         # (canada fork only): background search index rebuilding
         #TODO: upstream contrib!!
-        if (plugins.toolkit.asbool(plugins.toolkit.config.get('ckan.search.reindex_after_group_update', False))
+        if (plugins.toolkit.asbool(plugins.toolkit.config.get('ckan.search.reindex_after_group_or_org_update', False))
             and (group.title != current_title or group.name != current_name)):
             # only reindex if the title or name has changed
             action = 'reindex_group_datasets'
@@ -804,7 +807,10 @@ def _group_or_org_update(context, data_dict, is_org=False):
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def _group_or_org_reindex(context, data_dict, is_org=False):
+def _reindex_group_or_org_in_background(context, data_dict, is_org=False):
+    """
+    Reindexes all of an organization's or group's datasets in a background job.
+    """
     model = context['model']
     session = context['session']
     id = _get_or_bust(data_dict, 'id')
@@ -853,36 +859,44 @@ def _group_or_org_reindex(context, data_dict, is_org=False):
     _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
 
     dataset_ids = [dataset.id for dataset in results]
-    job_title = 'Rebuild Dataset Indecies for %s: %s' % ('Organization' if is_org else 'Group', group.name)
-    queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
 
-    job = plugins.toolkit.enqueue_job(fn=search.rebuild, title=job_title, queue=queue_name,
-                                      kwargs={'force': True, 'package_ids': dataset_ids, 'in_background': True, 'group_id': group.id})
-
-    task['value'] =  json.dumps({'job_id': job.id, 'total': len(dataset_ids), 'indexed': 0})
+    task['value'] =  json.dumps({'total': len(dataset_ids), 'indexed': 0})
     task['state'] = 'pending'
     task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
 
     _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+
+    queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
+    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex, title=_('Rebuild Dataset Indices'), queue=queue_name,
+                                      kwargs={'package_ids': dataset_ids, 'group_id': group.id})
 
     return dictize_job(job)
 
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def reindex_organization_datasets(context, data_dict):
-    return _group_or_org_reindex(context, data_dict, is_org=True)
+def reindex_organization_datasets_in_background(context, data_dict):
+    """
+    Reindexes all of an organization's datasets in a background job.
+    """
+    return _reindex_group_or_org_in_background(context, data_dict, is_org=True)
 
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def reindex_group_datasets(context, data_dict):
-    return _group_or_org_reindex(context, data_dict)
+def reindex_group_datasets_in_background(context, data_dict):
+    """
+    Reindexes all of a groups's datasets in a background job.
+    """
+    return _reindex_group_or_org_in_background(context, data_dict)
 
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
-def reindex_site(context, data_dict):
+def reindex_site_in_background(context, data_dict):
+    """
+    Reindexes all of the site's datasets in a background job.
+    """
     model = context['model']
     _check_access('reindex_site', context, data_dict)
 
@@ -912,18 +926,15 @@ def reindex_site(context, data_dict):
 
     _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
 
-    job_title = 'Rebuild Dataset Indecies for Site: %s' % _entity_id
-    queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
-
-    job = plugins.toolkit.enqueue_job(fn=search.rebuild, title=job_title, queue=queue_name,
-                                      kwargs={'force': True, 'in_background': True})
-
     # let search.rebuild calculate the total...
-    task['value'] =  json.dumps({'job_id': job.id, 'total': None, 'indexed': 0})
+    task['value'] =  json.dumps({'total': None, 'indexed': 0})
     task['state'] = 'pending'
     task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
 
     _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+
+    queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
+    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex, title=_('Rebuild Dataset Indices'), queue=queue_name)
 
     return dictize_job(job)
 

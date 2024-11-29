@@ -151,18 +151,18 @@ def organization_update(context, data_dict):
 #TODO: upstream contrib!!
 def reindex_organization_datasets(context, data_dict):
     """
-    Only sysadmins can perform reindexing
+    If you have permission to edit the Organization, you can reindex it.
     """
-    return {'success': False}
+    return authz.is_authorized('organization_update', context, data_dict)
 
 
 # (canada fork only): background search index rebuilding
 #TODO: upstream contrib!!
 def reindex_group_datasets(context, data_dict):
     """
-    Only sysadmins can perform reindexing
+    If you have permission to edit the Group, you can reindex it.
     """
-    return {'success': False}
+    return authz.is_authorized('group_update', context, data_dict)
 
 
 # (canada fork only): background search index rebuilding
