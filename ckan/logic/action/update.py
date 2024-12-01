@@ -827,6 +827,7 @@ def _group_or_org_packages_background_reindex(context, data_dict, is_org=False):
     else:
         _check_access('reindex_group_datasets', context, data_dict)
 
+    #TODO: query for groups...
     results = session.query(model.Package.id)\
         .filter(model.Package.owner_org == group.id)\
         .filter(model.Package.state == 'active').all()
