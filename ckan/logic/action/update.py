@@ -827,10 +827,16 @@ def _group_or_org_packages_background_reindex(context, data_dict, is_org=False):
     else:
         _check_access('reindex_group_datasets', context, data_dict)
 
-    #TODO: query for groups...
-    results = session.query(model.Package.id)\
-        .filter(model.Package.owner_org == group.id)\
-        .filter(model.Package.state == 'active').all()
+    if is_org:
+        query = session.query(model.Package.id).\
+            filter(model.Package.owner_org == group.id).\
+            filter(model.Package.state == 'active')
+    else:
+        query = session.query(model.Member.table_id.label('id')).\
+            filter(model.Member.group_id == group.id).\
+            filter(model.Member.table_name == 'package').\
+            filter(model.Member.state == 'active')
+    results = query.all()
 
     if not results:
         return
