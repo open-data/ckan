@@ -28,6 +28,9 @@ this.ckan.module('progress-bar', function ($) {
           if( label.length > 0 ){
             $(progressBarLabel).text(label);
           }
+          if( ! _total || ! _current ){
+            return
+          }
           let val = (_total / _current) * 100;
           if( _total != _current ){
             $(progressBar).animate({'width': val + '%'}, 635);
