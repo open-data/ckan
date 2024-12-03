@@ -31,7 +31,7 @@ this.ckan.module('progress-bar', function ($) {
           if( ! _total || ! _current ){
             return
           }
-          let val = (_total / _current) * 100;
+          let val = (_current / _total) * 100;
           if( _total != _current ){
             $(progressBar).animate({'width': val + '%'}, 635);
           }else{

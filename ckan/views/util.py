@@ -68,6 +68,7 @@ def search_rebuild_progress(entity_id):
         'running': _('Currently re-indexing records'),
         'complete': _('All records indexed'),
         'unknown': _('Unknown'),
+        'error': _('Error indexing records'),
     }
 
     return_dict = {
