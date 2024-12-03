@@ -152,6 +152,33 @@ def organization_update(context: Context, data_dict: DataDict) -> AuthResult:
         return {'success': True}
 
 
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def reindex_organization_datasets(context, data_dict):
+    """
+    If you have permission to edit the Organization, you can reindex it.
+    """
+    return authz.is_authorized('organization_update', context, data_dict)
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def reindex_group_datasets(context, data_dict):
+    """
+    If you have permission to edit the Group, you can reindex it.
+    """
+    return authz.is_authorized('group_update', context, data_dict)
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def reindex_site(context, data_dict):
+    """
+    Only sysadmins can perform reindexing
+    """
+    return {'success': False}
+
+
 def group_change_state(context: Context, data_dict: DataDict) -> AuthResult:
     user = context['user']
     group = logic_auth.get_group_object(context, data_dict)

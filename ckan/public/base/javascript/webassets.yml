@@ -55,6 +55,9 @@ ckan:
     - modules/followers-counter.js
     - modules/metadata-button.js
     - modules/copy-into-buffer.js
+    # (canada fork only): background search index rebuilding
+    #TODO: upstream contrib!!
+    - modules/progress-bar.js
 
 tracking:
   output: base/%(version)s_tracking.js

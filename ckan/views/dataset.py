@@ -1260,10 +1260,10 @@ def register_dataset_plugin_rules(blueprint: Blueprint):
         u'/unfollow/<id>', view_func=unfollow, methods=(u'POST', )
     )
     blueprint.add_url_rule(u'/followers/<id>', view_func=followers)
-    blueprint.add_url_rule(
-        u'/groups/<id>', view_func=GroupView.as_view(str(u'groups'))
-    )
-
+    # (canada fork only): disable group views
+    # blueprint.add_url_rule(
+    #     u'/groups/<id>', view_func=GroupView.as_view(str(u'groups'))
+    # )
     if authz.check_config_permission(u'allow_dataset_collaborators'):
         blueprint.add_url_rule(
             rule=u'/collaborators/<id>',

@@ -488,6 +488,15 @@ class DefaultGroupForm(object):
         """
         return 'group/bulk_process.html'
 
+    # (canada fork only): background search index rebuilding
+    #TODO: upstream contrib!!
+    def search_rebuild_template(self):
+        """
+        Returns a string representing the location of the template to be
+        rendered for the search_rebuild page
+        """
+        return 'group/search_rebuild.html'
+
     def group_form(self) -> str:
         return 'group/new_group_form.html'
 
@@ -606,6 +615,11 @@ class DefaultOrganizationForm(DefaultGroupForm):
 
     def activity_template(self) -> str:
         return 'organization/activity_stream.html'
+
+    # (canada fork only): background search index rebuilding
+    #TODO: upstream contrib!!
+    def search_rebuild_template(self):
+        return 'organization/search_rebuild.html'
 
 
 class DefaultTranslation(object):
