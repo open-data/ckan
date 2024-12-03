@@ -12,7 +12,7 @@ from ckan.types import Response
 import json
 from ckan.plugins import toolkit
 from ckan import model
-from ckan.views.api import _finish_ok, _finish_not_authz, _finish_not_found
+from ckan.views.api import _finish_ok, _finish
 
 util = Blueprint(u'util', __name__)
 
@@ -53,9 +53,9 @@ def search_rebuild_progress(entity_id):
                                                                        'task_type': 'reindex_packages',
                                                                        'key': 'search_rebuild'})
     except toolkit.NotAuthorized:
-        return _finish_not_authz()
+        return _finish(403, _('Not authorized to view task'), 'json')
     except toolkit.ObjectNotFound:
-        return _finish_not_found()
+        return _finish(404, _('Task not found'), 'json')
 
     task_status['value'] = json.loads(task_status.get('value', '{}'))
     task_status['error'] = json.loads(task_status.get('error', '{}'))

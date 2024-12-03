@@ -280,7 +280,7 @@ def search_rebuild():
     context = {
         'model': model,
         'session': model.Session,
-        'user': g.user,
+        'user': plugins.toolkit.g.user,
         'for_view': True,
     }
 
