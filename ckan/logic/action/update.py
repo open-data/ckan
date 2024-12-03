@@ -27,6 +27,10 @@ import ckan.lib.search as search
 import ckan.lib.uploader as uploader
 import ckan.lib.datapreview
 import ckan.lib.app_globals as app_globals
+from ckan.lib.jobs import dictize_job
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+import ckan.lib.search.jobs as search_jobs
 
 
 from ckan.common import _, request, asbool
@@ -680,6 +684,11 @@ def _group_or_org_update(context, data_dict, is_org=False):
 
     data_dict['type'] = group.type
 
+    # (canada fork only): background search index rebuilding
+    #TODO: upstream contrib!!
+    current_title = group.title
+    current_name = group.name
+
     # get the schema
     group_plugin = lib_plugins.lookup_group_plugin(group.type)
     try:
@@ -777,8 +786,164 @@ def _group_or_org_update(context, data_dict, is_org=False):
 
     if not context.get('defer_commit'):
         model.repo.commit()
+        # (canada fork only): background search index rebuilding
+        #TODO: upstream contrib!!
+        if (plugins.toolkit.asbool(plugins.toolkit.config.get('ckan.search.reindex_after_group_or_org_update', False))
+            and (group.title != current_title or group.name != current_name)):
+            # only reindex if the title or name has changed
+            action = 'group_packages_background_reindex'
+            if is_org:
+                action = 'organization_packages_background_reindex'
+            reindex_context = {
+                'model': model,
+                'user': user,
+                'ignore_auth': True,
+                'session': session
+            }
+            _get_action(action)(reindex_context, {'id': group.id})
 
     return model_dictize.group_dictize(group, context)
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def _group_or_org_packages_background_reindex(context, data_dict, is_org=False):
+    """
+    Reindexes all of an organization's or group's datasets in a background job.
+    """
+    model = context['model']
+    session = context['session']
+    id = _get_or_bust(data_dict, 'id')
+
+    group = model.Group.get(id)
+    context["group"] = group
+    if group is None:
+        raise NotFound('Group was not found.')
+
+    data_dict['type'] = group.type
+
+    if is_org:
+        _check_access('reindex_organization_datasets', context, data_dict)
+    else:
+        _check_access('reindex_group_datasets', context, data_dict)
+
+    if is_org:
+        query = session.query(model.Package.id).\
+            filter(model.Package.owner_org == group.id).\
+            filter(model.Package.state == 'active')
+    else:
+        query = session.query(model.Member.table_id.label('id')).\
+            filter(model.Member.group_id == group.id).\
+            filter(model.Member.table_name == 'package').\
+            filter(model.Member.state == 'active')
+    results = query.all()
+
+    if not results:
+        return
+
+    task = {
+        'entity_id': group.id,
+        'entity_type': 'group',
+        'task_type': 'reindex_packages',
+        'last_updated': str(datetime.datetime.now(datetime.timezone.utc)),
+        'state': 'submitting',
+        'key': 'search_rebuild',
+        'value': '{}',
+        'error': '{}',
+    }
+    try:
+        existing_task = _get_action('task_status_show')(context, {'entity_id': group.id,
+                                                                  'task_type': 'reindex_packages',
+                                                                  'key': 'search_rebuild'})
+        if existing_task.get('state') == 'pending':
+            log.info('A pending task (%s) was found for this %s (%s). Skipping this duplicate task...',
+                     existing_task['id'], 'Organization' if is_org else 'Group', group.name)
+            return False
+        task['id'] = existing_task['id']
+    except NotFound:
+        pass
+
+    _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+
+    dataset_ids = [dataset.id for dataset in results]
+
+    task['value'] =  json.dumps({'total': len(dataset_ids), 'indexed': 0})
+    task['state'] = 'pending'
+    task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+
+    _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+
+    queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
+    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex_packages, title=_('Rebuild Dataset Indices'), queue=queue_name,
+                                      kwargs={'package_ids': dataset_ids, 'group_id': group.id})
+
+    return dictize_job(job)
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def organization_packages_background_reindex(context, data_dict):
+    """
+    Reindexes all of an organization's datasets in a background job.
+    """
+    return _group_or_org_packages_background_reindex(context, data_dict, is_org=True)
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def group_packages_background_reindex(context, data_dict):
+    """
+    Reindexes all of a groups's datasets in a background job.
+    """
+    return _group_or_org_packages_background_reindex(context, data_dict)
+
+
+# (canada fork only): background search index rebuilding
+#TODO: upstream contrib!!
+def site_packages_background_reindex(context, data_dict):
+    """
+    Reindexes all of the site's datasets in a background job.
+    """
+    model = context['model']
+    _check_access('reindex_site', context, data_dict)
+
+    _entity_id = plugins.toolkit.config.get('ckan.site_id')
+
+    task = {
+        'entity_id': _entity_id,
+        'entity_type': 'site',
+        'task_type': 'reindex_packages',
+        'last_updated': str(datetime.datetime.now(datetime.timezone.utc)),
+        'state': 'submitting',
+        'key': 'search_rebuild',
+        'value': '{}',
+        'error': '{}',
+    }
+    try:
+        existing_task = _get_action('task_status_show')(context, {'entity_id': _entity_id,
+                                                                  'task_type': 'reindex_packages',
+                                                                  'key': 'search_rebuild'})
+        if existing_task.get('state') == 'pending':
+            log.info('A pending task (%s) was found for this Site (%s). Skipping this duplicate task...',
+                     existing_task['id'], _entity_id)
+            return False
+        task['id'] = existing_task['id']
+    except NotFound:
+        pass
+
+    _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+
+    # let search.rebuild calculate the total...
+    task['value'] =  json.dumps({'total': None, 'indexed': 0})
+    task['state'] = 'pending'
+    task['last_updated'] = str(datetime.datetime.now(datetime.timezone.utc))
+
+    _get_action('task_status_update')({'session': model.meta.create_local_session(), 'ignore_auth': True}, task)
+
+    queue_name = plugins.toolkit.config.get('ckan.search.rebuild_queue_name', 'search_rebuild')
+    job = plugins.toolkit.enqueue_job(fn=search_jobs.reindex_packages, title=_('Rebuild Dataset Indices'), queue=queue_name)
+
+    return dictize_job(job)
 
 
 def group_update(context, data_dict):

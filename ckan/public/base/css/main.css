@@ -10905,3 +10905,14 @@ iframe {
 .reduced-padding {
   padding: 3px 5px;
 }
+div[data-module="progress-bar"] .progress{
+  margin-bottom: 0;
+}
+div[data-module="progress-bar"] .progress-bar{
+  transition: none;
+}
+div[data-module="progress-bar"] .progress-bar-label{
+  display: block;
+  text-align: right;
+  margin-bottom: 23px;
+}

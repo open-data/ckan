@@ -1406,9 +1406,10 @@ def register_dataset_plugin_rules(blueprint):
         u'/unfollow/<id>', view_func=unfollow, methods=(u'POST', )
     )
     blueprint.add_url_rule(u'/followers/<id>', view_func=followers)
-    blueprint.add_url_rule(
-        u'/groups/<id>', view_func=GroupView.as_view(str(u'groups'))
-    )
+    # (canada fork only): disable group views
+    # blueprint.add_url_rule(
+    #     u'/groups/<id>', view_func=GroupView.as_view(str(u'groups'))
+    # )
     blueprint.add_url_rule(u'/activity/<id>', view_func=activity)
     blueprint.add_url_rule(u'/changes/<id>', view_func=changes)
     blueprint.add_url_rule(u'/<id>/history', view_func=history)

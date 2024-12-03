@@ -38,13 +38,19 @@ def rebuild(
     u''' Rebuild search index '''
     from ckan.lib.search import rebuild, commit
     try:
-
-        rebuild(package_id,
-                only_missing=only_missing,
-                force=force,
-                refresh=refresh,
-                defer_commit=(not commit_each),
-                quiet=quiet)
+        for pkg_id, total, indexed, err in rebuild(package_id,
+                                                   only_missing=only_missing,
+                                                   force=force,
+                                                   refresh=refresh,
+                                                   defer_commit=(not commit_each)):
+            if not verbose:
+                if err:
+                    click.echo('Failed to index dataset %s with error: %s' % (pkg_id, err))
+                continue
+            if not err:
+                click.echo('[%s/%s] Indexed dataset %s' % (indexed, total, pkg_id))
+            else:
+                click.echo('[%s/%s] Failed to index dataset %s with error: %s' % (indexed, total, pkg_id, err))
     except Exception as e:
         tk.error_shout(e)
     if not commit_each:
