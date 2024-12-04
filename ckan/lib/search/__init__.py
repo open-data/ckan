@@ -178,7 +178,7 @@ def rebuild(package_id=None, only_missing=False, force=False, refresh=False,
         for counter, package_id in enumerate(package_ids, 1):
             pkg_dict = logic.get_action('package_show')(context,
                 {'id': package_id})
-            package_index.update_dict(pkg_dict, True)
+            package_index.update_dict(pkg_dict, defer_commit)
             # (canada fork only): background search index rebuilding
             #TODO: upstream contrib!!
             yield package_id, total_packages, counter, None
