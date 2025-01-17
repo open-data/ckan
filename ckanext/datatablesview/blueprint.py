@@ -92,17 +92,22 @@ def ajax(resource_view_id: str):
         v = str(request.form[u'columns[%d][search][value]' % i])
         if v:
             k = str(request.form[u'columns[%d][name]' % i])
+            # (canada fork only): disable FTS wildcarding
+            #                     https://github.com/ckan/ckan/issues/8583
             # replace non-alphanumeric characters with FTS wildcard (_)
-            v = re.sub(r'[^0-9a-zA-Z\-]+', '_', v)
+            # v = re.sub(r'[^0-9a-zA-Z\-]+', '_', v)
             # append ':*' so we can do partial FTS searches
-            colsearch_dict[k] = v + u':*'
+            colsearch_dict[k] = f'{v}:*'
         i += 1
 
     if colsearch_dict:
         search_text = json.dumps(colsearch_dict)
     else:
-        search_text = re.sub(r'[^0-9a-zA-Z\-]+', '_',
-                             search_text) + u':*' if search_text else u''
+        # (canada fork only): disable FTS wildcarding
+        #                     https://github.com/ckan/ckan/issues/8583
+        # search_text = re.sub(r'[^0-9a-zA-Z\-]+', '_',
+        #                     search_text) + u':*' if search_text else u''
+        search_text = f'{search_text}:*' if search_text else ''
 
     try:
         response = datastore_search(
