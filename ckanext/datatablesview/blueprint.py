@@ -186,16 +186,21 @@ def filtered_download(resource_view_id: str):
             v = column[u'search'][u'value']
             if v:
                 k = column[u'name']
+                # (canada fork only): disable FTS wildcarding
+                #                     https://github.com/ckan/ckan/issues/8583
                 # replace non-alphanumeric characters with FTS wildcard (_)
-                v = re.sub(r'[^0-9a-zA-Z\-]+', '_', v)
+                # v = re.sub(r'[^0-9a-zA-Z\-]+', '_', v)
                 # append ':*' so we can do partial FTS searches
-                colsearch_dict[k] = v + u':*'
+                colsearch_dict[k] = f'{v}:*'
 
     if colsearch_dict:
         search_text = json.dumps(colsearch_dict)
     else:
+        # (canada fork only): disable FTS wildcarding
+        #                     https://github.com/ckan/ckan/issues/8583
         search_text = re.sub(r'[^0-9a-zA-Z\-]+', '_',
                              search_text) + u':*' if search_text else ''
+        search_text = f'{search_text}:*' if search_text else ''
 
     return h.redirect_to(
         h.url_for(
