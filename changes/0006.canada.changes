@@ -1,0 +1,1 @@
+Disable the DataTables view FTS search if the record count is above `ckanext.xloader.max_fts_rows` (default: `100,000` rows)

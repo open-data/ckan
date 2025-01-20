@@ -9,7 +9,7 @@ from flask import Blueprint
 
 from ckan.common import json
 from ckan.lib.helpers import decode_view_request_filters
-from ckan.plugins.toolkit import get_action, request, h
+from ckan.plugins.toolkit import get_action, request, h, config
 import re
 
 datatablesview = Blueprint(u'datatablesview', __name__)
@@ -139,6 +139,8 @@ def ajax(resource_view_id: str):
         dtdata = {
             u'draw': draw,
             u'recordsTotal': unfiltered_response.get(u'total', 0),
+            # (canada fork only): max searchable FTS
+            'maxSearchable': int(config.get('ckanext.xloader.max_fts_rows', 100000)),
             u'recordsFiltered': response.get(u'total', 0),
             u'data': data
         }

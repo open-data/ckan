@@ -635,18 +635,30 @@ this.ckan.module('datatables_view', function (jQuery) {
           // only do table search on enter key, or clearing of input
           const tableSearchInput = $('#dtprv_filter label input')
           tableSearchInput.unbind()
-          tableSearchInput.bind('keyup search', function (event) {
-            // Firefox doesn't do clearing of input when ESC is pressed
-            if (gisFirefox && event.keyCode === 27) {
-              this.value = ''
-            }
-            if (event.keyCode === 13 || (tableSearchInput.val() === '' && datatable.search() !== '')) {
-              datatable
-                .search(this.value)
-                .draw()
-              gsearchMode = 'table'
-            }
-          })
+          // (canada fork only): max searchable FTS
+          totalRecordCount = json.recordsTotal;
+          maxSearchableFTS = json.maxSearchable;
+          if( totalRecordCount > maxSearchableFTS ){
+            tableSearchInput.val('').blur();
+            tableSearchInput.attr('readonly', true);
+            tableSearchInput.attr('tabindex', -1);
+            tableSearchInput.css({'cursor': 'not-allowed',
+                                  'outline': 'none',
+                                  'box-shadow': 'none'});
+          }else{
+            tableSearchInput.bind('keyup search', function (event) {
+              // Firefox doesn't do clearing of input when ESC is pressed
+              if (gisFirefox && event.keyCode === 27) {
+                this.value = ''
+              }
+              if (event.keyCode === 13 || (tableSearchInput.val() === '' && datatable.search() !== '')) {
+                datatable
+                  .search(this.value)
+                  .draw()
+                gsearchMode = 'table'
+              }
+            })
+          }// (canada fork only): END
 
           // start showing page once everything is just about rendered
           // we need to make it visible now so smartsize works if needed
