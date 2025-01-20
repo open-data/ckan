@@ -762,6 +762,12 @@ class RequestResetView(MethodView):
                      .format(id))
 
         for user_obj in user_objs:
+            # (canada fork only): skip deleted users
+            # TODO: upstream contrib?
+            if user_obj.state == 'deleted':
+                log.info('Cannot reset password for deleted user: {}'.format(
+                    user_obj.name))
+                continue
             log.info(u'Emailing reset link to user: {}'
                      .format(user_obj.name))
             try:
