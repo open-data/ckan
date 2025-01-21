@@ -1,1 +1,1 @@
-Disable the DataTables view FTS search if the record count is above `ckanext.canada.max_fts_rows` (default: `100,000` rows)
+Disable the DataTables view FTS search if the record count is above `ckanext.canada.max_ds_fts_rows` (default: `100,000` rows)

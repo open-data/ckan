@@ -140,7 +140,7 @@ def ajax(resource_view_id: str):
             u'draw': draw,
             u'recordsTotal': unfiltered_response.get(u'total', 0),
             # (canada fork only): max searchable FTS
-            'maxSearchable': int(config.get('ckanext.canada.max_fts_rows', 100000)),
+            'maxSearchable': int(config.get('ckanext.canada.max_ds_fts_rows', 100000)),
             u'recordsFiltered': response.get(u'total', 0),
             u'data': data
         }
