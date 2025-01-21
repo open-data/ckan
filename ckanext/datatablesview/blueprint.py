@@ -4,6 +4,9 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlencode
 
+# (canada fork only): max searchable FTS
+from sys import maxsize as MAX_INT
+
 from flask import Blueprint
 
 
@@ -136,11 +139,19 @@ def ajax(resource_view_id: str):
             record['DT_RowId'] = 'row' + str(row.get(u'_id', u''))
             data.append(record)
 
+        # (canada fork only): max searchable FTS
+        max_searchable = MAX_INT
+        res = get_action('resource_show')(
+            {'ignore_auth': True}, {'id': resource_view['resource_id']})
+        if not res.get('url_type') or res.get('url_type') == 'upload':
+            # only limit FTS for links and uploads
+            max_searchable = int(config.get('ckanext.canada.max_ds_fts_rows', 100000))
+
         dtdata = {
             u'draw': draw,
             u'recordsTotal': unfiltered_response.get(u'total', 0),
             # (canada fork only): max searchable FTS
-            'maxSearchable': int(config.get('ckanext.canada.max_ds_fts_rows', 100000)),
+            'maxSearchable': max_searchable,
             u'recordsFiltered': response.get(u'total', 0),
             u'data': data
         }
