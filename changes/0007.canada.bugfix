@@ -1,0 +1,1 @@
+Fixed a bug with `organization_packages_background_reindex` raising an exception during `_group_or_org_update`

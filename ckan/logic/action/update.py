@@ -746,7 +746,7 @@ def _group_or_org_update(
                 action = 'organization_packages_background_reindex'
             reindex_context = {
                 'model': model,
-                'user': user,
+                'user': context.get('user'),
                 'ignore_auth': True,
                 'session': session
             }
