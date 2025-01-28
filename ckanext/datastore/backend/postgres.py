@@ -1353,6 +1353,11 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
         except (DatabaseError, DataError) as err:
             raise ValidationError({
                 'records': [_programming_error_summary(err)],
+                # (canada fork only): extra info for upsert
+                'upsert_info': {
+                    'orig': str(err.orig),
+                    'pgcode': err.orig.pgcode
+                },
                 'records_row': num,
             })
 
@@ -1446,6 +1451,11 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                 except DatabaseError as err:
                     raise ValidationError({
                         'records': [_programming_error_summary(err)],
+                        # (canada fork only): extra info
+                        'upsert_info': {
+                            'orig': str(err.orig),
+                            'pgcode': err.orig.pgcode
+                        },
                         'records_row': num,
                     })
 
@@ -1492,6 +1502,11 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                 except DatabaseError as err:
                     raise ValidationError({
                         'records': [_programming_error_summary(err)],
+                        # (canada fork only): extra info
+                        'upsert_info': {
+                            'orig': str(err.orig),
+                            'pgcode': err.orig.pgcode
+                        },
                         'records_row': num,
                     })
 
