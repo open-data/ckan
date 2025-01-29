@@ -1,0 +1,1 @@
+DataStore upsert error dicts now pass the original pSQL error message and code stored in `upsert_info`
