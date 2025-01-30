@@ -254,6 +254,22 @@ class CreateView(MethodView):
         except ValidationError as e:
             errors = e.error_dict
             error_summary = e.error_summary
+            # (canada fork only): handle other "broken" resources
+            # TODO: upstream contrib??
+            if 'resources' in errors and isinstance(errors['resources'], dict):
+                error_summary = _('Could not create or update resource because other resources '
+                                  'in this dataset have errors:') + '\n'
+                for err_res_id, res_errors in errors['resources'].items():
+                    if res_errors:
+                        errored_resource = get_action('resource_show')(context, {'id': err_res_id})
+                        error_summary += '\n- [{}]({})'.format(
+                            h.get_translated(errored_resource, 'name'),
+                            h.url_for('resource.read', id=errored_resource['package_id'],
+                                      resource_id=errored_resource['id']))
+                        for field_key, field_errs in res_errors.items():
+                            error_summary += '\n    - {}{} {}'.format(field_key, _(':'), ', '.join([_(err) for err in field_errs]))
+                errors = None
+                error_summary = h.render_markdown(error_summary, allow_html=True)
             if data.get(u'url_type') == u'upload' and data.get(u'url'):
                 data[u'url'] = u''
                 data[u'url_type'] = u''
@@ -380,6 +396,22 @@ class EditView(MethodView):
         except ValidationError as e:
             errors = e.error_dict
             error_summary = e.error_summary
+            # (canada fork only): handle other "broken" resources
+            # TODO: upstream contrib??
+            if 'resources' in errors and isinstance(errors['resources'], dict):
+                error_summary = _('Could not create or update resource because other resources '
+                                  'in this dataset have errors:') + '\n'
+                for err_res_id, res_errors in errors['resources'].items():
+                    if res_errors:
+                        errored_resource = get_action('resource_show')(context, {'id': err_res_id})
+                        error_summary += '\n- [{}]({})'.format(
+                            h.get_translated(errored_resource, 'name'),
+                            h.url_for('resource.read', id=errored_resource['package_id'],
+                                      resource_id=errored_resource['id']))
+                        for field_key, field_errs in res_errors.items():
+                            error_summary += '\n    - {}{} {}'.format(field_key, _(':'), ', '.join([_(err) for err in field_errs]))
+                errors = None
+                error_summary = h.render_markdown(error_summary, auto_link=False)
             return self.get(
                 package_type, id, resource_id, data, errors, error_summary
             )
@@ -478,6 +510,30 @@ class DeleteView(MethodView):
                 )
             else:
                 return h.redirect_to(u'{}.read'.format(package_type), id=id)
+        # (canada fork only): handle validation errors
+        # TODO: upstream contrib??
+        except ValidationError as e:
+            errors = e.error_dict
+            error_summary = e.error_summary
+            # (canada fork only): handle other "broken" resources
+            # TODO: upstream contrib??
+            if 'resources' in errors and isinstance(errors['resources'], dict):
+                error_summary = _('Could not delete resource because other resources '
+                                  'in this dataset have errors:') + '\n'
+                for err_res_id, res_errors in errors['resources'].items():
+                    if res_errors:
+                        errored_resource = get_action('resource_show')(context, {'id': err_res_id})
+                        error_summary += '\n- [{}]({})'.format(
+                            h.get_translated(errored_resource, 'name'),
+                            h.url_for('resource.read', id=errored_resource['package_id'],
+                                      resource_id=errored_resource['id']))
+                        for field_key, field_errs in res_errors.items():
+                            error_summary += '\n    - {}{} {}'.format(field_key, _(':'), ', '.join([_(err) for err in field_errs]))
+                errors = None
+                error_summary = h.render_markdown(error_summary, auto_link=False)
+            return self.get(
+                package_type, id, resource_id, errors, error_summary
+            )
         except NotAuthorized:
             return base.abort(
                 403,
@@ -486,7 +542,11 @@ class DeleteView(MethodView):
         except NotFound:
             return base.abort(404, _(u'Resource not found'))
 
-    def get(self, package_type: str, id: str, resource_id: str) -> str:
+    # (canada fork only): handle validation errors
+    # TODO: upstream contrib??
+    def get(self, package_type: str, id: str, resource_id: str,
+            errors: Optional[dict[str, Any]] = None,
+            error_summary: Optional[dict[str, Any]] = None) -> str:
         context = self._prepare(id)
         try:
             resource_dict = get_action(u'resource_show')(
@@ -509,6 +569,10 @@ class DeleteView(MethodView):
 
         return base.render(
             u'package/confirm_delete_resource.html', {
+                # (canada fork only): handle validation errors
+                # TODO: upstream contrib??
+                'errors': errors,
+                'error_summary': error_summary,
                 u'dataset_type': _get_package_type(id),
                 u'resource_dict': resource_dict,
                 u'pkg_id': pkg_id

@@ -195,8 +195,24 @@ def resource_delete(context: Context, data_dict: DataDict) -> ActionResult.Resou
     try:
         pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
-        errors = cast("list[ErrorDict]", e.error_dict['resources'])[-1]
-        raise ValidationError(errors)
+        # (canada fork only): handle other "broken" resources
+        # TODO: upstream contrib??
+        error_dict = e.error_dict
+        error_summary = ''
+        try:
+            if 'resources' in e.error_dict and isinstance(e.error_dict['resources'], list):
+                error_dict = {'resources': {}}
+                for key, res_error_dict in enumerate(e.error_dict['resources']):
+                    if key <= len(pkg_dict['resources']):
+                        errored_resource = pkg_dict['resources'][key]
+                        if errored_resource.get('id'):
+                            error_dict['resources'][errored_resource.get('id')] = res_error_dict
+                            if res_error_dict:
+                                error_summary += _('Could not delete resource because another resource in '
+                                                   'this dataset has errors: {}; ').format(errored_resource['id'])
+        except (KeyError, IndexError):
+            error_dict = e.error_dict
+        raise ValidationError(error_dict, error_summary)
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.after_resource_delete(context, pkg_dict.get('resources', []))
