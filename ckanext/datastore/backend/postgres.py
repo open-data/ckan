@@ -330,7 +330,8 @@ def _get_fields(connection: Any, resource_id: str):
 
 # (canada fork only): foreign keys
 # TODO: upstream contrib!!
-def _get_foreign_constraints(connection, resource_id, return_constraint_names=False):
+def _get_foreign_constraints(connection, resource_id, return_constraint_names=False,
+                             column_name=None):
     u'''
     return a list of foreign constraint names.
     '''
@@ -352,16 +353,18 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
         FROM pg_constraint p
         LEFT JOIN pg_class c1 ON c1.oid = p.confrelid
         LEFT JOIN pg_class c2 ON c2.oid = p.conrelid
-        LEFT JOIN information_schema.columns co1 ON
+        JOIN information_schema.columns co1 ON
             (SELECT relname FROM pg_class WHERE oid = p.confrelid) = co1.table_name
             AND co1.ordinal_position = ANY(p.confkey)
-        LEFT JOIN information_schema.columns co2 ON
+        JOIN information_schema.columns co2 ON
             (SELECT relname FROM pg_class WHERE oid = p.conrelid) = co2.table_name
             AND co2.ordinal_position = ANY(p.conkey)
         WHERE p.contype = 'f'
             AND c2.relname = '{0}'
+            {1}
         ORDER BY p.oid;
-    '''.format(resource_id))
+    '''.format(resource_id,
+               "AND co1.column_name = '{}'".format(column_name) if column_name else ''))
     foreign_constraints_results = connection.execute(foreign_constraints_sql)
     for result in foreign_constraints_results.fetchall():
         if return_constraint_names:
@@ -2475,11 +2478,6 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                 aliases.append(alias[0])
             info['meta']['aliases'] = aliases
 
-            # (canada fork only): foreign keys
-            # TODO: upstream contrib!!
-            #FIXME: fix later, multiple column foreign keys and ordered dict/lists?
-            #info['foreign_keys'] = _get_foreign_constraints(engine, id)
-
             # get the data dictionary for the resource
             with engine.connect() as conn:
                 data_dictionary = _result_fields(
@@ -2538,6 +2536,13 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                                            'is_index': row.is_index,
                                            'uniquekey': row.uniquekey,
                                            'foreignkeys': row.foreignkeys}
+
+                # (canada fork only): foreign keys
+                # TODO: upstream contrib!!
+                #FIXME: fix later, multiple column foreign keys and ordered dict/lists?
+                if row.foreignkeys:
+                    colinfo['foreign_key_maps'] = _get_foreign_constraints(engine, id, column_name=colname)
+
                 schemainfo[colname] = colinfo
 
             for field in data_dictionary:
