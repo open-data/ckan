@@ -330,48 +330,71 @@ def _get_fields(connection: Any, resource_id: str):
 
 # (canada fork only): foreign keys
 # TODO: upstream contrib!!
-def _get_foreign_constraints(connection, resource_id, return_constraint_names=False,
-                             column_name=None):
-    u'''
-    return a list of foreign constraint names.
+def _get_foreign_constraints(connection, resource_id, return_constraint_names=False):
     '''
-    # p.conrelid: The table this constraint is on
-    # p.conindid: The index supporting this constraint
-    # p.confrelid: The referenced table
-    # p.confupdtype: Foreign key update action code (#TODO: support `cascade`??)
-    # p.confdeltype: Foreign key deletion action code (#TODO: support `cascade`??)
-    # p.conkey: List of the constrained columns (int2, pg_attribute.attnun {The number of the column})
-    # p.confkey: List of the referenced columns (int2, pg_attribute.attnun {The number of the column})
-    #FIXME: this is just super broken.
-    foreign_constraints = {} if not return_constraint_names else []
-    foreign_constraints_sql = sa.text(u'''
-        SELECT
-        p.conname as constraint_name,
-        c1.relname as foreign_table,
-        co1.column_name as foreign_column,
-        co2.column_name as primary_column
-        FROM pg_constraint p
-        LEFT JOIN pg_class c1 ON c1.oid = p.confrelid
-        LEFT JOIN pg_class c2 ON c2.oid = p.conrelid
-        JOIN information_schema.columns co1 ON
-            (SELECT relname FROM pg_class WHERE oid = p.confrelid) = co1.table_name
-            AND co1.ordinal_position = ANY(p.confkey)
-        JOIN information_schema.columns co2 ON
-            (SELECT relname FROM pg_class WHERE oid = p.conrelid) = co2.table_name
-            AND co2.ordinal_position = ANY(p.conkey)
-        WHERE p.contype = 'f'
-            AND c2.relname = '{0}'
-            {1}
-        ORDER BY p.oid;
-    '''.format(resource_id,
-               "AND co1.column_name = '{}'".format(column_name) if column_name else ''))
-    foreign_constraints_results = connection.execute(foreign_constraints_sql)
-    for result in foreign_constraints_results.fetchall():
-        if return_constraint_names:
+    Return a list of foreign constraint names or the info for the constraints.
+    '''
+    foreign_constraints = []
+    if return_constraint_names:
+        foreign_constraints_sql = sa.text('''
+            SELECT
+            p.conname as constraint_name
+            FROM pg_constraint p
+            LEFT JOIN pg_class c1 ON c1.oid = p.confrelid
+            LEFT JOIN pg_class c2 ON c2.oid = p.conrelid
+            WHERE p.contype = 'f'
+                AND c2.relname = '{0}'
+            ORDER BY p.oid;
+        '''.format(resource_id))
+        foreign_constraints_results = connection.execute(foreign_constraints_sql)
+        for result in foreign_constraints_results.fetchall():
             foreign_constraints.append(result.constraint_name)
-            continue
-        foreign_constraints[result.foreign_table] = {}
-        foreign_constraints[result.foreign_table][result.primary_column] = result.foreign_column
+    else:
+        foreign_constraints_sql = sa.text('''
+            SELECT
+            con.conname AS constraint_name,
+            child_table.relname AS child_table,
+            child_cols.attname AS child_column,
+            parent_table.relname AS parent_table,
+            parent_cols.attname AS parent_column,
+            rc.update_rule as update_rule,
+            rc.delete_rule as delete_rule
+            FROM pg_constraint con
+            JOIN information_schema.referential_constraints rc ON
+                 con.conname = rc.constraint_name
+            JOIN pg_class child_table ON con.conrelid = child_table.oid
+            JOIN pg_class parent_table ON con.confrelid = parent_table.oid
+            JOIN LATERAL unnest(con.conkey) WITH ORDINALITY AS child_col_num(child_attnum, ord) ON true
+            JOIN LATERAL unnest(con.confkey) WITH ORDINALITY AS parent_col_num(parent_attnum, ord)
+                 ON child_col_num.ord = parent_col_num.ord
+            JOIN pg_attribute child_cols ON child_cols.attrelid = con.conrelid
+                AND child_cols.attnum = child_col_num.child_attnum
+            JOIN pg_attribute parent_cols ON parent_cols.attrelid = con.confrelid
+                 AND parent_cols.attnum = parent_col_num.parent_attnum
+            WHERE con.contype = 'f'
+                  AND child_table.relname = '{0}'
+            ORDER BY con.conname, child_col_num.ord;
+        '''.format(resource_id))
+        foreign_constraints_results = connection.execute(foreign_constraints_sql)
+        # Group by constraints and output in the correct List order.
+        # This way the JSON will always appear in the correct order,
+        # and the child_columns and parent_columns array indices match
+        # up like ordinal positions.
+        foreign_constraints_by_name = {}
+        for result in foreign_constraints_results.fetchall():
+            if result.constraint_name not in foreign_constraints_by_name:
+                foreign_constraints_by_name[result.constraint_name] = {
+                    'update_rule': result.update_rule,
+                    'delete_rule': result.delete_rule,
+                    'child_table': result.child_table,
+                    'child_columns': [],
+                    'parent_table': result.parent_table,
+                    'parent_columns': []
+                }
+            foreign_constraints_by_name[result.constraint_name]['child_columns'].append(result.child_column)
+            foreign_constraints_by_name[result.constraint_name]['parent_columns'].append(result.parent_column)
+        for _constraint_name, constraint_info in foreign_constraints_by_name.items():
+            foreign_constraints.append(constraint_info)
     return foreign_constraints
 
 
@@ -2523,6 +2546,9 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             with engine.connect() as conn:
                 schema_results = conn.execute(schema_sql)
             schemainfo = {}
+            # (canada fork only): foreign keys
+            # TODO: upstream contrib!!
+            has_foreign_keys = False
             for row in schema_results.fetchall():
                 row: Any  # Row has incomplete type definition
                 colname: str = row.column_name
@@ -2539,11 +2565,17 @@ class DatastorePostgresqlBackend(DatastoreBackend):
 
                 # (canada fork only): foreign keys
                 # TODO: upstream contrib!!
-                #FIXME: fix later, multiple column foreign keys and ordered dict/lists?
                 if row.foreignkeys:
-                    colinfo['foreign_key_maps'] = _get_foreign_constraints(engine, id, column_name=colname)
+                    has_foreign_keys = True
 
                 schemainfo[colname] = colinfo
+
+            # (canada fork only): foreign keys
+            # TODO: upstream contrib!!
+            if has_foreign_keys:
+                write_engine = self._get_write_engine()  # constraint info requires higher perms
+                with write_engine.connect() as conn:
+                    info['meta']['foreignkeys'] = _get_foreign_constraints(conn, id)
 
             for field in data_dictionary:
                 if field['id'].startswith('_'):
