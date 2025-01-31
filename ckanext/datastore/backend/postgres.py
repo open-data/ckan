@@ -376,12 +376,41 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
             ORDER BY con.conname, child_col_num.ord;
         '''.format(resource_id))
         foreign_constraints_results = connection.execute(foreign_constraints_sql)
+        db_results = foreign_constraints_results.fetchall()
+        foreign_constraint_usages_sql = sa.text('''
+            SELECT DISTINCT
+            con.conname AS constraint_name,
+            child_table.relname AS child_table,
+            child_cols.attname AS child_column,
+            parent_table.relname AS parent_table,
+            parent_cols.attname AS parent_column,
+            rc.update_rule as update_rule,
+            rc.delete_rule as delete_rule
+            FROM pg_constraint con
+            JOIN information_schema.constraint_column_usage colus ON colus.constraint_name = con.conname
+            JOIN information_schema.referential_constraints rc ON
+                 con.conname = rc.constraint_name
+            JOIN pg_class child_table ON con.conrelid = child_table.oid
+            JOIN pg_class parent_table ON con.confrelid = parent_table.oid
+            JOIN LATERAL unnest(con.conkey) WITH ORDINALITY AS child_col_num(child_attnum, ord) ON true
+            JOIN LATERAL unnest(con.confkey) WITH ORDINALITY AS parent_col_num(parent_attnum, ord)
+                 ON child_col_num.ord = parent_col_num.ord
+            JOIN pg_attribute child_cols ON child_cols.attrelid = con.conrelid
+                 AND child_cols.attnum = child_col_num.child_attnum
+            JOIN pg_attribute parent_cols ON parent_cols.attrelid = con.confrelid
+                 AND parent_cols.attnum = parent_col_num.parent_attnum
+            WHERE con.contype = 'f'
+                  AND colus.table_name = '{0}'
+            ORDER BY con.conname;
+        '''.format(resource_id))
+        foreign_constraint_usages_results = connection.execute(foreign_constraint_usages_sql)
+        db_results += foreign_constraint_usages_results.fetchall()
         # Group by constraints and output in the correct List order.
         # This way the JSON will always appear in the correct order,
         # and the child_columns and parent_columns array indices match
         # up like ordinal positions.
         foreign_constraints_by_name = {}
-        for result in foreign_constraints_results.fetchall():
+        for result in db_results:
             if result.constraint_name not in foreign_constraints_by_name:
                 foreign_constraints_by_name[result.constraint_name] = {
                     'update_rule': result.update_rule,
@@ -2546,9 +2575,6 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             with engine.connect() as conn:
                 schema_results = conn.execute(schema_sql)
             schemainfo = {}
-            # (canada fork only): foreign keys
-            # TODO: upstream contrib!!
-            has_foreign_keys = False
             for row in schema_results.fetchall():
                 row: Any  # Row has incomplete type definition
                 colname: str = row.column_name
@@ -2563,19 +2589,16 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                                            'uniquekey': row.uniquekey,
                                            'foreignkeys': row.foreignkeys}
 
-                # (canada fork only): foreign keys
-                # TODO: upstream contrib!!
-                if row.foreignkeys:
-                    has_foreign_keys = True
-
                 schemainfo[colname] = colinfo
 
             # (canada fork only): foreign keys
             # TODO: upstream contrib!!
-            if has_foreign_keys:
-                write_engine = self._get_write_engine()  # constraint info requires higher perms
-                with write_engine.connect() as conn:
-                    info['meta']['foreignkeys'] = _get_foreign_constraints(conn, id)
+            # constraint info requires higher perms
+            write_engine = self._get_write_engine()
+            with write_engine.connect() as conn:
+                fk_info = _get_foreign_constraints(conn, id)
+                if fk_info:
+                    info['meta']['foreignkeys'] = fk_info
 
             for field in data_dictionary:
                 if field['id'].startswith('_'):
