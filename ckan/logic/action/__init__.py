@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from typing import Any, Mapping, cast
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+from typing import Any, Mapping, cast, Tuple, Dict
 
 
 from ckan.logic import NotFound
@@ -73,3 +75,36 @@ def error_summary(error_dict: ErrorDict) -> dict[str, str]:
         else:
             summary[_(prettify(key))] = error[0]
     return summary
+
+
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+def resource_validation_errors(
+        error_dict: ErrorDict,
+        action: str,
+        pkg_dict: Dict[str, Any],
+        resource_index: int = -1) -> Tuple[Dict[str, str], str]:
+    """
+    Checks through the error_dict to find all errors in
+    the Dataset and its Resources.
+    """
+    new_error_dict = dict(error_dict)
+    try:
+        if action == 'delete':
+            # special case for deleting as there is no index
+            # for a non-existent resource in the pkg_dict.
+            current_res_error_dict = False
+        else:
+            current_res_error_dict = cast("list[ErrorDict]", error_dict['resources'])[resource_index]
+        if not current_res_error_dict and 'resources' in error_dict and isinstance(error_dict['resources'], list):
+            new_error_dict = {'errors': {'resources': {}}}
+            new_error_dict['action'] = action
+            for key, res_error_dict in enumerate(error_dict['resources']):
+                if key <= len(pkg_dict['resources']):
+                    errored_resource = pkg_dict['resources'][key]
+                    if errored_resource.get('id'):
+                        new_error_dict['errors']['resources'][errored_resource.get('id')] = res_error_dict
+                        new_error_dict['other_resource'] = True
+    except (KeyError, IndexError):
+        new_error_dict = dict(error_dict)
+    return new_error_dict

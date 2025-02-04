@@ -19,6 +19,9 @@ from ckan import authz
 from  ckan.lib.navl.dictization_functions import validate
 from ckan.model.follower import ModelFollowingModel
 
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+from . import resource_validation_errors
 from ckan.common import _
 from ckan.types import Context, DataDict, ErrorDict, Schema
 
@@ -195,24 +198,11 @@ def resource_delete(context: Context, data_dict: DataDict) -> ActionResult.Resou
     try:
         pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
-        # (canada fork only): handle other "broken" resources
+        # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
-        error_dict = e.error_dict
-        error_summary = ''
-        try:
-            if 'resources' in e.error_dict and isinstance(e.error_dict['resources'], list):
-                error_dict = {'resources': {}}
-                for key, res_error_dict in enumerate(e.error_dict['resources']):
-                    if key <= len(pkg_dict['resources']):
-                        errored_resource = pkg_dict['resources'][key]
-                        if errored_resource.get('id'):
-                            error_dict['resources'][errored_resource.get('id')] = res_error_dict
-                            if res_error_dict:
-                                error_summary += _('Could not delete resource because another resource in '
-                                                   'this dataset has errors: {}; ').format(errored_resource['id'])
-        except (KeyError, IndexError):
-            error_dict = e.error_dict
-        raise ValidationError(error_dict, error_summary)
+        error_dict = resource_validation_errors(
+            e.error_dict, action='create', pkg_dict=pkg_dict)
+        raise ValidationError(error_dict)
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.after_resource_delete(context, pkg_dict.get('resources', []))

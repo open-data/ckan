@@ -28,6 +28,9 @@ from ckan.lib.jobs import dictize_job
 #TODO: upstream contrib!!
 import ckan.lib.search.jobs as search_jobs
 
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+from . import resource_validation_errors
 from ckan.common import _, config
 from ckan.types import Context, DataDict, ErrorDict
 
@@ -114,24 +117,11 @@ def resource_update(context: Context, data_dict: DataDict) -> ActionResult.Resou
         context['use_cache'] = False
         updated_pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
-        # (canada fork only): handle other "broken" resources
+        # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
-        error_summary = ''
-        try:
-            error_dict = cast("list[ErrorDict]", e.error_dict['resources'])[n]
-            if not error_dict and 'resources' in e.error_dict and isinstance(e.error_dict['resources'], list):
-                error_dict = {'resources': {}}
-                for key, res_error_dict in enumerate(e.error_dict['resources']):
-                    if key <= len(pkg_dict['resources']):
-                        errored_resource = pkg_dict['resources'][key]
-                        if errored_resource.get('id'):
-                            error_dict['resources'][errored_resource.get('id')] = res_error_dict
-                            if res_error_dict:
-                                error_summary += _('Could not create or update resource because another resource in '
-                                                   'this dataset has errors: {}; ').format(errored_resource['id'])
-        except (KeyError, IndexError):
-            error_dict = e.error_dict
-        raise ValidationError(error_dict, error_summary)
+        error_dict = resource_validation_errors(
+            e.error_dict, action='update', pkg_dict=pkg_dict, resource_index=n)
+        raise ValidationError(error_dict)
 
     resource = _get_action('resource_show')(context, {'id': id})
 
