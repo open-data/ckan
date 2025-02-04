@@ -418,7 +418,7 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
             ORDER BY p.oid;
         '''.format(literal_string(resource_id)))
         foreign_constraints_results = connection.execute(foreign_constraints_sql)
-        foreign_constraints += foreign_constraints_results.fetchall()
+        foreign_constraints += [r.constraint_name for r in foreign_constraints_results.fetchall()]
     else:
         foreign_constraints_sql = sa.text('''
             SELECT
