@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import itertools
+# (canada fork only): parse constraint sql errors
+# TODO: upstream contrib!!
+import re
+import string
 
 from typing_extensions import TypeAlias
 
@@ -91,6 +95,16 @@ _INSERT = 'insert'
 _UPSERT = 'upsert'
 _UPDATE = 'update'
 
+# (canada fork only): parse constraint sql errors
+# TODO: upstream contrib!!
+# noqa_reason: regex is fine
+# type_ignore_reason: regex is fine
+FK_DETAILS_MATCH__KEYS = re.compile(
+    '(?<=DETAIL:).*(\((.*)\))=')  # noqa: W605 # type: ignore
+FK_DETAILS_MATCH__VALUES = re.compile(
+    '(?<=DETAIL:).*(\((.*)\))')  # noqa: W605 # type: ignore
+FK_DETAILS_MATCH__TABLE = re.compile('(?<=DETAIL:).*"(.*?)"')
+
 
 if not os.environ.get('DATASTORE_LOAD'):
     ValidationError = toolkit.ValidationError  # type: ignore
@@ -104,6 +118,63 @@ else:
 is_single_statement = datastore_helpers.is_single_statement
 
 _engines = {}
+
+
+# (canada fork only): parse constraint sql errors
+# TODO: upstream contrib!!
+class PartialFormat(Dict[Any, Any]):
+    def __missing__(self, key: str) -> str:
+        return "{" + key + "}"
+
+
+# (canada fork only): parse constraint sql errors
+# TODO: upstream contrib!!
+def _parse_constraint_error_from_psql_error(exception: Exception,
+                                            error_message: str) -> Dict[str, Any]:
+    """
+    Parses the pSQL original constraint error string to determine
+    the referenced/referencing keys, values, and table. Formatting
+    the passed error message with the values.
+
+    Returns a dict with the formatted error message and extra
+    constraint info parsed from the pSQL error message.
+    """
+    sql_original_msg = None
+    sql_original_code = None
+    if hasattr(exception, 'orig'):
+        sql_original_msg = str(exception.orig)
+        sql_original_code = exception.orig.pgcode
+    elif hasattr(exception, 'error_dict') and 'info' in exception.error_dict \
+        and 'orig' in exception.error_dict['info']:
+        # for the scenario if an extension wants to reparse
+        # the sql error with a new custom error message
+        sql_original_msg = exception.error_dict['info']['orig']
+        sql_original_code = exception.error_dict['info']['pgcode']
+    keys_match = re.search(FK_DETAILS_MATCH__KEYS, sql_original_msg)
+    values_match = re.search(FK_DETAILS_MATCH__VALUES, sql_original_msg)
+    table_match = re.search(FK_DETAILS_MATCH__TABLE, sql_original_msg)
+    ref_keys = keys_match.group(2) if keys_match else None
+    ref_values = values_match.group(2) if values_match else None
+    ref_resource = table_match.group(1) if table_match else None
+    error_message = toolkit._(error_message)  # gettext before formatting
+    formatter = string.Formatter()
+    mapping = PartialFormat(refKeys=ref_keys,
+                            refValues=ref_values,
+                            refTable=ref_resource)
+    return {
+        'errors': {
+            'foreign_constraint': [formatter.vformat(error_message, (), mapping)]
+        },
+        'constraint_info': {
+            'ref_keys': ref_keys,
+            'ref_values': ref_values,
+            'ref_resource': ref_resource
+        },
+        'info': {
+            'orig': sql_original_msg,
+            'pgcode': sql_original_code
+        }
+    }
 
 
 def literal_string(s: str):
@@ -343,12 +414,11 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
             LEFT JOIN pg_class c1 ON c1.oid = p.confrelid
             LEFT JOIN pg_class c2 ON c2.oid = p.conrelid
             WHERE p.contype = 'f'
-                AND c2.relname = '{0}'
+                AND c2.relname = {0}
             ORDER BY p.oid;
-        '''.format(resource_id))
+        '''.format(literal_string(resource_id)))
         foreign_constraints_results = connection.execute(foreign_constraints_sql)
-        for result in foreign_constraints_results.fetchall():
-            foreign_constraints.append(result.constraint_name)
+        foreign_constraints += foreign_constraints_results.fetchall()
     else:
         foreign_constraints_sql = sa.text('''
             SELECT
@@ -372,9 +442,9 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
             JOIN pg_attribute parent_cols ON parent_cols.attrelid = con.confrelid
                  AND parent_cols.attnum = parent_col_num.parent_attnum
             WHERE con.contype = 'f'
-                  AND child_table.relname = '{0}'
+                  AND child_table.relname = {0}
             ORDER BY con.conname, child_col_num.ord;
-        '''.format(resource_id))
+        '''.format(literal_string(resource_id)))
         foreign_constraints_results = connection.execute(foreign_constraints_sql)
         db_results = foreign_constraints_results.fetchall()
         foreign_constraint_usages_sql = sa.text('''
@@ -400,9 +470,9 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
             JOIN pg_attribute parent_cols ON parent_cols.attrelid = con.confrelid
                  AND parent_cols.attnum = parent_col_num.parent_attnum
             WHERE con.contype = 'f'
-                  AND colus.table_name = '{0}'
+                  AND colus.table_name = {0}
             ORDER BY con.conname;
-        '''.format(resource_id))
+        '''.format(literal_string(resource_id)))
         foreign_constraint_usages_results = connection.execute(foreign_constraint_usages_sql)
         db_results += foreign_constraint_usages_results.fetchall()
         # Group by constraints and output in the correct List order.
@@ -422,8 +492,7 @@ def _get_foreign_constraints(connection, resource_id, return_constraint_names=Fa
                 }
             foreign_constraints_by_name[result.constraint_name]['child_columns'].append(result.child_column)
             foreign_constraints_by_name[result.constraint_name]['parent_columns'].append(result.parent_column)
-        for _constraint_name, constraint_info in foreign_constraints_by_name.items():
-            foreign_constraints.append(constraint_info)
+        foreign_constraints += foreign_constraints_by_name.values()
     return foreign_constraints
 
 
@@ -1406,13 +1475,18 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
         try:
             context['connection'].execute(sa.text(sql_string), rows)
         except (DatabaseError, DataError) as err:
+            # (canada fork only): parse constraint sql errors
+            # TODO: upstream contrib!!
+            errmsg = _programming_error_summary(err)
+            if 'violates foreign key constraint' in errmsg:
+                errmsg = 'Cannot insert records ({refValues}) because '\
+                         'they do not exist in the referenced table. '\
+                         'Referencing {refKeys} from {refTable}.'
+                raise ValidationError(dict(
+                    _parse_constraint_error_from_psql_error(err, errmsg),
+                    records_row=num))
             raise ValidationError({
-                'records': [_programming_error_summary(err)],
-                # (canada fork only): extra info for upsert
-                'upsert_info': {
-                    'orig': str(err.orig),
-                    'pgcode': err.orig.pgcode
-                },
+                'records': [errmsg],
                 'records_row': num,
             })
 
@@ -1504,13 +1578,18 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                         sa.text(sql_string),
                         {**used_values, **unique_values})
                 except DatabaseError as err:
+                    # (canada fork only): parse constraint sql errors
+                    # TODO: upstream contrib!!
+                    errmsg = _programming_error_summary(err)
+                    if 'violates foreign key constraint' in errmsg:
+                        errmsg = 'Cannot insert records ({refValues}) because '\
+                                 'they do not exist in the referenced table. '\
+                                 'Referencing {refKeys} from {refTable}.'
+                        raise ValidationError(dict(
+                            _parse_constraint_error_from_psql_error(err, errmsg),
+                            records_row=num))
                     raise ValidationError({
-                        'records': [_programming_error_summary(err)],
-                        # (canada fork only): extra info
-                        'upsert_info': {
-                            'orig': str(err.orig),
-                            'pgcode': err.orig.pgcode
-                        },
+                        'records': [errmsg],
                         'records_row': num,
                     })
 
@@ -1555,13 +1634,18 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                     context['connection'].execute(
                         sa.text(insert_string), values)
                 except DatabaseError as err:
+                    # (canada fork only): parse constraint sql errors
+                    # TODO: upstream contrib!!
+                    errmsg = _programming_error_summary(err)
+                    if 'violates foreign key constraint' in errmsg:
+                        errmsg = 'Cannot insert records ({refValues}) because '\
+                                 'they do not exist in the referenced table. '\
+                                 'Referencing {refKeys} from {refTable}.'
+                        raise ValidationError(dict(
+                            _parse_constraint_error_from_psql_error(err, errmsg),
+                            records_row=num))
                     raise ValidationError({
-                        'records': [_programming_error_summary(err)],
-                        # (canada fork only): extra info
-                        'upsert_info': {
-                            'orig': str(err.orig),
-                            'pgcode': err.orig.pgcode
-                        },
+                        'records': [errmsg],
                         'records_row': num,
                     })
 
@@ -2308,15 +2392,12 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             #FIXME: flagged issue, referencing someone else's table will limit their table from the constraints.
             except (IntegrityError, ProgrammingError, InternalError) as e:
                 if e.orig.pgcode == _PG_ERR_CODE['row_referenced_constraint'] or e.orig.pgcode == _PG_ERR_CODE['table_referenced_constraint']:
-                    # FIXME: better error message??
-                    raise ValidationError({
-                        'foreign_constraints': ['Cannot delete records or table'
-                                                ' because of a reference to another table.'],
-                        'info': {
-                            'orig': str(e.orig),
-                            'pgcode': e.orig.pgcode
-                        }
-                    })
+                    # (canada fork only): parse constraint sql errors
+                    # TODO: upstream contrib!!
+                    errmsg = 'Cannot delete records or table because of '\
+                             'a reference to another table. '\
+                             'Referencing {refKeys}({refValues}) from {refTable}.'
+                    raise ValidationError(_parse_constraint_error_from_psql_error(e, errmsg))
                 raise
 
     def create(
@@ -2388,15 +2469,12 @@ class DatastorePostgresqlBackend(DatastoreBackend):
         # TODO: upstream contrib!!
         except ProgrammingError as e:
             if e.orig.pgcode == _PG_ERR_CODE['no_unique_constraint']:
-                # FIXME: better error message??
-                raise ValidationError({
-                    'foreign_constraints': ['Cannot insert records or create index'
-                                            ' because of a foreign constraint'],
-                    'info': {
-                        'orig': str(e.orig),
-                        'pgcode': e.orig.pgcode
-                    }
-                })
+                # (canada fork only): parse constraint sql errors
+                # TODO: upstream contrib!!
+                errmsg = 'Cannot insert records ({refValues}) or create index because '\
+                         'they do not exist in the referenced table. '\
+                         'Referencing {refKeys} from {refTable}.'
+                raise ValidationError(_parse_constraint_error_from_psql_error(e, errmsg))
             raise
         except DataError as e:
             raise ValidationError(cast(ErrorDict, {
