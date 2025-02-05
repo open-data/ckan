@@ -3,10 +3,13 @@
 {% block subtitle %}{{ _('Edit') }} {{ g.template_title_delimiter }} {{ h.resource_display_name(res) }} {{ g.template_title_delimiter }} {{ h.dataset_display_name(pkg) }}{% endblock %}
 
 {% block form %}
+  {# (canada fork only): handle all errors in resource actions #}
+  {# TODO: upstream contrib?? #}
   {% snippet 'package/snippets/resource_edit_form.html',
     data=data,
     errors=errors,
     error_summary=error_summary,
+    dataset_errors=dataset_errors,
     pkg_name=pkg.name,
     form_action=form_action,
     resource_form_snippet=resource_form_snippet,

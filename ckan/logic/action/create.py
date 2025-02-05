@@ -334,9 +334,9 @@ def resource_create(context: Context,
     except ValidationError as e:
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
-        error_dict = resource_validation_errors(
+        error_dict, error_summary = resource_validation_errors(
             e.error_dict, action='create', pkg_dict=pkg_dict)
-        raise ValidationError(error_dict)
+        raise ValidationError(error_dict, error_summary=error_summary)
 
     # Get out resource_id resource from model as it will not appear in
     # package_show until after commit

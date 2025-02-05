@@ -14,9 +14,15 @@
     {% endif %}
   {% endblock %}
 
-  {# (canada fork only): error_summary param #}
+  {# (canada fork only): handle all errors in resource actions #}
   {# TODO: upstream contrib?? #}
-  {% block errors %}{{ form.errors(errors=errors, error_summary=error_summary) }}{% endblock %}
+  {% block errors %}
+    {% if dataset_errors %}
+      {{ form.dataset_errors(errors=dataset_errors, pkg_name=pkg_name, helpers=h) }}
+    {% else %}
+      {{ form.errors(errors=errors) }}
+    {% endif %}
+  {% endblock %}
 
   <input name="id" value="{{ data.id }}" type="hidden"/>
 

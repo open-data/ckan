@@ -12,7 +12,9 @@
   {% endif %}
 {% endblock %}
 
-{% block form %}{% snippet resource_form_snippet, data=data, errors=errors, error_summary=error_summary, include_metadata=false, pkg_name=pkg_name, stage=stage, dataset_type=dataset_type %}{% endblock %}
+{# (canada fork only): handle all errors in resource actions #}
+{# TODO: upstream contrib?? #}
+{% block form %}{% snippet resource_form_snippet, data=data, errors=errors, error_summary=error_summary, dataset_errors=dataset_errors, include_metadata=false, pkg_name=pkg_name, stage=stage, dataset_type=dataset_type %}{% endblock %}
 
 {% block secondary_content %}
   {% snippet 'package/snippets/resource_help.html' %}

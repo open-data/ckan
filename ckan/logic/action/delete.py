@@ -200,9 +200,9 @@ def resource_delete(context: Context, data_dict: DataDict) -> ActionResult.Resou
     except ValidationError as e:
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
-        error_dict = resource_validation_errors(
-            e.error_dict, action='create', pkg_dict=pkg_dict)
-        raise ValidationError(error_dict)
+        error_dict, error_summary = resource_validation_errors(
+            e.error_dict, action='delete', pkg_dict=pkg_dict)
+        raise ValidationError(error_dict, error_summary=error_summary)
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.after_resource_delete(context, pkg_dict.get('resources', []))

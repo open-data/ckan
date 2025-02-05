@@ -14,7 +14,15 @@
       {% block form %}
         {# (canada fork only): handle validation errors #}
         {# TODO: upstream contrib?? #}
-        {% block errors %}{{ form.errors(errors=errors, error_summary=error_summary) }}{% endblock %}
+        {# (canada fork only): handle all errors in resource actions #}
+        {# TODO: upstream contrib?? #}
+        {% block errors %}
+          {% if dataset_errors %}
+            {{ form.dataset_errors(errors=dataset_errors, pkg_name=pkg_id, helpers=h) }}
+          {% else %}
+            {{ form.errors(errors=errors) }}
+          {% endif %}
+        {% endblock %}
         <p>{{ _('Are you sure you want to delete resource - {name}?').format(name=h.resource_display_name(resource_dict)) }}</p>
         <p class="form-actions">
           <form id='confirm-resource-delete-form' action="{% url_for 'resource.delete', resource_id=resource_dict.id, id=pkg_id %}" method="post">

@@ -316,12 +316,23 @@ class CreateView(MethodView):
 
         package_type = pkg_dict[u'type'] or package_type
 
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        # we do this here to avoid issues with ckanext-scheming support
+        dataset_errors = {}
+        if errors and 'resources' in errors and isinstance(errors['resources'], dict):
+            dataset_errors = dict(errors)
+            errors = None
+
         errors = errors or {}
         error_summary = error_summary or {}
         extra_vars: dict[str, Any] = {
             u'data': data,
             u'errors': errors,
             u'error_summary': error_summary,
+            # (canada fork only): handle all errors in resource actions
+            # TODO: upstream contrib??
+            'dataset_errors': dataset_errors,
             u'action': u'new',
             u'resource_form_snippet': _get_pkg_template(
                 u'resource_form', package_type
@@ -424,12 +435,23 @@ class EditView(MethodView):
 
         package_type = pkg_dict[u'type'] or package_type
 
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        # we do this here to avoid issues with ckanext-scheming support
+        dataset_errors = {}
+        if errors and 'resources' in errors and isinstance(errors['resources'], dict):
+            dataset_errors = dict(errors)
+            errors = None
+
         errors = errors or {}
         error_summary = error_summary or {}
         extra_vars: dict[str, Any] = {
             u'data': data,
             u'errors': errors,
             u'error_summary': error_summary,
+            # (canada fork only): handle all errors in resource actions
+            # TODO: upstream contrib??
+            'dataset_errors': dataset_errors,
             u'action': u'edit',
             u'resource_form_snippet': _get_pkg_template(
                 u'resource_form', package_type
@@ -519,12 +541,23 @@ class DeleteView(MethodView):
         g.resource_dict = resource_dict
         g.pkg_id = pkg_id
 
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        # we do this here to avoid issues with ckanext-scheming support
+        dataset_errors = {}
+        if errors and 'resources' in errors and isinstance(errors['resources'], dict):
+            dataset_errors = dict(errors)
+            errors = None
+
         return base.render(
             u'package/confirm_delete_resource.html', {
                 # (canada fork only): handle validation errors
                 # TODO: upstream contrib??
                 'errors': errors,
                 'error_summary': error_summary,
+                # (canada fork only): handle all errors in resource actions
+                # TODO: upstream contrib??
+                'dataset_errors': dataset_errors,
                 u'dataset_type': _get_package_type(id),
                 u'resource_dict': resource_dict,
                 u'pkg_id': pkg_id

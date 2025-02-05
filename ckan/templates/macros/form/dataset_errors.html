@@ -1,0 +1,51 @@
+{# (canada fork only): handle all errors in resource actions #}
+{# TODO: upstream contrib?? #}
+
+{#
+Builds a list of errors for the current form.
+
+errors  - A dict of field/message pairs.
+type    - The alert-* class that should be applied (default: "error")
+classes - A list of classes to apply to the wrapper (default: [])
+
+Example:
+
+{% import 'macros/form.html' as form %}
+{{ form.errors(error_summary, type="warning") }}
+
+#}
+
+
+{# (canada fork only): error -> danger BS version #}
+{% macro dataset_errors(errors={}, type="danger", classes=[], pkg_name='', helpers={}) %}
+  {% if errors %}
+    <div class="error-explanation alert alert-{{ type }}{{ " " ~ classes | join(' ') }}">
+      <h3>{{_('Errors in dataset')}}</h3>
+      {% if 'dataset' in errors and errors.dataset %}
+        {% set dataset_link = helpers.url_for('dataset.read', id=pkg_name) %}
+        <p>{{ _('The <a href="{}" target="_blank">dataset</a> contains errors:').format(dataset_link) }}</p>
+        <ul>
+          {% for field_id, field_errs in errors.dataset.items() %}
+            <li data-field-label="{{ field_id }}">{% if field_id %}{{ field_id }}{{_(':')}} {% endif %}{{ field_errs|join(', ') }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if 'resources' in errors and errors.resources %}
+        <p>{{ _('The dataset contains invalid resources:') }}</p>
+        <ul>
+          {% for res_id, errs in errors.resources.items() %}
+            {% if not errs %}
+              {% continue %}
+            {% endif %}
+            <li><a href="{{ helpers.url_for('resource.read', id=pkg_name, resource_id=res_id) }}" target="_blank">{{ _('Resource') ~ ' ' ~ loop.index }}</a></li>
+            <ul>
+              {% for field_id, field_errs in errs.items() %}
+                <li data-field-label="{{ field_id }}">{% if field_id %}{{ field_id }}{{_(':')}} {% endif %}{{ field_errs|join(', ') }}</li>
+              {% endfor %}
+            </ul>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endmacro %}
