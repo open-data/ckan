@@ -88,6 +88,7 @@ def dump_schema() -> Schema:
         u'language': [ignore_missing, unicode_only],
         u'fields': [exclude_id_from_ds_dump, ignore_missing, list_of_strings_or_string],  # (canada fork only): exclude _id field from Blueprint dump
         u'sort': [default(u'_id'), list_of_strings_or_string],
+        'filename': [ignore_missing, unicode_only]  # (canada fork only): filename to save stream to
     }
 
 
@@ -111,6 +112,9 @@ def dump(resource_id: str):
     limit = data.get('limit')
     options = {'bom': data['bom']}
     sort = data['sort']
+    # (canada fork only): filename to save stream to
+    custom_filename = data.get('filename')
+    filename = custom_filename if custom_filename else resource_id
     search_params = {
         k: v
         for k, v in data.items()
@@ -127,19 +131,19 @@ def dump(resource_id: str):
 
     if fmt == 'csv':
         content_disposition = 'attachment; filename="{name}.csv"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/csv; charset=utf-8'
     elif fmt == 'tsv':
         content_disposition = 'attachment; filename="{name}.tsv"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/tab-separated-values; charset=utf-8'
     elif fmt == 'json':
         content_disposition = 'attachment; filename="{name}.json"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'application/json; charset=utf-8'
     elif fmt == 'xml':
         content_disposition = 'attachment; filename="{name}.xml"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/xml; charset=utf-8'
     else:
         abort(404, _('Unsupported format'))
