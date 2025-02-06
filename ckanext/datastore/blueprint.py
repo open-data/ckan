@@ -113,8 +113,7 @@ def dump(resource_id: str):
     options = {'bom': data['bom']}
     sort = data['sort']
     # (canada fork only): filename to save stream to
-    custom_filename = data.get('filename')
-    filename = custom_filename if custom_filename else resource_id
+    filename = data.get('filename', resource_id)
     search_params = {
         k: v
         for k, v in data.items()
