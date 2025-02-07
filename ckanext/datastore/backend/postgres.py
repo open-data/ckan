@@ -1479,9 +1479,11 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
             # TODO: upstream contrib!!
             errmsg = _programming_error_summary(err)
             if 'violates foreign key constraint' in errmsg:
-                errmsg = 'Cannot insert records ({refValues}) because '\
-                         'they do not exist in the referenced table. '\
-                         'Referencing {refKeys} from {refTable}.'
+                _ = lambda x:x
+                errmsg = _(
+                    'Cannot insert records ({refValues}) because '\
+                    'they do not exist in the referenced table. '\
+                    'Referencing {refKeys} from {refTable}.')
                 raise ValidationError(dict(
                     _parse_constraint_error_from_psql_error(err, errmsg),
                     records_row=num))
@@ -1582,9 +1584,11 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                     # TODO: upstream contrib!!
                     errmsg = _programming_error_summary(err)
                     if 'violates foreign key constraint' in errmsg:
-                        errmsg = 'Cannot insert records ({refValues}) because '\
-                                 'they do not exist in the referenced table. '\
-                                 'Referencing {refKeys} from {refTable}.'
+                        _ = lambda x:x
+                        errmsg = _(
+                            'Cannot insert records ({refValues}) because '\
+                            'they do not exist in the referenced table. '\
+                            'Referencing {refKeys} from {refTable}.')
                         raise ValidationError(dict(
                             _parse_constraint_error_from_psql_error(err, errmsg),
                             records_row=num))
@@ -1638,9 +1642,11 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                     # TODO: upstream contrib!!
                     errmsg = _programming_error_summary(err)
                     if 'violates foreign key constraint' in errmsg:
-                        errmsg = 'Cannot insert records ({refValues}) because '\
-                                 'they do not exist in the referenced table. '\
-                                 'Referencing {refKeys} from {refTable}.'
+                        _ = lambda x:x
+                        errmsg = _(
+                            'Cannot insert records ({refValues}) because '\
+                            'they do not exist in the referenced table. '\
+                            'Referencing {refKeys} from {refTable}.')
                         raise ValidationError(dict(
                             _parse_constraint_error_from_psql_error(err, errmsg),
                             records_row=num))
@@ -2473,9 +2479,11 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             if e.orig.pgcode == _PG_ERR_CODE['no_unique_constraint']:
                 # (canada fork only): parse constraint sql errors
                 # TODO: upstream contrib!!
-                errmsg = 'Cannot insert records ({refValues}) or create index because '\
-                         'they do not exist in the referenced table. '\
-                         'Referencing {refKeys} from {refTable}.'
+                _ = lambda x:x
+                errmsg = _(
+                    'Cannot insert records ({refValues}) or create index because '\
+                    'they do not exist in the referenced table. '\
+                    'Referencing {refKeys} from {refTable}.')
                 raise ValidationError(_parse_constraint_error_from_psql_error(e, errmsg))
             raise
         except DataError as e:
