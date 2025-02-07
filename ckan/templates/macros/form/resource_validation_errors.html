@@ -17,13 +17,17 @@ Example:
 
 
 {# (canada fork only): error -> danger BS version #}
-{% macro resource_validation_errors(errors={}, type="danger", classes=[], pkg_name='', helpers={}) %}
+{% macro resource_validation_errors(errors={}, type="danger", classes=[], pkg_name='', dataset_type='dataset', helpers={}) %}
   {% if errors %}
     <div class="error-explanation alert alert-{{ type }}{{ " " ~ classes | join(' ') }}">
-      <h3>{{ h.humanize_entity_type('package', dataset_type, 'other errors') or _('Errors in dataset') }}</h3>
+      <h3>{{ helpers.humanize_entity_type('package', dataset_type, 'other errors') or _('Errors in dataset') }}</h3>
       {% if 'dataset' in errors and errors.dataset %}
         {% set dataset_link = helpers.url_for('dataset.read', id=pkg_name) %}
-        <p>{{ h.humanize_entity_type('package', dataset_type, 'other errors package').format(dataset_link) or _('The <a href="{}" target="_blank">dataset</a> contains errors:').format(dataset_link) }}</p>
+        {% set humanized_label = helpers.humanize_entity_type('package', dataset_type, 'other errors package') %}
+        {% if humanized_label %}
+          {% set humanized_label = humanized_label.format(dataset_link)|safe %}
+        {% endif %}
+        <p>{{ humanized_label or _('The <a href="{}" target="_blank">dataset</a> contains errors:').format(dataset_link) }}</p>
         <ul>
           {% for field_id, field_errs in errors.dataset.items() %}
             <li data-field-label="{{ field_id }}">{% if field_id %}{{ field_id }}{{_(':')}} {% endif %}{{ field_errs|join(', ') }}</li>
@@ -31,7 +35,7 @@ Example:
         </ul>
       {% endif %}
       {% if 'resources' in errors and errors.resources %}
-        <p>{{ h.humanize_entity_type('package', dataset_type, 'other errors resources') or _('The dataset contains invalid resources:') }}</p>
+        <p>{{ helpers.humanize_entity_type('package', dataset_type, 'other errors resources') or _('The dataset contains invalid resources:') }}</p>
         <ul>
           {% for res_id, errs in errors.resources.items() %}
             <li><a href="{{ helpers.url_for('resource.read', id=pkg_name, resource_id=res_id) }}" target="_blank">{{ res_id }}</a></li>
