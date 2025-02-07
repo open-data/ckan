@@ -85,8 +85,10 @@ def resource_validation_errors(
         pkg_dict: Dict[str, Any],
         resource_index: int = -1) -> Tuple[Dict[str, Any], str]:
     """
-    Checks through the error_dict to find all errors in
-    the Dataset and its Resources.
+    Returns a modified (error_dict, error_summary) with errors from the
+    resource_index resource fields in error_dict, errors from the dataset
+    fields under error_dict['dataset'] and errors from other resource
+    fields under error_dict['resources'][resource_id].
     """
     new_error_dict = dict(error_dict)
     # define out own error summaries so we can have
