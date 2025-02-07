@@ -104,7 +104,7 @@ def resource_validation_errors(
         if current_res_error_dict:
             # if there are errors for the current resource
             # let's raise them to the user first.
-            new_error_dict = current_res_error_dict
+            new_error_dict = dict(current_res_error_dict)
         if not current_res_error_dict and 'resources' in error_dict and isinstance(error_dict['resources'], list):
             # compile the other resource errors
             new_error_dict = {'resources': {}}
