@@ -2394,9 +2394,11 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                 if e.orig.pgcode == _PG_ERR_CODE['row_referenced_constraint'] or e.orig.pgcode == _PG_ERR_CODE['table_referenced_constraint']:
                     # (canada fork only): parse constraint sql errors
                     # TODO: upstream contrib!!
-                    errmsg = 'Cannot delete records or table because of '\
-                             'a reference to another table. '\
-                             'Referencing {refKeys}({refValues}) from {refTable}.'
+                    _ = lambda x:x
+                    errmsg = _(
+                        'Cannot delete records or table because of '
+                        'a reference to another table. '
+                        'Referencing {refKeys}({refValues}) from {refTable}.')
                     raise ValidationError(_parse_constraint_error_from_psql_error(e, errmsg))
                 raise
 
