@@ -17,8 +17,8 @@
   {# (canada fork only): handle all errors in resource actions #}
   {# TODO: upstream contrib?? #}
   {% block errors %}
-    {% if dataset_errors %}
-      {{ form.dataset_errors(errors=dataset_errors, pkg_name=pkg_name, helpers=h) }}
+    {% if resource_validation_errors %}
+      {{ form.resource_validation_errors(errors=resource_validation_errors, pkg_name=pkg_name, helpers=h) }}
     {% else %}
       {{ form.errors(errors=errors) }}
     {% endif %}

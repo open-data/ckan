@@ -94,59 +94,58 @@ def resource_validation_errors(
     # define out own error summaries so we can have
     # a more customized structure to the ErrorDict
     error_summaries = []
-    try:
-        if action == 'delete':
-            # special case for deleting as there is no index
-            # for a non-existent resource in the pkg_dict.
-            current_res_error_dict = False
-        else:
-            current_res_error_dict = cast("list[ErrorDict]", error_dict['resources'])[resource_index]
-        if current_res_error_dict:
-            # if there are errors for the current resource
-            # let's raise them to the user first.
-            new_error_dict = dict(current_res_error_dict)
-        if not current_res_error_dict and 'resources' in error_dict and isinstance(error_dict['resources'], list):
-            # compile the other resource errors
-            new_error_dict = {'resources': {}}
-            for key, res_error_dict in enumerate(error_dict['resources']):
-                if key <= len(pkg_dict['resources']):
-                    errored_resource = pkg_dict['resources'][key]
-                    if errored_resource.get('id'):
-                        new_error_dict['resources'][errored_resource.get('id')] = res_error_dict
-                    if res_error_dict:
-                        if action == 'create' or action == 'update':
-                            error_summaries.append(
-                                _('Could not create or update resource because another resource in '
-                                  'this dataset has errors: {}').format(errored_resource['id']))
-                        elif action == 'delete':
-                            error_summaries.append(
-                                _('Could not delete resource because another resource in '
-                                  'this dataset has errors: {}').format(errored_resource['id']))
-                        elif action == 'reorder':
-                            error_summaries.append(
-                                _('Could not reorder resources because a resource in '
-                                  'this dataset has errors: {}').format(errored_resource['id']))
-        if error_dict:
-            # compile the dataset errors
-            for key, errors in error_dict.items():
-                if key == 'resources':
-                    continue
-                if 'dataset' not in new_error_dict:
-                    new_error_dict['dataset'] = {}
-                new_error_dict['dataset'][key] = errors
-            if 'dataset' in new_error_dict:
-                if action == 'create' or action == 'update':
-                    error_summaries.append(
-                        _('Could not create or update resource because '
-                          'the dataset has errors'))
-                elif action == 'delete':
-                    error_summaries.append(
-                        _('Could not delete resource because '
-                          'the dataset has errors'))
-                elif action == 'reorder':
-                    error_summaries.append(
-                        _('Could not reorder resources because '
-                          'the dataset has errors'))
-    except (KeyError, IndexError):
-        new_error_dict = dict(error_dict)
-    return new_error_dict, '; '.join(error_summaries)
+    if action == 'delete':
+        # special case for deleting as there is no index
+        # for a non-existent resource in the pkg_dict.
+        current_res_error_dict = False
+    else:
+        current_res_error_dict = cast("list[ErrorDict]", error_dict['resources'])[resource_index]
+    if current_res_error_dict:
+        # if there are errors for the current resource
+        # let's raise them to the user first.
+        new_error_dict = dict(current_res_error_dict)
+    if not current_res_error_dict and 'resources' in error_dict and isinstance(error_dict['resources'], list):
+        # compile the other resource errors
+        new_error_dict = {'resources': {}}
+        for key, res_error_dict in enumerate(error_dict['resources']):
+            if not res_error_dict:
+                continue
+            if key <= len(pkg_dict['resources']):  # case for resource_delete
+                errored_resource = pkg_dict['resources'][key]
+                if errored_resource.get('id'):
+                    new_error_dict['resources'][errored_resource.get('id')] = res_error_dict
+                if res_error_dict:
+                    if action == 'create' or action == 'update':
+                        error_summaries.append(
+                            _('Could not create or update resource because another resource in '
+                              'this dataset has errors: {}').format(errored_resource['id']))
+                    elif action == 'delete':
+                        error_summaries.append(
+                            _('Could not delete resource because another resource in '
+                              'this dataset has errors: {}').format(errored_resource['id']))
+                    elif action == 'reorder':
+                        error_summaries.append(
+                            _('Could not reorder resources because a resource in '
+                              'this dataset has errors: {}').format(errored_resource['id']))
+    if error_dict:
+        # compile the dataset errors
+        for key, errors in error_dict.items():
+            if key == 'resources':
+                continue
+            if 'dataset' not in new_error_dict:
+                new_error_dict['dataset'] = {}
+            new_error_dict['dataset'][key] = errors
+        if 'dataset' in new_error_dict:
+            if action == 'create' or action == 'update':
+                error_summaries.append(
+                    _('Could not create or update resource because '
+                        'the dataset has errors'))
+            elif action == 'delete':
+                error_summaries.append(
+                    _('Could not delete resource because '
+                        'the dataset has errors'))
+            elif action == 'reorder':
+                error_summaries.append(
+                    _('Could not reorder resources because '
+                        'the dataset has errors'))
+    return new_error_dict, _('; ').join(error_summaries)

@@ -1088,6 +1088,11 @@ def humanize_entity_type(entity_type: str, object_type: str,
         u'search placeholder': _(u'Search {object_type}s...'),
         u'you not member': _(u'You are not a member of any {object_type}s.'),
         u'update label': _(u"Update {object_type}"),
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        'other errors': _('Errors in {object_type}'),
+        'other errors package': _('The <a href="{{}}" target="_blank">{object_type}</a> contains errors:'),
+        'other errors resources': _('The {object_type} contains invalid resources:')
     }
 
     type_label = object_type.replace(u"_", u" ").capitalize()

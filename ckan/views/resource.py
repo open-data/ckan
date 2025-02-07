@@ -319,9 +319,9 @@ class CreateView(MethodView):
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
         # we do this here to avoid issues with ckanext-scheming support
-        dataset_errors = {}
+        resource_validation_errors = {}
         if errors and 'resources' in errors and isinstance(errors['resources'], dict):
-            dataset_errors = dict(errors)
+            resource_validation_errors = dict(errors)
             errors = None
 
         errors = errors or {}
@@ -332,7 +332,7 @@ class CreateView(MethodView):
             u'error_summary': error_summary,
             # (canada fork only): handle all errors in resource actions
             # TODO: upstream contrib??
-            'dataset_errors': dataset_errors,
+            'resource_validation_errors': resource_validation_errors,
             u'action': u'new',
             u'resource_form_snippet': _get_pkg_template(
                 u'resource_form', package_type
@@ -438,9 +438,9 @@ class EditView(MethodView):
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
         # we do this here to avoid issues with ckanext-scheming support
-        dataset_errors = {}
+        resource_validation_errors = {}
         if errors and 'resources' in errors and isinstance(errors['resources'], dict):
-            dataset_errors = dict(errors)
+            resource_validation_errors = dict(errors)
             errors = None
 
         errors = errors or {}
@@ -451,7 +451,7 @@ class EditView(MethodView):
             u'error_summary': error_summary,
             # (canada fork only): handle all errors in resource actions
             # TODO: upstream contrib??
-            'dataset_errors': dataset_errors,
+            'resource_validation_errors': resource_validation_errors,
             u'action': u'edit',
             u'resource_form_snippet': _get_pkg_template(
                 u'resource_form', package_type
@@ -528,6 +528,10 @@ class DeleteView(MethodView):
                     u'id': resource_id
                 }
             )
+            # (canada fork only): handle all errors in resource actions
+            # TODO: upstream contrib??
+            pkg_dict = get_action('package_show')(
+                context, {'id': id})
             pkg_id = id
         except NotAuthorized:
             return base.abort(
@@ -544,9 +548,9 @@ class DeleteView(MethodView):
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
         # we do this here to avoid issues with ckanext-scheming support
-        dataset_errors = {}
+        resource_validation_errors = {}
         if errors and 'resources' in errors and isinstance(errors['resources'], dict):
-            dataset_errors = dict(errors)
+            resource_validation_errors = dict(errors)
             errors = None
 
         return base.render(
@@ -557,7 +561,8 @@ class DeleteView(MethodView):
                 'error_summary': error_summary,
                 # (canada fork only): handle all errors in resource actions
                 # TODO: upstream contrib??
-                'dataset_errors': dataset_errors,
+                'resource_validation_errors': resource_validation_errors,
+                'pkg_dict': pkg_dict,
                 u'dataset_type': _get_package_type(id),
                 u'resource_dict': resource_dict,
                 u'pkg_id': pkg_id
