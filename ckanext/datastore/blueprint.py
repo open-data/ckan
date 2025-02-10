@@ -28,6 +28,12 @@ from ckanext.datastore.writer import (
     json_writer,
     xml_writer,
 )
+# (canada fork only): filename to save stream to
+import re
+
+
+# (canada fork only): filename to save stream to
+FILENAME_MATCH = re.compile('^[\w\-\.]+$')
 
 int_validator = get_validator(u'int_validator')
 boolean_validator = get_validator(u'boolean_validator')
@@ -75,6 +81,18 @@ def exclude_id_from_ds_dump(key, data, errors, context):
     data[key] = value
 
 
+# (canada fork only): filename to save stream to
+def filename_safe(key, data, errors, context):
+    """
+    Makes sure the passed filename is safe to stream back in the response.
+    """
+    value = data.get(key)
+
+    if not re.search(FILENAME_MATCH, value):
+        errors[key].append(_('Invalid characters in filename'))
+        raise StopOnError
+
+
 def dump_schema() -> Schema:
     return {
         u'offset': [default(0), int_validator],
@@ -88,7 +106,7 @@ def dump_schema() -> Schema:
         u'language': [ignore_missing, unicode_only],
         u'fields': [exclude_id_from_ds_dump, ignore_missing, list_of_strings_or_string],  # (canada fork only): exclude _id field from Blueprint dump
         u'sort': [default(u'_id'), list_of_strings_or_string],
-        'filename': [ignore_missing, unicode_only]  # (canada fork only): filename to save stream to
+        'filename': [ignore_missing, unicode_only, filename_safe]  # (canada fork only): filename to save stream to
     }
 
 
