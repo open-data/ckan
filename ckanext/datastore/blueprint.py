@@ -28,6 +28,12 @@ from ckanext.datastore.writer import (
     json_writer,
     xml_writer,
 )
+# (canada fork only): filename to save stream to
+import re
+
+
+# (canada fork only): filename to save stream to
+FILENAME_MATCH = re.compile('^[\w\-\.]+$')
 
 int_validator = get_validator(u'int_validator')
 boolean_validator = get_validator(u'boolean_validator')
@@ -75,6 +81,18 @@ def exclude_id_from_ds_dump(key, data, errors, context):
     data[key] = value
 
 
+# (canada fork only): filename to save stream to
+def filename_safe(key, data, errors, context):
+    """
+    Makes sure the passed filename is safe to stream back in the response.
+    """
+    value = data.get(key)
+
+    if not re.search(FILENAME_MATCH, value):
+        errors[key].append(_('Invalid characters in filename'))
+        raise StopOnError
+
+
 def dump_schema() -> Schema:
     return {
         u'offset': [default(0), int_validator],
@@ -88,6 +106,7 @@ def dump_schema() -> Schema:
         u'language': [ignore_missing, unicode_only],
         u'fields': [exclude_id_from_ds_dump, ignore_missing, list_of_strings_or_string],  # (canada fork only): exclude _id field from Blueprint dump
         u'sort': [default(u'_id'), list_of_strings_or_string],
+        'filename': [ignore_missing, unicode_only, filename_safe]  # (canada fork only): filename to save stream to
     }
 
 
@@ -111,6 +130,8 @@ def dump(resource_id: str):
     limit = data.get('limit')
     options = {'bom': data['bom']}
     sort = data['sort']
+    # (canada fork only): filename to save stream to
+    filename = data.get('filename', resource_id)
     search_params = {
         k: v
         for k, v in data.items()
@@ -127,19 +148,19 @@ def dump(resource_id: str):
 
     if fmt == 'csv':
         content_disposition = 'attachment; filename="{name}.csv"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/csv; charset=utf-8'
     elif fmt == 'tsv':
         content_disposition = 'attachment; filename="{name}.tsv"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/tab-separated-values; charset=utf-8'
     elif fmt == 'json':
         content_disposition = 'attachment; filename="{name}.json"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'application/json; charset=utf-8'
     elif fmt == 'xml':
         content_disposition = 'attachment; filename="{name}.xml"'.format(
-                                    name=resource_id)
+                                    name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/xml; charset=utf-8'
     else:
         abort(404, _('Unsupported format'))
