@@ -123,6 +123,12 @@ _engines = {}
 # (canada fork only): parse constraint sql errors
 # TODO: upstream contrib!!
 class PartialFormat(Dict[Any, Any]):
+    """
+    String Formatter class for partial format replacements.
+
+    Allows for a string to be formatted without all of
+    the expected formatting keys.
+    """
     def __missing__(self, key: str) -> str:
         return "{" + key + "}"
 
@@ -158,6 +164,8 @@ def _parse_constraint_error_from_psql_error(exception: Exception,
     ref_resource = table_match.group(1) if table_match else None
     error_message = toolkit._(error_message)  # gettext before formatting
     formatter = string.Formatter()
+    # partial replacements to handle custom error messages
+    # that may not contain all the replacement keys.
     mapping = PartialFormat(refKeys=ref_keys,
                             refValues=ref_values,
                             refTable=ref_resource)
