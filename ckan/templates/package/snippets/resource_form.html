@@ -6,7 +6,7 @@
 
 
 <form id="resource-edit" class="dataset-form dataset-resource-form" method="post" action="{{ action }}" data-module="basic-form resource-form" enctype="multipart/form-data">
-  {{ h.csrf_input() }} 
+  {{ h.csrf_input() }}
   {% block stages %}
     {# An empty stages variable will not show the stages #}
     {% if stage %}
@@ -14,7 +14,15 @@
     {% endif %}
   {% endblock %}
 
-  {% block errors %}{{ form.errors(error_summary) }}{% endblock %}
+  {# (canada fork only): handle all errors in resource actions #}
+  {# TODO: upstream contrib?? #}
+  {% block errors %}
+    {% if resource_validation_errors %}
+      {{ form.resource_validation_errors(errors=resource_validation_errors, pkg_name=pkg_name, dataset_type=dataset_type, h=h) }}
+    {% else %}
+      {{ form.errors(errors=errors) }}
+    {% endif %}
+  {% endblock %}
 
   <input name="id" value="{{ data.id }}" type="hidden"/>
 

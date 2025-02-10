@@ -28,6 +28,9 @@ from ckan.lib.jobs import dictize_job
 #TODO: upstream contrib!!
 import ckan.lib.search.jobs as search_jobs
 
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+from . import resource_validation_errors
 from ckan.common import _, config
 from ckan.types import Context, DataDict, ErrorDict
 
@@ -114,11 +117,11 @@ def resource_update(context: Context, data_dict: DataDict) -> ActionResult.Resou
         context['use_cache'] = False
         updated_pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
-        try:
-            error_dict = cast("list[ErrorDict]", e.error_dict['resources'])[n]
-        except (KeyError, IndexError):
-            error_dict = e.error_dict
-        raise ValidationError(error_dict)
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        error_dict, error_summary = resource_validation_errors(
+            e.error_dict, action='update', pkg_dict=pkg_dict, resource_index=n)
+        raise ValidationError(error_dict, error_summary=error_summary)
 
     resource = _get_action('resource_show')(context, {'id': id})
 
@@ -579,9 +582,18 @@ def package_resource_reorder(
     package_dict['resources'] = new_resources
 
     _check_access('package_resource_reorder', context, package_dict)
-    _get_action('package_update')(context, package_dict)
+    # (canada fork only): handle all errors in resource actions
+    # TODO: upstream contrib??
+    try:
+        _get_action('package_update')(context, package_dict)
+    except ValidationError as e:
+        error_dict, error_summary = resource_validation_errors(
+            e.error_dict, action='reorder', pkg_dict=package_dict)
+        return {'id': id, 'order': [resource['id'] for resource in new_resources],
+                'errors': error_dict, 'error_summary': error_summary}
 
-    return {'id': id, 'order': [resource['id'] for resource in new_resources]}
+    return {'id': id, 'order': [resource['id'] for resource in new_resources],
+            'errors': None, 'error_summary': None}
 
 
 def _update_package_relationship(

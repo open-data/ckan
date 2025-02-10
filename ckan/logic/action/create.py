@@ -33,6 +33,9 @@ import ckan.lib.api_token as api_token
 import ckan.authz as authz
 import ckan.model
 
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+from . import resource_validation_errors
 from ckan.common import _
 from ckan.types import Context, DataDict, ErrorDict, Schema
 
@@ -329,11 +332,11 @@ def resource_create(context: Context,
         _get_action('package_update')(context, pkg_dict)
         context.pop('defer_commit')
     except ValidationError as e:
-        try:
-            error_dict = cast("list[ErrorDict]", e.error_dict['resources'])[-1]
-        except (KeyError, IndexError):
-            error_dict = e.error_dict
-        raise ValidationError(error_dict)
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        error_dict, error_summary = resource_validation_errors(
+            e.error_dict, action='create', pkg_dict=pkg_dict)
+        raise ValidationError(error_dict, error_summary=error_summary)
 
     # Get out resource_id resource from model as it will not appear in
     # package_show until after commit
