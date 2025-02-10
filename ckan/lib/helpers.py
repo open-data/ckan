@@ -1091,7 +1091,7 @@ def humanize_entity_type(entity_type: str, object_type: str,
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
         'other errors': _('Errors in {object_type}'),
-        'other errors package': _('The <a href="{{}}" target="_blank">{object_type}</a> contains errors:'),
+        'other errors package': _('The {object_type} contains errors:'),
         'other errors resources': _('The {object_type} contains invalid resources:')
     }
 

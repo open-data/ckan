@@ -18,7 +18,7 @@
   {# TODO: upstream contrib?? #}
   {% block errors %}
     {% if resource_validation_errors %}
-      {{ form.resource_validation_errors(errors=resource_validation_errors, pkg_name=pkg_name, dataset_type=dataset_type, helpers=h) }}
+      {{ form.resource_validation_errors(errors=resource_validation_errors, pkg_name=pkg_name, dataset_type=dataset_type, h=h) }}
     {% else %}
       {{ form.errors(errors=errors) }}
     {% endif %}

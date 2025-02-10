@@ -4,30 +4,29 @@
 {#
 Builds a list of errors for the current form.
 
-errors  - A dict of field/message pairs.
-type    - The alert-* class that should be applied (default: "error")
-classes - A list of classes to apply to the wrapper (default: [])
+errors        - A dict of object/field/message pairs from the resource_validation_errors method.
+                'resources' and 'dataset' keys.
+type          - The alert-* class that should be applied (default: "danger")
+classes       - A list of classes to apply to the wrapper (default: [])
+pkg_name      - String; The name or ID of the package.
+dataset_type  - String; The type of package
+h             - The template helpers object as Jinja macros are scoped.
 
 Example:
 
 {% import 'macros/form.html' as form %}
-{{ form.errors(error_summary, type="warning") }}
+{{ form.resource_validation_errors(errors=resource_validation_errors, type="warning", pkg_name=pkg_dict.id, h=h) }}
 
 #}
 
 
 {# (canada fork only): error -> danger BS version #}
-{% macro resource_validation_errors(errors={}, type="danger", classes=[], pkg_name='', dataset_type='dataset', helpers={}) %}
+{% macro resource_validation_errors(errors={}, type="danger", classes=[], pkg_name='', dataset_type='dataset', h={}) %}
   {% if errors %}
     <div class="error-explanation alert alert-{{ type }}{{ " " ~ classes | join(' ') }}">
-      <h3>{{ helpers.humanize_entity_type('package', dataset_type, 'other errors') or _('Errors in dataset') }}</h3>
+      <h3>{{ h.humanize_entity_type('package', dataset_type, 'other errors') or _('Errors in dataset') }}</h3>
       {% if 'dataset' in errors and errors.dataset %}
-        {% set dataset_link = helpers.url_for('dataset.read', id=pkg_name) %}
-        {% set humanized_label = helpers.humanize_entity_type('package', dataset_type, 'other errors package') %}
-        {% if humanized_label %}
-          {% set humanized_label = humanized_label.format(dataset_link)|safe %}
-        {% endif %}
-        <p>{{ humanized_label or _('The <a href="{}" target="_blank">dataset</a> contains errors:').format(dataset_link) }}</p>
+        <p>{{ h.humanize_entity_type('package', dataset_type, 'other errors package') or _('The dataset contains errors:') }}</p>
         <ul>
           {% for field_id, field_errs in errors.dataset.items() %}
             <li data-field-label="{{ field_id }}">{% if field_id %}{{ field_id }}{{_(':')}} {% endif %}{{ field_errs|join(', ') }}</li>
@@ -35,10 +34,10 @@ Example:
         </ul>
       {% endif %}
       {% if 'resources' in errors and errors.resources %}
-        <p>{{ helpers.humanize_entity_type('package', dataset_type, 'other errors resources') or _('The dataset contains invalid resources:') }}</p>
+        <p>{{ h.humanize_entity_type('package', dataset_type, 'other errors resources') or _('The dataset contains invalid resources:') }}</p>
         <ul>
           {% for res_id, errs in errors.resources.items() %}
-            <li><a href="{{ helpers.url_for('resource.read', id=pkg_name, resource_id=res_id) }}" target="_blank">{{ res_id }}</a></li>
+            <li><a href="{{ h.url_for('resource.read', id=pkg_name, resource_id=res_id) }}" target="_blank">{{ res_id }}</a></li>
             <ul>
               {% for field_id, field_errs in errs.items() %}
                 <li data-field-label="{{ field_id }}">{% if field_id %}{{ field_id }}{{_(':')}} {% endif %}{{ field_errs|join(', ') }}</li>
