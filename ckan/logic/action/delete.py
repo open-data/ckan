@@ -19,6 +19,9 @@ from ckan import authz
 from  ckan.lib.navl.dictization_functions import validate
 from ckan.model.follower import ModelFollowingModel
 
+# (canada fork only): handle all errors in resource actions
+# TODO: upstream contrib??
+from . import resource_validation_errors
 from ckan.common import _
 from ckan.types import Context, DataDict, ErrorDict, Schema
 
@@ -195,8 +198,11 @@ def resource_delete(context: Context, data_dict: DataDict) -> ActionResult.Resou
     try:
         pkg_dict = _get_action('package_update')(context, pkg_dict)
     except ValidationError as e:
-        errors = cast("list[ErrorDict]", e.error_dict['resources'])[-1]
-        raise ValidationError(errors)
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        error_dict, error_summary = resource_validation_errors(
+            e.error_dict, action='delete', pkg_dict=pkg_dict)
+        raise ValidationError(error_dict, error_summary=error_summary)
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.after_resource_delete(context, pkg_dict.get('resources', []))

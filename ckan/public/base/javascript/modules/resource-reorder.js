@@ -30,6 +30,14 @@ this.ckan.module('resource-reorder', function($) {
         '<i class="fa fa-spinner fa-spin"></i>',
         '<span></span>',
         '</span>'
+      ].join('\n'),
+      // (canada fork only): handle all errors in resource actions
+      // TODO: upstream contrib??
+      errors: [
+        '<div class="error-explanation alert alert-danger">',
+        '<h3></h3>',
+        '<p></p>',
+        '</div>'
       ].join('\n')
     },
     is_reordering: false,
@@ -46,6 +54,13 @@ this.ckan.module('resource-reorder', function($) {
         .text(labelText)
         .insertBefore(this.el)
         .hide();
+
+      // (canada fork only): handle all errors in resource actions
+      // TODO: upstream contrib??
+      this.html_errors = $(this.template.errors)
+        .insertBefore(this.el)
+        .hide();
+      $(this.html_errors).find('h3').text(this._('Errors in dataset'));
 
       this.html_help_text = $(this.template.help_text)
         .text(helpText)
@@ -126,7 +141,13 @@ this.ckan.module('resource-reorder', function($) {
         module.sandbox.client.call('POST', 'package_resource_reorder', {
           id: module.options.id,
           order: order
-        }, function() {
+        }, function(data) {
+          // (canada fork only): handle all errors in resource actions
+          // TODO: upstream contrib??
+          if( typeof data.result !== 'undefined' && typeof data.result.error_summary !== 'undefined' ){
+            $(module.html_errors).find('p').text(data.result.error_summary);
+            $(module.html_errors).show();
+          }
           module.html_saving.hide();
           $('.save, .cancel', module.html_form_actions).removeClass('disabled');
           module.cache = module.el.html();
