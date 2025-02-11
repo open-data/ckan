@@ -316,12 +316,23 @@ class CreateView(MethodView):
 
         package_type = pkg_dict[u'type'] or package_type
 
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        # we do this here to avoid issues with ckanext-scheming support
+        resource_validation_errors = {}
+        if errors and 'resources' in errors and isinstance(errors['resources'], dict):
+            resource_validation_errors = dict(errors)
+            errors = None
+
         errors = errors or {}
         error_summary = error_summary or {}
         extra_vars: dict[str, Any] = {
             u'data': data,
             u'errors': errors,
             u'error_summary': error_summary,
+            # (canada fork only): handle all errors in resource actions
+            # TODO: upstream contrib??
+            'resource_validation_errors': resource_validation_errors,
             u'action': u'new',
             u'resource_form_snippet': _get_pkg_template(
                 u'resource_form', package_type
@@ -424,12 +435,23 @@ class EditView(MethodView):
 
         package_type = pkg_dict[u'type'] or package_type
 
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        # we do this here to avoid issues with ckanext-scheming support
+        resource_validation_errors = {}
+        if errors and 'resources' in errors and isinstance(errors['resources'], dict):
+            resource_validation_errors = dict(errors)
+            errors = None
+
         errors = errors or {}
         error_summary = error_summary or {}
         extra_vars: dict[str, Any] = {
             u'data': data,
             u'errors': errors,
             u'error_summary': error_summary,
+            # (canada fork only): handle all errors in resource actions
+            # TODO: upstream contrib??
+            'resource_validation_errors': resource_validation_errors,
             u'action': u'edit',
             u'resource_form_snippet': _get_pkg_template(
                 u'resource_form', package_type
@@ -478,6 +500,14 @@ class DeleteView(MethodView):
                 )
             else:
                 return h.redirect_to(u'{}.read'.format(package_type), id=id)
+        # (canada fork only): handle validation errors
+        # TODO: upstream contrib??
+        except ValidationError as e:
+            errors = e.error_dict
+            error_summary = e.error_summary
+            return self.get(
+                package_type, id, resource_id, errors, error_summary
+            )
         except NotAuthorized:
             return base.abort(
                 403,
@@ -486,7 +516,11 @@ class DeleteView(MethodView):
         except NotFound:
             return base.abort(404, _(u'Resource not found'))
 
-    def get(self, package_type: str, id: str, resource_id: str) -> str:
+    # (canada fork only): handle validation errors
+    # TODO: upstream contrib??
+    def get(self, package_type: str, id: str, resource_id: str,
+            errors: Optional[dict[str, Any]] = None,
+            error_summary: Optional[dict[str, Any]] = None) -> str:
         context = self._prepare(id)
         try:
             resource_dict = get_action(u'resource_show')(
@@ -494,6 +528,10 @@ class DeleteView(MethodView):
                     u'id': resource_id
                 }
             )
+            # (canada fork only): handle all errors in resource actions
+            # TODO: upstream contrib??
+            pkg_dict = get_action('package_show')(
+                context, {'id': id})
             pkg_id = id
         except NotAuthorized:
             return base.abort(
@@ -507,8 +545,24 @@ class DeleteView(MethodView):
         g.resource_dict = resource_dict
         g.pkg_id = pkg_id
 
+        # (canada fork only): handle all errors in resource actions
+        # TODO: upstream contrib??
+        # we do this here to avoid issues with ckanext-scheming support
+        resource_validation_errors = {}
+        if errors and 'resources' in errors and isinstance(errors['resources'], dict):
+            resource_validation_errors = dict(errors)
+            errors = None
+
         return base.render(
             u'package/confirm_delete_resource.html', {
+                # (canada fork only): handle validation errors
+                # TODO: upstream contrib??
+                'errors': errors,
+                'error_summary': error_summary,
+                # (canada fork only): handle all errors in resource actions
+                # TODO: upstream contrib??
+                'resource_validation_errors': resource_validation_errors,
+                'pkg_dict': pkg_dict,
                 u'dataset_type': _get_package_type(id),
                 u'resource_dict': resource_dict,
                 u'pkg_id': pkg_id

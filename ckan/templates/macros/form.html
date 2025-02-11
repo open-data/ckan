@@ -13,6 +13,9 @@ and here, we are importing them all to maintain backward compatibility.
 {% from "macros/form/prepend.html" import prepend %}
 {% from "macros/form/custom.html" import custom %}
 {% from "macros/form/errors.html" import errors %}
+{# (canada fork only): handle all errors in resource actions #}
+{# TODO: upstream contrib?? #}
+{% from "macros/form/resource_validation_errors.html" import resource_validation_errors %}
 {% from "macros/form/info.html" import info %}
 {% from "macros/form/hidden.html" import hidden %}
 {% from "macros/form/hidden_from_list.html" import hidden_from_list %}
@@ -29,6 +32,9 @@ and here, we are importing them all to maintain backward compatibility.
 {% set prepend = prepend %}
 {% set custom = custom %}
 {% set errors = errors %}
+{# (canada fork only): handle all errors in resource actions #}
+{# TODO: upstream contrib?? #}
+{% set resource_validation_errors = resource_validation_errors %}
 {% set info = info %}
 {% set hidden = hidden %}
 {% set hidden_from_list = hidden_from_list %}
