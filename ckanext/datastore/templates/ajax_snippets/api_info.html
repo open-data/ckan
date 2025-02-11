@@ -128,6 +128,22 @@ Example
                 </div>
               </div>
             </div>
+            {# (canada fork only): psql dump format #}
+            <div class="accordion-item">
+              <div class="accordion-heading">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-pg-dump" aria-expanded="false" aria-controls="collapse-pg-dump"> {{ _('Database Table Export') }} &raquo;</button>
+              </div>
+              <div id="collapse-pg-dump" class="accordion-collapse collapse" aria-labelledby="collapse-pg-dump" data-bs-parent="#accordion2">
+                <div class="accordion-body">
+                  <p>{{ _('You can download the entire DataStore table in a pg_dump format to load into your own Postgres database for more advanced querying. This requires you to have write access to a running Postgres server and have the psql command line utility installed.') }}</p>
+                  <p><a target="_blank" href="{{ h.url_for('datastore.dump', resource_id=resource_id, format='sql') }}" class="btn btn-primary">{{ _('Download SQL File') }}</a></p>
+                  <p>{{ _('In your Command Prompt, PowerShell, or Terminal enter the command:') }}</p>
+                  <pre>
+psql -h <em>[{{ _('your database address') }}]</em> -p <em>[{{ _('your database port') }}]</em> -U <em>[{{ _('your database username') }}]</em> -d <em>[{{ _('your database name') }}]</em> -v ON_ERROR_STOP=0 -f {{ resource_id }}.sql
+                  </pre>
+                </div>
+              </div>
+            </div>
         </div>
 
       </div>

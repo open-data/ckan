@@ -120,6 +120,10 @@ def dump(resource_id: str):
                                             'limit': 0})
     except ObjectNotFound:
         abort(404, _('DataStore resource not found'))
+    # (canada fork only): handle 403
+    # TODO: upstream contrib!!
+    except NotAuthorized:
+        return abort(403)
 
     data, errors = dict_fns.validate(request.args.to_dict(), dump_schema())
     if errors:
@@ -304,11 +308,14 @@ def dump_to(
     # (canada fork only): psql dump format
     elif fmt == 'sql':
         datastore_uri = str(DatastoreBackend.get_active_backend()._get_write_engine().url)
+        # dump clean table, schema, and data.
+        # quote all for blank values.
         cmd = subprocess.Popen(
-            ['pg_dump', datastore_uri, '-a', '-t', resource_id],
+            ['pg_dump', datastore_uri, '--clean', '--if-exists', '--disable-triggers',
+             '--no-owner', '--quote-all-identifiers', '-t', resource_id],
             stdout=subprocess.PIPE)
         def stream_sql(process):
-            for c in iter(lambda: process.stdout.read(1), b""):
+            for c in iter(lambda: process.stdout.read(-1), b""):
                 yield c
         return stream_sql(cmd)
     else:
