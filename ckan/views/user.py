@@ -323,7 +323,7 @@ class EditView(MethodView):
         })
         if id is None:
             if current_user.is_authenticated:
-                id = current_user.id  # type: ignore
+                id = current_user.id
             else:
                 base.abort(400, _(u'No user specified'))
         assert id
@@ -612,7 +612,10 @@ def login() -> Union[Response, str]:
                 rotate_token()
                 return next_page_or_default(next)
         else:
-            err = _(u"Login failed. Bad username or password.")
+            if config.get('ckan.recaptcha.privatekey'):
+                err = _(u"Login failed. Bad username or password or CAPTCHA.")
+            else:
+                err = _(u"Login failed. Bad username or password.")
             h.flash_error(err)
             return base.render("user/login.html", extra_vars)
 
@@ -669,7 +672,7 @@ def delete(id: str) -> Union[Response, Any]:
         return base.abort(404, _(e.message))
 
     if request.method == 'POST' and current_user.is_authenticated:
-        if current_user.id == id:  # type: ignore
+        if current_user.id == id:
             # (canada fork only): more flash messages
             # TODO: upstream contrib!!
             h.flash_notice(_('User %s deleted. You are now logged out.') % user_dict['name'])
