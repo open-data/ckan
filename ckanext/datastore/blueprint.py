@@ -30,6 +30,9 @@ from ckanext.datastore.writer import (
     json_writer,
     xml_writer,
 )
+# (canada fork only): psql dump format
+import subprocess
+from ckanext.datastore.backend import DatastoreBackend
 # (canada fork only): filename to save stream to
 import re
 
@@ -44,7 +47,8 @@ one_of = cast(ValidatorFactory, get_validator(u'one_of'))
 default = cast(ValidatorFactory, get_validator(u'default'))
 unicode_only = get_validator(u'unicode_only')
 
-DUMP_FORMATS = u'csv', u'tsv', u'json', u'xml'
+# (canada fork only): psql dump format
+DUMP_FORMATS = u'csv', u'tsv', u'json', u'xml', 'sql'
 PAGINATE_BY = 32000
 
 datastore = Blueprint(u'datastore', __name__)
@@ -118,6 +122,10 @@ def dump(resource_id: str):
                                             'limit': 0})
     except ObjectNotFound:
         abort(404, _('DataStore resource not found'))
+    # (canada fork only): handle 403
+    # TODO: upstream contrib!!
+    except NotAuthorized:
+        return abort(403)
 
     data, errors = dict_fns.validate(request.args.to_dict(), dump_schema())
     if errors:
@@ -164,6 +172,11 @@ def dump(resource_id: str):
         content_disposition = 'attachment; filename="{name}.xml"'.format(
                                     name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/xml; charset=utf-8'
+    # (canada fork only): psql dump format
+    elif fmt == 'sql':
+        content_disposition = 'attachment; filename="{name}.sql"'.format(
+                                    name=resource_id)
+        content_type = b'application/sql; charset=utf-8'
     else:
         abort(404, _('Unsupported format'))
 
@@ -300,6 +313,19 @@ def dump_to(
     elif fmt == 'xml':
         writer_factory = xml_writer
         records_format = 'objects'
+    # (canada fork only): psql dump format
+    elif fmt == 'sql':
+        datastore_uri = str(DatastoreBackend.get_active_backend()._get_write_engine().url)
+        # dump clean table, schema, and data.
+        # quote all for blank values.
+        cmd = subprocess.Popen(
+            ['pg_dump', datastore_uri, '--clean', '--if-exists', '--disable-triggers',
+             '--no-owner', '--quote-all-identifiers', '-t', resource_id],
+            stdout=subprocess.PIPE)
+        def stream_sql(process):
+            for c in iter(lambda: process.stdout.read(-1), b""):
+                yield c
+        return stream_sql(cmd)
     else:
         assert False, 'Unsupported format'
 
