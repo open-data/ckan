@@ -27,6 +27,7 @@ from ckan.types import Context
 
 from ckan.lib.search.common import (
     make_connection, SearchIndexError, SearchQueryError,  # type: ignore
+    SolrConnectionError, # type: ignore
     SearchError, is_available, SolrSettings, config
 )
 from ckan.lib.search.index import (
@@ -61,7 +62,7 @@ def text_traceback() -> str:
     return res
 
 
-SUPPORTED_SCHEMA_VERSIONS = ['2.8', '2.9', '2.10']
+SUPPORTED_SCHEMA_VERSIONS = ['2.8', '2.9', '2.10', '2.11']
 
 DEFAULT_OPTIONS = {
     'limit': 20,

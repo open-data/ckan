@@ -49,13 +49,13 @@ defaults:
     name: ckan-redis
 
   solr_image: &solr_image
-    image: ckan/ckan-solr:master
+    image: ckan/ckan-solr:2.10-solr9
     name: ckan-solr
 
 jobs:
   test-python-3:
     docker:
-      - image: python:3.7-bullseye
+      - image: python:3.8-bookworm
         <<: *ckan_env
       - <<: *pg_image
       - <<: *redis_image
