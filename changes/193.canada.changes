@@ -1,0 +1,1 @@
+`datastore_create` will no longer attempt to create the Full Text Index if the record count is above `ckanext.canada.max_ds_fts_rows` (default: `100,000`). This allows for proper editing of the Data Dicitonary for larger DataStore Resources.
