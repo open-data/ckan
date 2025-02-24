@@ -4,6 +4,12 @@ from __future__ import annotations
 from typing import Any, Optional, cast, Union
 from itertools import zip_longest
 
+# (canada fork only): psql dump format
+# TODO: upstream contrib??
+from io import DEFAULT_BUFFER_SIZE, BytesIO
+import subprocess
+from functools import partial
+
 from flask import Blueprint, Response
 from flask.views import MethodView
 
@@ -30,8 +36,7 @@ from ckanext.datastore.writer import (
     json_writer,
     xml_writer,
 )
-# (canada fork only): psql dump format
-import subprocess
+
 from ckanext.datastore.backend import DatastoreBackend
 # (canada fork only): filename to save stream to
 import re
@@ -48,6 +53,7 @@ default = cast(ValidatorFactory, get_validator(u'default'))
 unicode_only = get_validator(u'unicode_only')
 
 # (canada fork only): psql dump format
+# TODO: upstream contrib??
 DUMP_FORMATS = u'csv', u'tsv', u'json', u'xml', 'sql'
 PAGINATE_BY = 32000
 
@@ -119,6 +125,9 @@ def dump_schema() -> Schema:
 def dump(resource_id: str):
     try:
         get_action('datastore_search')({}, {'resource_id': resource_id,
+                                            # (canada fork only): include_total False
+                                            # TODO: upstream contrib!!
+                                            'include_total': False,
                                             'limit': 0})
     except ObjectNotFound:
         abort(404, _('DataStore resource not found'))
@@ -173,6 +182,7 @@ def dump(resource_id: str):
                                     name=filename)  # (canada fork only): filename to save stream to
         content_type = b'text/xml; charset=utf-8'
     # (canada fork only): psql dump format
+    # TODO: upstream contrib??
     elif fmt == 'sql':
         content_disposition = 'attachment; filename="{name}.sql"'.format(
                                     name=resource_id)
@@ -199,6 +209,10 @@ def dump(resource_id: str):
                         headers=headers)
     except ObjectNotFound:
         abort(404, _('DataStore resource not found'))
+    # (canada fork only): psql dump format
+    # TODO: upstream contrib??
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        abort(500, _('Failed to download records into SQL file'))
 
 
 class DictionaryView(MethodView):
@@ -314,18 +328,13 @@ def dump_to(
         writer_factory = xml_writer
         records_format = 'objects'
     # (canada fork only): psql dump format
+    # TODO: upstream contrib??
     elif fmt == 'sql':
-        datastore_uri = str(DatastoreBackend.get_active_backend()._get_write_engine().url)
-        # dump clean table, schema, and data.
-        # quote all for blank values.
-        cmd = subprocess.Popen(
-            ['pg_dump', datastore_uri, '--clean', '--if-exists', '--disable-triggers',
-             '--no-owner', '--quote-all-identifiers', '-t', resource_id],
-            stdout=subprocess.PIPE)
-        def stream_sql(process):
-            for c in iter(lambda: process.stdout.read(-1), b""):
-                yield c
-        return stream_sql(cmd)
+        def stream_sql(process: subprocess.CompletedProcess) -> Any:
+            chunker = partial(BytesIO(process.stdout).read, DEFAULT_BUFFER_SIZE)
+            yield from iter(chunker, b"")
+        return stream_sql(DatastoreBackend.get_active_backend().dump_sql(
+            id=resource_id))
     else:
         assert False, 'Unsupported format'
 
