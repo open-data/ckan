@@ -1119,10 +1119,18 @@ def create_indexes(context: Context, data_dict: dict[str, Any]):
     field_ids = _pluck('id', fields)
     json_fields = [x['id'] for x in fields if x['type'] == 'nested']
 
-    fts_indexes = _build_fts_indexes(data_dict,
-                                     sql_index_string_method,
-                                     fields)
-    sql_index_strings = sql_index_strings + fts_indexes
+    # (canada fork only): max rows for FTS
+    # TODO: upstream contrib??
+    max_rows_for_fts = int(config.get('ckanext.canada.max_ds_fts_rows', 100000))
+    count_sql_string = '''SELECT count(_id) FROM {resource};'''.format(
+        resource=identifier(data_dict['resource_id']))
+    count_result = connection.execute(sa.text(count_sql_string))
+    record_count = int(count_result.fetchall()[0][0])
+    if record_count < max_rows_for_fts:
+        fts_indexes = _build_fts_indexes(data_dict,
+                                         sql_index_string_method,
+                                         fields)
+        sql_index_strings = sql_index_strings + fts_indexes
 
     if indexes is not None:
         _drop_indexes(context, data_dict, False)
