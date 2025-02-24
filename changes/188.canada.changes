@@ -1,1 +1,1 @@
-DataStore upsert error dicts now pass the original pSQL error message and code stored in `upsert_info`
+Foreign constraint pSQL errors are now fully parsed with improved error messages, along with extra constraint info passed in `constraint_info`

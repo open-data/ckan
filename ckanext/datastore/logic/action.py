@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ckan.types import Context
 import logging
-from typing import Any
+from typing import Any, cast
 import json
 
 import sqlalchemy
@@ -305,8 +305,6 @@ def datastore_upsert(context: Context, data_dict: dict[str, Any]):
     return result
 
 
-# (canada fork only): allow GET request
-# TODO: upstream contrib??
 @logic.side_effect_free
 def datastore_info(context: Context, data_dict: dict[str, Any]
         ) -> dict[str, Any]:
@@ -719,12 +717,12 @@ def set_datastore_active_flag(
 
     # copied from ckan.lib.search.rebuild
     # using validated packages can cause solr errors.
-    context = {
+    context = cast(Context, {
         'model': model,
         'ignore_auth': True,
         'validate': False,
         'use_cache': False
-    }
+    })
 
     # get package with  updated resource from package_show
     # find changed resource, patch it and reindex package
