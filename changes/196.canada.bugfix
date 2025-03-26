@@ -1,1 +1,1 @@
-Add compatibility for older `psycopg2.mogrify` versions. This affects `datastore_search` with CSV and TSV `records_format`
+Fixed a major issue with using `filters` in `datastore_search` with CSV/TSV records format.

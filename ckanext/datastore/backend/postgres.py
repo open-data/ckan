@@ -40,9 +40,6 @@ from ckan.lib.lazyjson import LazyJSONObject
 import ckanext.datastore.helpers as datastore_helpers
 import ckanext.datastore.interfaces as interfaces
 
-# (canada fork only): psycopg2 version compatibility
-# TODO: upstream contrib for backports??
-from psycopg2.errors import SyntaxError
 from psycopg2.extras import register_default_json, register_composite
 import distutils.version
 # (canada fork only): foreign keys
@@ -1907,25 +1904,16 @@ def _execute_single_statement_copy_to(
             'query': ['Query is not a single statement.']
         })
 
+    params = {}
+    for chunk in where_values:
+        params.update(chunk)
+
+    clause = sa.text(sql_string).bindparams(
+        **params).compile(compile_kwargs={"literal_binds": True})
+
     cursor = context['connection'].connection.cursor()
-
-    # (canada fork only): psycopg2 version compatibility
-    # TODO: upstream contrib for backports??
-    trans = context['connection'].connection
-    try:
-        cursor.copy_expert(cursor.mogrify(sql_string, where_values), buf)
-        cursor.close()
-    except SyntaxError:
-        trans.rollback()
-        mogrify_args = {}
-        for where_value in where_values:
-            for key, value in where_value.items():
-                mogrify_args[key] = value
-                sql_string = sql_string.replace(':%s' % key, '%%(%s)s' % key)
-
-        cursor.copy_expert(cursor.mogrify(sql_string, mogrify_args), buf)
-        cursor.close()
-        pass
+    cursor.copy_expert(str(clause), buf)
+    cursor.close()
 
 
 def format_results(context: Context, results: Any, data_dict: dict[str, Any]):
