@@ -574,10 +574,25 @@ class CreateView(MethodView):
                     )
 
                     # redirect to add dataset resources
-                    url = h.url_for(
-                        u'{}_resource.new'.format(package_type),
-                        id=pkg_dict[u'name']
-                    )
+                    try:
+                        last_added_resource = pkg_dict[u'resources'][-1]
+                    except IndexError:
+                        last_added_resource = None
+                    if last_added_resource and request.form[u'save'] == "go-resources":
+                        url = h.url_for(
+                            u'{}_resource.edit'.format(package_type),
+                            id=pkg_dict.get('id'),
+                            resource_id=last_added_resource.get('id'))
+                    elif request.form[u'save'] == "go-metadata-preview":
+                        url = h.url_for(
+                            u'{}.read'.format(package_type),
+                            id=pkg_dict.get('id')
+                        )
+                    else:
+                        url = h.url_for(
+                            u'{}_resource.new'.format(package_type),
+                            id=pkg_dict[u'name']
+                        )
                     return h.redirect_to(url)
                 # Make sure we don't index this dataset
                 if request.form[u'save'] not in [
