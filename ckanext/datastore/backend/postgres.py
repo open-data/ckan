@@ -1306,7 +1306,8 @@ def create_table(
                         ccom, ensure_ascii=False, separators=(',', ':')))))
 
     context['connection'].execute(sa.text(
-        sql_string + u';'.join(info_sql)))
+        sql_string + u';'.join(info_sql).replace(':', r'\:')  # no bind params
+    ))
 
 
 def alter_table(
@@ -1450,7 +1451,9 @@ def alter_table(
                 identifier(id_)))
 
     if alter_sql:
-        context['connection'].execute(';'.join(alter_sql))
+        context['connection'].execute(sa.text(
+            ';'.join(alter_sql).replace(':', r'\:')  # no bind params
+        ))
 
 
 def insert_data(context: Context, data_dict: dict[str, Any]):
