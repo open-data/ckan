@@ -601,10 +601,10 @@ def _where_clauses(
                 # this fixes parity there.
                 value = (str(v) for v in value)
             clause = (clause_str, dict(zip(placeholders, value)))
-        elif isinstance(value, str) and field_array_type:
+        elif type(value) in (str, int, float) and field_array_type:
             # (canada fork only): transform string filters for _text type
             # TODO: upstream contrib!!
-            value = [v.strip() for v in value.split(',')]
+            value = [v.strip() for v in str(value).split(',')]
             placeholders = [
                 f"value_{next(idx_gen)}" for _ in value
             ]
