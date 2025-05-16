@@ -1,0 +1,1 @@
+Now properly handles string filtering for DataStore text array (`_text`) fields.

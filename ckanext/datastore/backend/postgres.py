@@ -2104,7 +2104,6 @@ def search(context: Context, data_dict: dict[str, Any]):
         ))
         return search_data(context, data_dict)
     except DBAPIError as e:
-        raise
         if e.orig.pgcode == _PG_ERR_CODE['query_canceled']:
             raise ValidationError({
                 'query': ['Search took too long']
