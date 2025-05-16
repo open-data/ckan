@@ -601,6 +601,18 @@ def _where_clauses(
                 # this fixes parity there.
                 value = (str(v) for v in value)
             clause = (clause_str, dict(zip(placeholders, value)))
+        elif isinstance(value, str) and field_array_type:
+            # (canada fork only): transform string filters for _text type
+            # TODO: upstream contrib!!
+            value = [v.strip() for v in value.split(',')]
+            placeholders = [
+                f"value_{next(idx_gen)}" for _ in value
+            ]
+            clause_str = ('{0} && ARRAY[{1}]'.format(
+                sa.column(field),
+                ','.join(f":{p}" for p in placeholders)
+            ))
+            clause = (clause_str, dict(zip(placeholders, value)))
         else:
             if fields_types[field] == 'text':
                 # pSQL can do int_field = "10"
