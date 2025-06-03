@@ -174,7 +174,7 @@ def datastore_delete_schema() -> Schema:
         'force': [ignore_missing, boolean_validator],
         'id': [ignore_missing],
         # (canada fork only): https://github.com/ckan/ckan/pull/8684
-        'include_records': [default(False), boolean_validator],
+        'include_deleted_records': [default(False), boolean_validator],
         'calculate_record_count': [ignore_missing, default(False),
                                    boolean_validator],
         '__junk': [empty],
@@ -190,7 +190,7 @@ def datastore_records_delete_schema() -> Schema:
         'filters': [not_missing, dict_only],
         'id': [ignore_missing],
         # (canada fork only): https://github.com/ckan/ckan/pull/8684
-        'include_records': [default(False), boolean_validator],
+        'include_deleted_records': [default(False), boolean_validator],
         'calculate_record_count': [ignore_missing, default(False),
                                    boolean_validator],
         '__junk': [empty],

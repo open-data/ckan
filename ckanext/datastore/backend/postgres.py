@@ -2001,17 +2001,26 @@ def delete_data(context: Context, data_dict: dict[str, Any]):
 
     where_clause, where_values = _where(query_dict['where'])
     # (canada fork only): https://github.com/ckan/ckan/pull/8684
-    sql_string = u'DELETE FROM {0} {1} {2}'.format(
-        identifier(data_dict['resource_id']),
-        where_clause,
-        'RETURNING {return_columns}'.format(
-            return_columns=return_columns) if data_dict['include_records'] else ''
-    )
+    if data_dict['include_deleted_records']:
+        rows_max = config.get('ckan.datastore.search.rows_max')
+        sql_string = '''WITH deleted AS (
+                            DELETE FROM {0} {1} RETURNING {2}
+                        ) SELECT d.* FROM deleted as d LIMIT {3}
+                     '''.format(
+                        identifier(data_dict['resource_id']),
+                        where_clause,
+                        return_columns,
+                        rows_max
+                     )
+    else:
+        sql_string = u'DELETE FROM {0} {1}'.format(
+            identifier(data_dict['resource_id']),
+            where_clause)
 
     try:
         # (canada fork only): https://github.com/ckan/ckan/pull/8684
         results =_execute_single_statement(context, sql_string, where_values)
-        if data_dict['include_records']:
+        if data_dict['include_deleted_records']:
             data_dict['deleted_records'] = [dict(r) for r in results.mappings().all()]
     except ProgrammingError as pe:
         raise ValidationError({'filters': [_programming_error_summary(pe)]})
