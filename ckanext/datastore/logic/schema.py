@@ -140,6 +140,8 @@ def datastore_create_schema() -> Schema:
                 one_of([u'row'])],
             'function': [not_empty, unicode_only],
         },
+        # (canada fork only): https://github.com/ckan/ckan/pull/8684
+        'include_records': [default(False), boolean_validator],
         'calculate_record_count': [ignore_missing, default(False),
                                    boolean_validator],
         '__junk': [empty],
@@ -155,6 +157,8 @@ def datastore_upsert_schema() -> Schema:
         'id': [ignore_missing],
         'method': [ignore_missing, unicode_safe, one_of(
             ['upsert', 'insert', 'update'])],
+        # (canada fork only): https://github.com/ckan/ckan/pull/8684
+        'include_records': [default(False), boolean_validator],
         'calculate_record_count': [ignore_missing, default(False),
                                    boolean_validator],
         'dry_run': [ignore_missing, boolean_validator],
@@ -169,6 +173,8 @@ def datastore_delete_schema() -> Schema:
         'resource_id': [not_missing, not_empty, unicode_safe],
         'force': [ignore_missing, boolean_validator],
         'id': [ignore_missing],
+        # (canada fork only): https://github.com/ckan/ckan/pull/8684
+        'include_deleted_records': [default(False), boolean_validator],
         'calculate_record_count': [ignore_missing, default(False),
                                    boolean_validator],
         '__junk': [empty],
@@ -183,6 +189,8 @@ def datastore_records_delete_schema() -> Schema:
         'force': [ignore_missing, boolean_validator],
         'filters': [not_missing, dict_only],
         'id': [ignore_missing],
+        # (canada fork only): https://github.com/ckan/ckan/pull/8684
+        'include_deleted_records': [default(False), boolean_validator],
         'calculate_record_count': [ignore_missing, default(False),
                                    boolean_validator],
         '__junk': [empty],
