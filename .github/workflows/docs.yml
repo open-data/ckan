@@ -1,34 +1,34 @@
-name: Check types
+name: Docs
 on:
 # (canada fork only): disable Core repo workflows
-# pull_request:
 # workflow_call:
   workflow_dispatch:
 env:
-  NODE_VERSION: '18'
   PYTHON_VERSION: '3.9'
 
 permissions:
   contents: read
 
 jobs:
-  typecheck:
+  docs:
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history, including tags
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+
       - name: Install python deps
-        run: pip install -r requirements.txt -r dev-requirements.txt -e.
-      - name: Install node deps
-        run: npm ci
-      - name: Check types
         run: |
-          npm list pyright
-          npx pyright
+         pip install -U pip
+         pip install -r requirements.txt -r dev-requirements.txt -e .
+         pip check
+
+      - name: Create Docs
+        run: |
+           sphinx-build doc build/sphinx

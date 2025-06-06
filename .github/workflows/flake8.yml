@@ -1,7 +1,9 @@
 name: Lint
 on:
-  workflow_dispatch:  # (canada fork only): disable Core repo workflows
-# on: [pull_request]
+# (canada fork only): disable Core repo workflows
+# pull_request:
+# workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,8 +12,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
       - name: Install requirements
