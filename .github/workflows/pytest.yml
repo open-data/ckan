@@ -2,8 +2,9 @@ name: Pytest
 #pytest split data storage https://github.com/jerry-git/pytest-split/issues/20#issuecomment-2576031836
 #GitHub actions variables. IS_PYTEST_COMBINE_TEST_RESULTS_DISABLED when set to 'True', will disable rollup (default will run)
 on:
-  #pull_request: #disabled as its called via test.yml uses delegation
-  workflow_call:
+# (canada fork only): disable Core repo workflows
+# pull_request: #disabled as its called via test.yml uses delegation
+# workflow_call:
   workflow_dispatch:
     inputs:
       splits:

@@ -1,7 +1,8 @@
 name: Check types
 on:
-#  pull_request:
-  workflow_call:
+# (canada fork only): disable Core repo workflows
+# pull_request:
+# workflow_call:
   workflow_dispatch:
 env:
   NODE_VERSION: '18'

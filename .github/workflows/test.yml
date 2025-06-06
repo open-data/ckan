@@ -1,9 +1,10 @@
 name: Test
 on:
-  push:
-  pull_request:
+# (canada fork only): disable Core repo workflows
+# push:
+# pull_request:
   workflow_dispatch:
-  workflow_call:
+# workflow_call:
 
 permissions:
   contents: read
