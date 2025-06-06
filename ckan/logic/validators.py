@@ -569,6 +569,7 @@ def ignore_not_sysadmin(key: FlattenKey, data: FlattenDataDict,
     data.pop(key)
 
 
+# (canada fork only): limit sysadmin self-raising and demotions
 def limit_sysadmin_update(key, data, errors, context):
     """
     Should not be able to modify your own sysadmin privs, or the system user's
