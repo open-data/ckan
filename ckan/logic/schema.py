@@ -435,7 +435,8 @@ def default_user_schema(
                   unicode_safe],
         'about': [ignore_missing, user_about_validator, unicode_safe],
         'created': [ignore],
-        'sysadmin': [ignore_missing, ignore_not_sysadmin, limit_sysadmin_update],
+        # (canada fork only): limit sysadmin self-raising and demotions
+        'sysadmin': [ignore_missing, ignore_not_sysadmin, boolean_validator, limit_sysadmin_update],
         'reset_key': [ignore],
         'activity_streams_email_notifications': [ignore_missing,
                                                  boolean_validator],
