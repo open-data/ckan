@@ -764,6 +764,9 @@ class EditView(MethodView):
                 del data_dict[u'_ckan_phase']
                 del data_dict[u'save']
             data_dict['id'] = id
+            if request.form.get('save', None) == 'go-metadata-unpublish':
+                data_dict['state'] = 'draft'
+
             pkg_dict = get_action(u'package_update')(context, data_dict)
 
             return _form_save_redirect(

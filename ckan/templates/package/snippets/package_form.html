@@ -9,6 +9,7 @@ then itself be extended to add/remove blocks of functionality. #}
     {% if form_style != 'edit' %}
       {% snippet 'package/snippets/stages.html', stages=stage, dataset_type=dataset_type %}
     {% endif %}
+  {% endblock %}
   {# (canada fork only): add ckan_phase block #}
   {% block ckan_phase %}
     <input type="hidden" name="_ckan_phase" value="dataset_new_1" />
