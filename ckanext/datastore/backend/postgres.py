@@ -6,6 +6,10 @@ import itertools
 # TODO: upstream contrib!!
 import re
 import string
+# (canada fork only): psql dump format
+# TODO: upstream contrib??
+import subprocess
+from io import DEFAULT_BUFFER_SIZE
 
 from typing_extensions import TypeAlias
 
@@ -2579,6 +2583,19 @@ class DatastorePostgresqlBackend(DatastoreBackend):
                 'query': ['Query is not a single statement.']
             })
         return search_sql(context, data_dict)
+
+    # (canada fork only): psql dump format
+    # TODO: upstream contrib??
+    def dump_sql(self, id: str) -> subprocess.CompletedProcess:
+        datastore_uri = str(self._get_write_engine().url)
+        # dump clean table, schema, and data.
+        # quote all for blank values.
+        return subprocess.run(
+            ['pg_dump', datastore_uri, '--clean', '--if-exists', '--disable-triggers',
+             '--no-owner', '--quote-all-identifiers', '-E', 'utf-8', '-t', id],
+            bufsize=DEFAULT_BUFFER_SIZE,
+            capture_output=True,
+            timeout=config.get('ckan.datastore.max_sql_dump_exec_time', 60))
 
     def resource_exists(self, id: str) -> bool:
         resources_sql = sa.text(
