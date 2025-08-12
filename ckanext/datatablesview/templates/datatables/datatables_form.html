@@ -16,13 +16,14 @@
   {{ form.info(
   _('Length at which data will be truncated with an ellipsis for display. Set to zero for no truncation, and for data to be wrapped at column name width instead.', classes=['info-help-tight'])) }}
 {% endcall %}
+{# (canada fork only): rel='noopener noreferrer' #}
 {% call form.input(
   'date_format',
   id='field-date_format',
   label=_('Date format'),
   value=data.date_format) %}
   {{ form.info(
-  _('Moment.js date format to use for displaying dates (see <a href="https://devhints.io/moment#formatting-1" target="_blank">Moment.js cheatsheet</a>). If <b>NONE</b>, the raw timestamp value will be shown.', classes=['info-help-tight'])) }}
+  _('Moment.js date format to use for displaying dates (see <a href="https://devhints.io/moment#formatting-1" target="_blank" rel="noopener noreferrer">Moment.js cheatsheet</a>). If <b>NONE</b>, the raw timestamp value will be shown.', classes=['info-help-tight'])) }}
 {% endcall %}
 
 <div class="control-group">

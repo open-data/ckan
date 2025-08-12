@@ -37,7 +37,8 @@ Example:
         <p>{{ h.humanize_entity_type('package', dataset_type, 'other errors resources') or _('The dataset contains invalid resources:') }}</p>
         <ul>
           {% for res_id, errs in errors.resources.items() %}
-            <li><a href="{{ h.url_for('resource.read', id=pkg_name, resource_id=res_id) }}" target="_blank">{{ res_id }}</a></li>
+            {# (canada fork only): rel='noopener noreferrer' #}
+            <li><a href="{{ h.url_for('resource.read', id=pkg_name, resource_id=res_id) }}" target="_blank" rel='noopener noreferrer'>{{ res_id }}</a></li>
             <ul>
               {% for field_id, field_errs in errs.items() %}
                 <li data-field-label="{{ field_id }}">{% if field_id %}{{ field_id }}{{_(':')}} {% endif %}{{ field_errs|join(', ') }}</li>

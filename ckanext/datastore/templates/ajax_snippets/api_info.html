@@ -23,9 +23,10 @@ Example
         </div>
         <div {% if not embedded %} class="modal-body"{% endif %}>
           <p><strong>{{ _('Access resource data via a web API with powerful query support') }}</strong>.
+          {# (canada fork only): rel='noopener noreferrer' #}
           {% trans %}
           Further information in the <a
-            href="http://docs.ckan.org/en/latest/maintaining/datastore.html" target="_blank">main
+            href="http://docs.ckan.org/en/latest/maintaining/datastore.html" target="_blank" rel='noopener noreferrer'>main
             CKAN Data API and DataStore documentation</a>.</p>
           {% endtrans %}
           <div class="accordion" id="accordion2">
@@ -70,18 +71,19 @@ Example
               <div id="collapse-querying"  class="accordion-collapse collapse" aria-labelledby="collapse-querying" data-bs-parent="#accordion2">
                 <div class="accordion-body">
                   <strong>{{ _('Query example (first 5 results)') }}</strong>
+                  {# (canada fork only): rel='noopener noreferrer' #}
                   <p>
-                  <code><a href="{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, limit=5, qualified=True) }}" target="_blank" rel="noreferrer">{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, limit=5, qualified=True) }}</a></code>
+                  <code><a href="{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, limit=5, qualified=True) }}" target="_blank" rel="noopener noreferrer">{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, limit=5, qualified=True) }}</a></code>
                   </p>
 
                   <strong>{{ _('Query example (results containing \'jones\')') }}</strong>
                   <p>
-                  <code><a href="{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, q='jones', qualified=True) }}" target="_blank" rel="noreferrer">{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, q='jones', qualified=True) }}</a></code>
+                  <code><a href="{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, q='jones', qualified=True) }}" target="_blank" rel="noopener noreferrer">{{ h.url_for('api.action', ver=3, logic_function='datastore_search', resource_id=resource_id, q='jones', qualified=True) }}</a></code>
                   </p>
                   {% if h.datastore_search_sql_enabled() %}
                   <strong>{{ _('Query example (via SQL statement)') }}</strong>
                   <p>
-                  <code><a href="{{sql_example_url}}" target="_blank" rel="noreferrer">{{ sql_example_url }}</a></code>
+                  <code><a href="{{sql_example_url}}" target="_blank" rel="noopener noreferrer">{{ sql_example_url }}</a></code>
                   </p>
                   {% endif %}
                 </div>

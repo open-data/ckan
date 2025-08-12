@@ -2160,7 +2160,8 @@ def html_auto_link(data: str) -> str:
         return link_fns[obj]({'name': name.strip('"'), 'title': title})
 
     def link(matchobj: Match[str]):
-        return '<a href="%s" target="_blank" rel="nofollow">%s</a>' \
+        # (canada fork only): rel='noopener noreferrer'
+        return '<a href="%s" target="_blank" rel="nofollow noopener noreferrer">%s</a>' \
             % (matchobj.group(1), matchobj.group(1))
 
     def process(matchobj: Match[str]):
