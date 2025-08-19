@@ -1,16 +1,17 @@
 <div class="form-group">
   <div class="controls">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {# (canada fork only): CSP support #}
+    <script src="https://www.google.com/recaptcha/api.js" none="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}" async defer></script>
     <div class="g-recaptcha" data-sitekey="{{ public_key }}"></div>
 
     <noscript>
-      <div style="width: 304px; height: 352px; position: relative;">
-        <div style="width: 304px; height: 352px; position: absolute;">
-          <iframe title="Recaptcha" src="https://www.google.com/recaptcha/api/fallback?k={{ public_key }}" frameborder="0" scrolling="no" style="width: 304px; height:352px"></iframe>
+      <div class="user-recaptcha-wrapper">
+        <div class="user-recaptcha-frame">
+          <iframe class="user-recaptcha-frame" title="Recaptcha" src="https://www.google.com/recaptcha/api/fallback?k={{ public_key }}" frameborder="0" scrolling="no"></iframe>
         </div>
 
-        <div style="width: 250px; height: 80px; position: absolute; bottom: 21px; left: 25px; margin: 0; padding: 0; right: 25px;">
-          <textarea id="g-recaptcha-response" name="g-recaptcha-response" style="width: 250px; height: 80px; border: 1px solid #c1c1c1;	margin: 0; padding: 0; resize: none;" class="g-recaptcha-response"></textarea>
+        <div class="user-recaptcha-text-wrapper">
+          <textarea id="g-recaptcha-response" name="g-recaptcha-response" class="g-recaptcha-response user-recaptcha-text"></textarea>
         </div>
       </div>
     </noscript>

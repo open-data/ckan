@@ -14184,3 +14184,38 @@ div[data-module="progress-bar"] .progress-bar-label{
   text-align: right;
   margin-bottom: 23px;
 }
+
+/* (canada fork only): CSP support */
+.user-recaptcha-wrapper{
+  width: 304px;
+  height: 352px;
+  position: relative;
+}
+.user-recaptcha-frame-wrapper{
+  width: 304px;
+  height: 352px;
+  position: absolute;
+}
+.user-recaptcha-frame{
+  width: 304px;
+  height: 352px
+}
+.user-recaptcha-text-wrapper{
+  width: 250px;
+  height: 80px;
+  position: absolute;
+  bottom: 21px;
+  left: 25px;
+  margin: 0;
+  padding: 0;
+  right: 25px;
+}
+.user-recaptcha-text{
+  width: 250px;
+  height: 80px;
+  border: 1px solid #c1c1c1;
+  margin: 0;
+  padding: 0;
+  resize: none;
+}
+/* END (canada fork only): CSP support END */

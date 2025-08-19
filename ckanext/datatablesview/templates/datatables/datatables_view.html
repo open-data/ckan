@@ -18,7 +18,7 @@
 {% endfor -%}
 {%- set nbspval = "&nbsp;"|safe -%}
 {# (canada fork only): script nonce for CSP support #}
-<script type=text/javascript  nonce="{{- h.get_inline_script_nonce() -}}">
+<script type=text/javascript  nonce="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}">
     const gdataDict = {{ columnDataDict|tojson }}
     const gresviewId = '{{ resource_view.id }}'
 </script>
