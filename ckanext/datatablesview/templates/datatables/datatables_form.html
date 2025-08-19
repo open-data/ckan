@@ -31,7 +31,8 @@
   <br/>
   <a class="dt-show-all" href="javascript:void(0);"><span class="mrgn-rght-md"><i class="fa fa-eye"></i>&nbsp;{{ _('Show All') }}</span></a>
   <a class="dt-hide-all" href="javascript:void(0);"><span><i class="fa fa-eye-slash"></i>&nbsp;{{ _('Hide All') }}</span></a>
-  <script>
+  {# (canada fork only): script nonce for CSP support #}
+  <script nonce="{{- h.get_inline_script_nonce() -}}">
     window.addEventListener('load', function(){
       $(document).ready(function(){
         let dtShowAll = $('a.dt-show-all');

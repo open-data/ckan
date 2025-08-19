@@ -421,6 +421,7 @@ this.ckan.module('datatables_view', function (jQuery) {
             display: $.fn.dataTable.Responsive.display.modal({
               header: function (row) {
                 // add clipboard and print buttons to modal record display
+                // TODO: move style attributes to classes...
                 var data = row.data();
                 return '<span style="font-size:150%;font-weight:bold;">Details:</span>&nbsp;&nbsp;<div class=" dt-buttons btn-group">' +
                   '<button id="modalcopy-button" class="btn btn-default" title="' + that._('Copy to clipboard') + '" onclick="copyModal(\'' +
@@ -595,6 +596,16 @@ this.ckan.module('datatables_view', function (jQuery) {
           }
         }, // end stateSaveParams
         initComplete: function (settings, json) {
+
+          // (canada forn only): no inline event handler for CSP support
+          let refitColButton = $('#refit-button');
+          if( refitColButton.length > 0 ){
+            $(refitColButton).off('click.dt_refit');
+            $(refitColButton).on('click.dt_refit', function(_event){
+              fitColText();
+            });
+          }
+
           // this callback is invoked by DataTables when table is fully rendered
           const api = this.api()
           // restore some data-dependent saved states now that data is loaded
