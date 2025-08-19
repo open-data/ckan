@@ -106,7 +106,7 @@
 {#- we create tooltip here instead of javascript so we can leverage the automatic-local-datetime class date conversion CKAN does -#}
 {%- set res = resource %}
 {# (canada fork only): no inline style for CSP support #}
-<div id="dtv-resource-info" class="d-none">
+<div id="dtv-resource-info" class="d-none-soft">
   {{- _('Data last updated') }}: {{ local_friendly_datetime(res.last_modified) }}&#10;
   {{- _('Metadata last updated') }}: {{ local_friendly_datetime(res.metadata_modified) }}&#10;
   {{- _('Created') }}: {{ local_friendly_datetime(res.created) }}&#10;

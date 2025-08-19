@@ -11,7 +11,7 @@
 
 {# (canada fork only): translations and blocks #}
 
-<div id="activity_types_filter" class="{%- block activity_form_classes -%}{%- endblock -%}" style="margin-bottom: 15px;" data-module="activity-stream">
+<div id="activity_types_filter" class="{%- block activity_form_classes -%}{%- endblock -%} mb-4" data-module="activity-stream">
   <label for="activity_types_filter_select" class="{%- block activity_label_classes -%}{%- endblock -%}">{{ _('Activity type') }}</label>
   <select id="activity_types_filter_select" class="{%- block activity_select_classes -%}{%- endblock -%}">
     <option {% if not activity_types %}selected{% endif %} data-url="{{ h.url_for(blueprint, id=id) }}">

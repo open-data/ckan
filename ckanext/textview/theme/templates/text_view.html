@@ -12,7 +12,8 @@
   </div>
 
   {% block scripts %}
-    <script>
+    {# (canada fork only): CSP support #}
+    <script nonce="{{- h.get_inline_script_nonce() -}}">
       var preload_resource = {{ h.literal(resource_json) }};
       var resource_url = {{ h.literal(resource_url) }};
       var preview_metadata = {{ h.literal(preview_metadata) }};

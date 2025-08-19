@@ -421,9 +421,9 @@ this.ckan.module('datatables_view', function (jQuery) {
             display: $.fn.dataTable.Responsive.display.modal({
               header: function (row) {
                 // add clipboard and print buttons to modal record display
-                // TODO: move style attributes to classes...
+                // (canada fork only): CSP support
                 var data = row.data();
-                return '<span style="font-size:150%;font-weight:bold;">Details:</span>&nbsp;&nbsp;<div class=" dt-buttons btn-group">' +
+                return '<span class="font-weight-bold fw-bold">Details:</span>&nbsp;&nbsp;<div class=" dt-buttons btn-group">' +
                   '<button id="modalcopy-button" class="btn btn-default" title="' + that._('Copy to clipboard') + '" onclick="copyModal(\'' +
                   packagename + '&mdash;' + resourcename + '\')"><i class="fa fa-copy"></i></button>' +
                   '<button id="modalprint-button" class="btn btn-default" title="' + that._('Print') + '" onclick="printModal(\'' +
@@ -463,9 +463,10 @@ this.ckan.module('datatables_view', function (jQuery) {
         const colid = 'dtcol-' + validateId(colname) + '-' + i
         const coltype = $(thecol).data('type')
         const placeholderText = formatdateflag && coltype.substr(0, 9) === 'timestamp' ? ' placeholder="yyyy-mm-dd"' : ''
+        // (canada fork only): CSP support
         $('<input id="' + colid + '" name="' + colid + '" autosave="' + colid + '"' +
                 placeholderText +
-                ' class="fhead form-control input-sm" type="search" results="10" autocomplete="on" style="width:100%"/>')
+                ' class="fhead form-control input-sm canada-width-full" type="search" results="10" autocomplete="on"/>')
           .appendTo($(thecol).empty())
           .on('keyup search', function (event) {
             const colSelector = colname + ':name'

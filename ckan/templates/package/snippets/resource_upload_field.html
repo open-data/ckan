@@ -22,13 +22,9 @@ placeholder - placeholder text for url field
 
 {% set first_button = 'resource-upload-button' if is_upload_enabled else 'resource-link-button' %}
 
-{% macro remove_button(js='') %}
-  <button type="button" class="btn btn-danger btn-remove-url"
-    onclick="
-      document.getElementById('resource-url-none').checked = true;
-      document.getElementById('{{ first_button }}').focus();
-      {{ js }}
-    ">{{ _('Remove') }}</button>
+{% macro remove_button(is_upload) %}
+  {# (canada fork only): CSP support #}
+  <button type="button" class="btn btn-danger btn-remove-url" data-is-upload="{{- is_upload -}}" data-first-button="{{- first_button -}}">{{ _('Remove') }}</button>
 {% endmacro %}
 
 <div data-module="resource-upload-field" class="resource-upload-field form-group">
@@ -40,19 +36,13 @@ placeholder - placeholder text for url field
     <div role="group" aria-labelledby="resource-menu-label">
       {% block url_type_select %}
         {% if is_upload_enabled %}
+          {# (canada fork only): CSP support #}
           <button type="button" class="btn btn-default" id="resource-upload-button"
-            title="{{ _('Upload a file on your computer') }}"
-            onclick="
-              document.getElementById('resource-url-upload').checked = true;
-              document.getElementById('field-resource-upload').click();
-            "><i class="fa fa-cloud-upload"></i>{{ _("Upload") }}</button>
+            title="{{ _('Upload a file on your computer') }}"><i class="fa fa-cloud-upload"></i>{{ _("Upload") }}</button>
         {% endif %}
+        {# (canada fork only): CSP support #}
         <button type="button" class="btn btn-default" id="resource-link-button"
-          title="{{ _('Link to a URL on the internet (you can also link to an API)') }}"
-            onclick="
-              document.getElementById('resource-url-link').checked = true;
-              document.getElementById('field-resource-url').focus();
-            "><i class="fa fa-globe"></i>{{ _('Link') }}</button>
+          title="{{ _('Link to a URL on the internet (you can also link to an API)') }}"><i class="fa fa-globe"></i>{{ _('Link') }}</button>
       {% endblock %}
     </div>
   </div>
@@ -67,11 +57,8 @@ placeholder - placeholder text for url field
             {# for existing uploads we show the file name in a readonly input box #}
             <input type="checkbox" id="field-clear-upload" value="true">
             <div class="upload-type">
-              <button type="button" class="btn btn-danger btn-remove-url"
-                onclick="
-                  document.getElementById('field-clear-upload').checked = true;
-                  document.getElementById('field-resource-upload').focus();
-                ">{{ _('Clear Upload') }}</button>
+              {# (canada fork only): CSP support #}
+              <button type="button" class="btn btn-danger btn-remove-url" data-is-upload="{{- is_upload -}}" data-first-button="{{- first_button -}}">{{ _('Clear Upload') }}</button>
               <label class="form-label">{{ upload_label or _('File') }}</label>
               <div class="controls">
                 {% set existing_name = data.get('url', '').split('/')[-1].split('?')[0].split('#')[0] %}
@@ -80,8 +67,8 @@ placeholder - placeholder text for url field
             </div>
           {% endif %}
           <div class="upload-type">
-            {{ remove_button(
-              js="$('#field-resource-upload').replaceWith($('#field-resource-upload').val('').clone(true))") }}
+            {# (canada fork only): CSP support #}
+            {{ remove_button(is_upload='true') }}
             {{ form.input(
               'upload',
               label=upload_label or _('File'),
@@ -97,8 +84,8 @@ placeholder - placeholder text for url field
       'checked' if is_url else '' }}>
     <div class="select-type">
       {% block link_controls %}
-        {{ remove_button(
-          js="$('#field-resource-url').val('')") }}
+      {# (canada fork only): CSP support #}
+        {{ remove_button(is_upload='false') }}
         {{ form.input(
           'url',
           label=url_label or _('URL'),
