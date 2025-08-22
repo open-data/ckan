@@ -84,7 +84,7 @@
     {%- block custom_styles %}
       {%- if g.site_custom_css -%}
       {# (canada fork only): CSP support #}
-      <style none="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}">
+      <style nonce="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}">
         {{ g.site_custom_css | safe }}
       </style>
       {%- endif %}

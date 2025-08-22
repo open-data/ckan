@@ -222,6 +222,7 @@ function initFilterObserver () {
   // (e.g. "4 of 1000 entries (filtered from...)")
   const filterObserver = new MutationObserver(function (e) {
     const infoText = document.getElementById('dtprv_info').innerText
+    // FIXME: TODO: move style attributes to classes
     if (!infoText.includes('(')) {
       document.getElementById('filterinfoicon').style.visibility = 'hidden'
     } else {

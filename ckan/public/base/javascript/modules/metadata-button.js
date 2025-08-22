@@ -18,7 +18,7 @@ ckan.module('metadata-button', function(jQuery) {
     },
 
     _onClick: function(event) {
-      console.log("PRESSED THE BUTTON");
+      // FIXME: TODO: move style attributes to classes
       var div = document.getElementById("metadata_diff");
       if (div.style.display === "none") {
         div.style.display = "block";

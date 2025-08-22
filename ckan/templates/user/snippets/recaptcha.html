@@ -1,7 +1,7 @@
 <div class="form-group">
   <div class="controls">
     {# (canada fork only): CSP support #}
-    <script src="https://www.google.com/recaptcha/api.js" none="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}" async defer></script>
+    <script src="https://www.google.com/recaptcha/api.js" nonce="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}" async defer></script>
     <div class="g-recaptcha" data-sitekey="{{ public_key }}"></div>
 
     <noscript>

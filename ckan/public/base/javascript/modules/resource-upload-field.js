@@ -69,7 +69,6 @@ this.ckan.module('resource-upload-field', function (jQuery) {
             }
             document.getElementById('resource-url-none').checked = true;
             document.getElementById($(_removeURIButton).attr('data-first-button')).focus();
-            console.log($(_removeURIButton).attr('data-is-upload'));
             if( $(_removeURIButton).attr('data-is-upload') == 'true' || $(_removeURIButton).attr('data-is-upload') == true || $(_removeURIButton).attr('data-is-upload') == 'True' ){
               $('#field-resource-upload').replaceWith($('#field-resource-upload').val('').clone(true));
             }else{
