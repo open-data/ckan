@@ -1,0 +1,1 @@
+Adds script/style nonce capabilities to Jinja2 webassets.

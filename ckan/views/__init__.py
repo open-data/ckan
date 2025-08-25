@@ -63,6 +63,8 @@ def set_cache_control_headers_for_response(response: Response) -> Response:
         except ValueError:
             pass
     else:
+        # (canada fork only): set NOCACHE for logged in sessions
+        response.cache_control.no_cache = True
         response.cache_control.private = True
 
     # Invalidate cached pages upon login/logout
