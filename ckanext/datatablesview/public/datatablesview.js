@@ -599,7 +599,7 @@ this.ckan.module('datatables_view', function (jQuery) {
         }, // end stateSaveParams
         initComplete: function (settings, json) {
 
-          // (canada forn only): no inline event handler for CSP support
+          // (canada fork only): no inline event handler for CSP support
           let refitColButton = $('#refit-button');
           if( refitColButton.length > 0 ){
             $(refitColButton).off('click.dt_refit');
