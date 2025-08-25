@@ -222,6 +222,7 @@ function initFilterObserver () {
   // (e.g. "4 of 1000 entries (filtered from...)")
   const filterObserver = new MutationObserver(function (e) {
     const infoText = document.getElementById('dtprv_info').innerText
+    // FIXME: TODO: move style attributes to classes
     if (!infoText.includes('(')) {
       document.getElementById('filterinfoicon').style.visibility = 'hidden'
     } else {
@@ -421,8 +422,9 @@ this.ckan.module('datatables_view', function (jQuery) {
             display: $.fn.dataTable.Responsive.display.modal({
               header: function (row) {
                 // add clipboard and print buttons to modal record display
+                // (canada fork only): CSP support
                 var data = row.data();
-                return '<span style="font-size:150%;font-weight:bold;">Details:</span>&nbsp;&nbsp;<div class=" dt-buttons btn-group">' +
+                return '<span class="font-weight-bold fw-bold">Details:</span>&nbsp;&nbsp;<div class=" dt-buttons btn-group">' +
                   '<button id="modalcopy-button" class="btn btn-default" title="' + that._('Copy to clipboard') + '" onclick="copyModal(\'' +
                   packagename + '&mdash;' + resourcename + '\')"><i class="fa fa-copy"></i></button>' +
                   '<button id="modalprint-button" class="btn btn-default" title="' + that._('Print') + '" onclick="printModal(\'' +
@@ -462,9 +464,10 @@ this.ckan.module('datatables_view', function (jQuery) {
         const colid = 'dtcol-' + validateId(colname) + '-' + i
         const coltype = $(thecol).data('type')
         const placeholderText = formatdateflag && coltype.substr(0, 9) === 'timestamp' ? ' placeholder="yyyy-mm-dd"' : ''
+        // (canada fork only): CSP support
         $('<input id="' + colid + '" name="' + colid + '" autosave="' + colid + '"' +
                 placeholderText +
-                ' class="fhead form-control input-sm" type="search" results="10" autocomplete="on" style="width:100%"/>')
+                ' class="fhead form-control input-sm canada-width-full" type="search" results="10" autocomplete="on"/>')
           .appendTo($(thecol).empty())
           .on('keyup search', function (event) {
             const colSelector = colname + ':name'
@@ -595,6 +598,16 @@ this.ckan.module('datatables_view', function (jQuery) {
           }
         }, // end stateSaveParams
         initComplete: function (settings, json) {
+
+          // (canada fork only): no inline event handler for CSP support
+          let refitColButton = $('#refit-button');
+          if( refitColButton.length > 0 ){
+            $(refitColButton).off('click.dt_refit');
+            $(refitColButton).on('click.dt_refit', function(_event){
+              fitColText();
+            });
+          }
+
           // this callback is invoked by DataTables when table is fully rendered
           const api = this.api()
           // restore some data-dependent saved states now that data is loaded

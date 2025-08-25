@@ -11,7 +11,8 @@ from markupsafe import Markup
 from webassets import Environment
 from webassets.loaders import YAMLLoader
 
-from ckan.common import config, g
+# (canada fork only): use CSP nonce to support strict-dynamic
+from ckan.common import config, g, request
 
 
 logger = logging.getLogger(__name__)
@@ -128,9 +129,13 @@ def include_asset(name: str) -> None:
 
 def _to_tag(url: str, type_: str):
     if type_ == u'style':
-        return u'<link href="{}" rel="stylesheet"/>'.format(url)
+        # (canada fork only): use CSP nonce to support strict-dynamic
+        return u'<link href="{}" rel="stylesheet" nonce="{}"/>'.format(
+            url, str(request.environ.get('CSP_NONCE', '')))
     elif type_ == u'script':
-        return u'<script src="{}" type="text/javascript"></script>'.format(url)
+        # (canada fork only): use CSP nonce to support strict-dynamic
+        return u'<script src="{}" type="text/javascript" nonce="{}"></script>'.format(
+            url, str(request.environ.get('CSP_NONCE', '')))
     return u''
 
 

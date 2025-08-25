@@ -83,7 +83,8 @@
     {{ h.render_assets('style') }}
     {%- block custom_styles %}
       {%- if g.site_custom_css -%}
-      <style>
+      {# (canada fork only): CSP support #}
+      <style nonce="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}">
         {{ g.site_custom_css | safe }}
       </style>
       {%- endif %}

@@ -4,7 +4,8 @@
 
 {# remove any scripts #}
 {% block scripts %}
-  <script>
+  {# (canada fork only): CSP support #}
+  <script nonce="{{- h.get_inline_script_nonce() if 'get_inline_script_nonce' in h else '' -}}">
     var preload_resource = {{ h.literal(h.dump_json(resource)) }};
   </script>
 {% endblock %}

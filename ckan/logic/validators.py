@@ -41,6 +41,11 @@ StopOnError = df.StopOnError
 Missing = df.Missing
 missing = df.missing
 
+# (canada fork only): http header value validator
+# TODO: upstream contrib??
+header_bad_value_match = re.compile(r'[^\x20-\x7E\t]')
+new_line_match = re.compile(r'[\r\n]')
+
 
 def owner_org_validator(key: FlattenKey, data: FlattenDataDict,
                         errors: FlattenErrorDict, context: Context) -> Any:
@@ -1171,3 +1176,18 @@ def license_choices(value, context):
     if value in licenses:
         return value
     raise Invalid(_('Invalid license'))
+
+
+# (canada fork only): http header value validator
+# TODO: upstream contrib??
+def http_header_value_validator(value: Any):
+    """
+    Sanitizes safe values for HTTP headers.
+
+    Removes newline characters
+    """
+    value = re.sub(new_line_match, ' ', value)
+    bad_values = re.search(header_bad_value_match, value)
+    if bad_values:
+        raise Invalid(f'Invalid characters for HTTP Header value: {bad_values}')
+    return value

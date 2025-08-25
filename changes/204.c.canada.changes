@@ -1,0 +1,1 @@
+Now sets the Cache-Control header to `no-cache, private` for logged in users.
