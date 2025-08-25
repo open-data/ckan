@@ -46,6 +46,7 @@
         {% if i == 0 %}
           {# button to show JSON metadata diff for the most recent change - not shown by default #}
           <input type="button" data-module="metadata-button" data-module-target="" class="btn" value="Show metadata diff" id="metadata_button"></input>
+          {# (canada fork only): no inline style attr #}
           <div id="metadata_diff" class="d-none-soft">
           {% block package_changes_diff %}
             <pre>

@@ -5,12 +5,16 @@
     <div class="g-recaptcha" data-sitekey="{{ public_key }}"></div>
 
     <noscript>
+      {# (canada fork only): no inline style attr #}
       <div class="user-recaptcha-wrapper">
+        {# (canada fork only): no inline style attr #}
         <div class="user-recaptcha-frame">
+          {# (canada fork only): no inline style attr #}
           <iframe class="user-recaptcha-frame" title="Recaptcha" src="https://www.google.com/recaptcha/api/fallback?k={{ public_key }}" frameborder="0" scrolling="no"></iframe>
         </div>
-
+        {# (canada fork only): no inline style attr #}
         <div class="user-recaptcha-text-wrapper">
+          {# (canada fork only): no inline style attr #}
           <textarea id="g-recaptcha-response" name="g-recaptcha-response" class="g-recaptcha-response user-recaptcha-text"></textarea>
         </div>
       </div>
