@@ -9,7 +9,10 @@
 ckan.module('metadata-button', function(jQuery) {
   return {
     options: {
-      target: 'button'
+      target: 'button',
+      // (canada fork only): i18n support, TODO: upstream contrib!!
+      hideLabel: 'Hide metadata diff',
+      showLabel: 'Show metadata diff',
     },
 
     initialize: function () {
@@ -18,21 +21,15 @@ ckan.module('metadata-button', function(jQuery) {
     },
 
     _onClick: function(event) {
-      console.log("PRESSED THE BUTTON");
-      // FIXME: TODO: move style attributes to classes
-      var div = document.getElementById("metadata_diff");
-      if (div.style.display === "none") {
-        div.style.display = "block";
-      }
-      else {
-        div.style.display = "none";
-      }
-      var btn = document.getElementById("metadata_button");
-      if (btn.value === "Show metadata diff") {
-        btn.value = "Hide metadata diff";
-      }
-      else {
-        btn.value = "Show metadata diff";
+      // (canada fork only): CSP supported JS
+      let div = document.getElementById("metadata_diff");
+      let btn = document.getElementById("metadata_button");
+      if( ! $(div).hasClass('show') ){
+        $(div).removeClass('hide').addClass('show');
+        btn.value = this.options.hideLabel;
+      }else{
+        $(div).removeClass('show').addClass('hide');
+        btn.value = this.options.showLabel;
       }
     }
   }

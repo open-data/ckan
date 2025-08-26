@@ -166,15 +166,9 @@ function filterInfo (dt, noHtml = false, justFilterInfo = false, wrapped = false
 
 // Copy deeplink to clipboard
 function copyLink (dt, deeplink, shareText, sharemsgText) {
-  const hiddenDiv = $('<div/>')
-    .css({
-      height: 1,
-      width: 1,
-      overflow: 'hidden',
-      position: 'fixed',
-      top: 0,
-      left: 0
-    })
+  // (canada fork only): CSP support
+  const hiddenDiv = $('<div/>');
+  hiddenDiv.addClass('canada-dt-hidden-div-fix');
 
   const textarea = $('<textarea readonly/>')
     .val(deeplink)
@@ -222,11 +216,23 @@ function initFilterObserver () {
   // (e.g. "4 of 1000 entries (filtered from...)")
   const filterObserver = new MutationObserver(function (e) {
     const infoText = document.getElementById('dtprv_info').innerText
-    // FIXME: TODO: move style attributes to classes
+    // (canada fork only): CSP supported JS
     if (!infoText.includes('(')) {
-      document.getElementById('filterinfoicon').style.visibility = 'hidden'
+      let filterIcon = document.getElementById('filterinfoicon');
+      if( ! filterIcon.classList.contains('invisible') ){
+        filterIcon.classList.add('invisible');
+      }
+      if( filterIcon.classList.contains('visible') ){
+        filterIcon.classList.remove('visible');
+      }
     } else {
-      document.getElementById('filterinfoicon').style.visibility = 'visible'
+      let filterIcon = document.getElementById('filterinfoicon');
+      if( ! filterIcon.classList.contains('visible') ){
+        filterIcon.classList.add('visible');
+      }
+      if( filterIcon.classList.contains('invisible') ){
+        filterIcon.classList.remove('invisible');
+      }
     }
   })
   try {
@@ -425,10 +431,8 @@ this.ckan.module('datatables_view', function (jQuery) {
                 // (canada fork only): CSP support
                 var data = row.data();
                 return '<span class="font-weight-bold fw-bold">Details:</span>&nbsp;&nbsp;<div class=" dt-buttons btn-group">' +
-                  '<button id="modalcopy-button" class="btn btn-default" title="' + that._('Copy to clipboard') + '" onclick="copyModal(\'' +
-                  packagename + '&mdash;' + resourcename + '\')"><i class="fa fa-copy"></i></button>' +
-                  '<button id="modalprint-button" class="btn btn-default" title="' + that._('Print') + '" onclick="printModal(\'' +
-                  packagename + '&mdash;' + resourcename + '\')"><i class="fa fa-print"></i></button>' +
+                  '<button id="modalcopy-button" class="btn btn-default" title="' + that._('Copy to clipboard') + '"><i class="fa fa-copy"></i></button>' +
+                  '<button id="modalprint-button" class="btn btn-default" title="' + that._('Print') + '"><i class="fa fa-print"></i></button>' +
                   '</div>&nbsp;'
               }
             }),
@@ -591,10 +595,14 @@ this.ckan.module('datatables_view', function (jQuery) {
           const lftflag = parseInt(getWithExpiry('loadctr-' + gresviewId))
           if (lftflag < 3 || isNaN(lftflag)) {
             setWithExpiry('loadctr-' + gresviewId, isNaN(lftflag) ? 1 : lftflag + 1, stateduration)
-            $('.resetButton').css('color', 'black')
+            // (canada fork only): CSP support
+            $('.resetButton').addClass('text-dark');
+            $('.resetButton').removeClass('text-danger');
           } else {
             setWithExpiry('loadctr-' + gresviewId, lftflag + 1, stateduration)
-            $('.resetButton').css('color', 'darkred')
+            // (canada fork only): CSP support
+            $('.resetButton').addClass('text-danger');
+            $('.resetButton').removeClass('text-dark');
           }
         }, // end stateSaveParams
         initComplete: function (settings, json) {
@@ -660,9 +668,8 @@ this.ckan.module('datatables_view', function (jQuery) {
             tableSearchInput.val('').blur();
             tableSearchInput.attr('readonly', true);
             tableSearchInput.attr('tabindex', -1);
-            tableSearchInput.css({'cursor': 'not-allowed',
-                                  'outline': 'none',
-                                  'box-shadow': 'none'});
+            // (canada fork only): CSP support
+            tableSearchInput.addClass('canada-dt-search-input-no-fts');
           }else{
             tableSearchInput.bind('keyup search', function (event) {
               // Firefox doesn't do clearing of input when ESC is pressed
@@ -680,7 +687,14 @@ this.ckan.module('datatables_view', function (jQuery) {
 
           // start showing page once everything is just about rendered
           // we need to make it visible now so smartsize works if needed
-          document.getElementsByClassName('dt-view')[0].style.visibility = 'visible'
+          // (canada fork only): CSP supported JS
+          let dtView = document.getElementsByClassName('dt-view')[0];
+          if( ! dtView.classList.contains('visible') ){
+            dtView.classList.add('visible');
+          }
+          if( dtView.classList.contains('invisible') ){
+            dtView.classList.remove('invisible');
+          }
 
           const url = new URL(window.location.href)
           const state = url.searchParams.get('state')
@@ -723,6 +737,26 @@ this.ckan.module('datatables_view', function (jQuery) {
             }
           }
         }, // end InitComplete
+        // (canada fork only): no inline JS for CSP support
+        drawCallback: function(_settings){
+          $('#dtprv_wrapper').off('click.FixInline', 'td.dtr-control');
+          $('#dtprv_wrapper').on('click.FixInline', 'td.dtr-control', function(_event){
+            let modalCopyButton = $('#modalcopy-button');
+            let modalPrintButton = $('#modalprint-button');
+            if( modalCopyButton.length > 0 ){
+              $(modalCopyButton).off('click.Copy');
+              $(modalCopyButton).on('click.Copy', function(_event){
+                copyModal(packagename + '&mdash;' + resourcename);
+              });
+            }
+            if( modalPrintButton.length > 0 ){
+              $(modalPrintButton).off('click.Copy');
+              $(modalPrintButton).on('click.Copy', function(_event){
+                printModal(packagename + '&mdash;' + resourcename);
+              });
+            }
+          });
+        },
         buttons: [{
           name: 'viewToggleButton',
           text: gcurrentView === 'table' ? '<i class="fa fa-list"></i>' : '<i class="fa fa-table"></i>',
@@ -840,7 +874,9 @@ this.ckan.module('datatables_view', function (jQuery) {
           className: 'btn-default resetButton',
           action: function (e, dt, node, config) {
             dt.state.clear()
-            $('.resetButton').css('color', 'black')
+            // (canada fork only): CSP support
+            $('.resetButton').addClass('text-dark');
+            $('.resetButton').removeClass('text-danger');
             window.localStorage.removeItem('loadctr-' + gresviewId)
             window.location.reload()
           }

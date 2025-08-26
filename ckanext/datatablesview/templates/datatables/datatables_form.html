@@ -45,6 +45,15 @@
         $(dtHideAll).on('click', function(_event){
           $(dtColSelects).prop('checked', false).change().blur();
         });
+
+        let idField = $('input#field-show_fields_1');
+        if( idField.length > 0 ){
+          $(idField).off('click.Disable');
+          $(idField).on('click.Disable', function(_event){
+            _event.preventDefault();
+            _event.stopImmediatePropagation();
+          });
+        }
       });
     });
   </script>
@@ -59,9 +68,10 @@
         <tr>
           <td>
             <label class="checkbox">
+            {# (canada fork only): CSP support #}
             <input type="checkbox"
             name="show_fields"
-            id="field-show_fields_1" readonly onclick="return false"
+            id="field-show_fields_1" readonly
             value="_id" checked/>_id</label>
           </td>
           <td></td>
