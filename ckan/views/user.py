@@ -30,6 +30,10 @@ from ckan.common import (
 from ckan.types import Context, Schema, Response
 from ckan.lib import signals
 
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+from . import nocache_store
+
 log = logging.getLogger(__name__)
 
 # hooks for subclasses
@@ -476,6 +480,9 @@ class RegisterView(MethodView):
             base.abort(403, _(u'Unauthorized to register as a user.'))
         return context
 
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    @nocache_store
     def post(self) -> Union[Response, str]:
         context = self._prepare()
         try:
@@ -534,6 +541,9 @@ class RegisterView(MethodView):
         resp = h.redirect_to(u'user.me')
         return resp
 
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    @nocache_store
     def get(self,
             data: Optional[dict[str, Any]] = None,
             errors: Optional[dict[str, Any]] = None,
@@ -577,6 +587,9 @@ def rotate_token():
         generate_csrf()
 
 
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+@nocache_store
 def login() -> Union[Response, str]:
     for item in plugins.PluginImplementations(plugins.IAuthenticator):
         response = item.login()
@@ -622,6 +635,9 @@ def login() -> Union[Response, str]:
     return base.render("user/login.html", extra_vars)
 
 
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+@nocache_store
 def logout() -> Response:
     for item in plugins.PluginImplementations(plugins.IAuthenticator):
         response = item.logout()
@@ -644,6 +660,9 @@ def logout() -> Response:
     return h.redirect_to('user.logged_out_page')
 
 
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+@nocache_store
 def logged_out_page() -> str:
     return base.render(u'user/logout.html', {})
 
@@ -710,6 +729,9 @@ class RequestResetView(MethodView):
         except logic.NotAuthorized:
             base.abort(403, _(u'Unauthorized to request reset password.'))
 
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    @nocache_store
     def post(self) -> Response:
         self._prepare()
         id = request.form.get(u'user', '')
@@ -796,6 +818,9 @@ class RequestResetView(MethodView):
         return h.redirect_to(config.get(
             u'ckan.user_reset_landing_page'))
 
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    @nocache_store
     def get(self) -> str:
         self._prepare()
         return base.render(u'user/request_reset.html', {})
@@ -829,6 +854,9 @@ class PerformResetView(MethodView):
             base.abort(403, msg)
         return context, user_dict
 
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    @nocache_store
     def post(self, id: str) -> Union[Response, str]:
         context, user_dict = self._prepare(id)
         context[u'reset_password'] = True
@@ -876,6 +904,9 @@ class PerformResetView(MethodView):
             u'user_dict': user_dict
         })
 
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    @nocache_store
     def get(self, id: str,
             errors: Optional[dict[str, Any]] = None,
             error_summary: Optional[dict[str, Any]] = None) -> str:
