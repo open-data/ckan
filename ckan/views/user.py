@@ -606,6 +606,10 @@ def login() -> Union[Response, str]:
         password = request.form.get("password")
         _remember = request.form.get("remember")
 
+        # (canada fork only): lower case logins
+        if username_or_email:
+            username_or_email = username_or_email.lower()
+
         identity = {
             u"login": username_or_email,
             u"password": password
@@ -774,6 +778,9 @@ class RequestResetView(MethodView):
             # (this is helpful as an option for a user who has multiple
             # accounts with the same email address and they want to be
             # specific)
+            # (canada fork only): lower case logins
+            if id:
+                id = id.lower()
             try:
                 logic.get_action(u'user_show')(context, {u'id': id})
                 user_objs.append(context[u'user_obj'])
