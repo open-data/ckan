@@ -1,0 +1,1 @@
+Now lowercases usernames in the backend of login and password reset.
