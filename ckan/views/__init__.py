@@ -5,6 +5,10 @@ from typing import Any, Optional
 
 import six
 
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+from functools import wraps
+
 from urllib.parse import quote
 from flask.wrappers import Response
 
@@ -16,6 +20,16 @@ import ckan.plugins as p
 
 import logging
 log = logging.getLogger(__name__)
+
+
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+def nocache_store(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        request.environ['__no_cache_store__'] = True
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def set_cors_headers_for_response(response: Response) -> Response:
@@ -49,6 +63,9 @@ def set_cache_control_headers_for_response(response: Response) -> Response:
 
     # __no_cache__ should not be present when caching is allowed
     allow_cache = u'__no_cache__' not in request.environ
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    allow_store = '__no_cache_store__' not in request.environ
     limit_cache_by_cookie = u'__limit_cache_by_cookie__' in request.environ
 
     if u'Pragma' in response.headers:
@@ -62,10 +79,15 @@ def set_cache_control_headers_for_response(response: Response) -> Response:
             response.cache_control.must_revalidate = True
         except ValueError:
             pass
-    else:
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    elif allow_store:
         # (canada fork only): set NOCACHE for logged in sessions
         response.cache_control.no_cache = True
         response.cache_control.private = True
+    else:
+        response.cache_control.no_cache = True
+        response.cache_control.no_store = True
 
     # Invalidate cached pages upon login/logout
     if limit_cache_by_cookie:
