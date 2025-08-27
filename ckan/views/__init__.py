@@ -71,7 +71,9 @@ def set_cache_control_headers_for_response(response: Response) -> Response:
     if u'Pragma' in response.headers:
         del response.headers["Pragma"]
 
-    if allow_cache:
+    # (canada fork only): nocache decorator
+    # TODO: upstream contrib??
+    if allow_cache and allow_store:
         response.cache_control.public = True
         try:
             cache_expire = config.get(u'ckan.cache_expires')
