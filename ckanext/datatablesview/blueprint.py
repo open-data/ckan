@@ -244,7 +244,8 @@ def filtered_download(resource_view_id: str):
                 u'filters': json.dumps(filters),
                 u'format': request.form[u'format'],
                 u'fields': u','.join(cols),
-                u'bom': True,
+                # (canada fork only): BOM for CSVs and TSVs
+                'bom': request.form['format'] in ['csv', 'tsv', 'CSV', 'TSV'],
             }))
 
 
