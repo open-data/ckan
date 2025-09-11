@@ -17,11 +17,17 @@ this.ckan.module('resource-upload-field', function (jQuery) {
         urlField.attr('type', 'url');
       })
 
-      $('#field-resource-upload').on('change', function() {
+      $('#field-resource-upload').on('change', function(_event) {  // (canada fork only): use File API
         if (_nameIsDirty) {
           return;
         }
-        var file_name = $(this).val().split(/^C:\\fakepath\\/).pop();
+
+        // (canada fork only): use File API
+        const selectedFile = _event.target.files[0];
+        let file_name = '';
+        if( selectedFile ){
+          file_name = selectedFile.name;
+        }
 
         // Internet Explorer 6-11 and Edge 20+
         var isIE = !!document.documentMode;
