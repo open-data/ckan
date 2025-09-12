@@ -27,6 +27,10 @@ from ckan.lib.search import (
 )
 from ckan.types import Context, Response, ActionResult
 
+# (canada fork only): nocache decorator
+# TODO: upstream contrib??
+from . import nocache_store
+
 
 log = logging.getLogger(__name__)
 
@@ -496,6 +500,7 @@ def snippet(snippet_path: str, ver: int = API_REST_DEFAULT_VERSION) -> str:
     return render(snippet_path, extra_vars=extra_vars)
 
 
+@nocache_store
 def i18n_js_translations(
         lang: str,
         ver: int = API_REST_DEFAULT_VERSION) -> Union[str, Response]:
