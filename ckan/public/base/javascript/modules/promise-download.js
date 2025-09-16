@@ -16,7 +16,7 @@ this.ckan.module('promise-download', function ($) {
         const fileHandle = await window.showSaveFilePicker({
           types: [{
             description: _('Choose where to save the file...'),
-            accept: { 'application/octet-stream': ['.' + extension] },
+            accept: { 'application/octet-stream': ['.' + options.extension] },
           }],
         });
         const writableStream = await fileHandle.createWritable();
