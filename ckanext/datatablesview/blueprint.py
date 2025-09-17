@@ -232,9 +232,9 @@ def filtered_download(resource_view_id: str):
                              search_text) + u':*' if search_text else ''
         search_text = f'{search_text}:*' if search_text else ''
 
-    return h.redirect_to(
-        h.url_for(
-            u'datastore.dump',
+    # (canada fork only): extra header for promise-download module
+    # TODO: add extra header to redirect_to response...
+    _url = h.url_for(u'datastore.dump',
             resource_id=resource_view[u'resource_id']) + u'?' + urlencode(
             {
                 u'q': search_text,
@@ -246,7 +246,8 @@ def filtered_download(resource_view_id: str):
                 u'fields': u','.join(cols),
                 # (canada fork only): BOM for CSVs and TSVs
                 'bom': request.form['format'] in ['csv', 'tsv', 'CSV', 'TSV'],
-            }))
+            })
+    return h.redirect_to(_url)
 
 
 datatablesview.add_url_rule(

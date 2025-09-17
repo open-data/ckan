@@ -28,7 +28,29 @@ const run_query = function (params, format) {
   const f = $('<input name="format" type="hidden"/>')
   f.attr('value', format)
   form.append(f)
-  form.submit()
+
+  // (canada fork only): use promise-download module
+  let _url = $(form).attr('action');
+  let _type = $(form).attr('method');
+  fetch(_url, {
+    redirect: 'manual',
+    method: _type,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: $(form).serialize(),
+  }).then(function(_response){
+    if( _response.type == 'opaqueredirect' ){
+      console.log('COMPLETE');
+      console.log(_response.headers);
+    }
+    return _response;
+  }).catch(function(_exception){
+    console.warn('Failed to download the file');
+    console.warn(_exception);
+    return;
+  });
+
   p.remove()
   f.remove()
 }
