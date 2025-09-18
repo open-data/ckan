@@ -219,16 +219,3 @@
     {% snippet "snippets/social.html" %}
   {% endblock %}
 {% endblock %}
-
-{%- block footer %}
-  {# (canada fork only): promise-download module #}
-  {{ super() }}
-  {%- block promise_download_shelf -%}
-    <div id="promise-download-shelf" class="d-none">
-      <div id="promise-download-shelf-inner">
-        <strong><i class="fa fa-download" aria-hidden="true"></i>&nbsp;{{- _('Downloads') -}}</strong>
-        <div id="promise-download-shelf-list"></div>
-      </div>
-    </div>
-  {% endblock %}
-{% endblock -%}

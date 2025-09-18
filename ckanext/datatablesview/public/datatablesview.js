@@ -28,31 +28,29 @@ const run_query = function (params, format) {
   const f = $('<input name="format" type="hidden"/>')
   f.attr('value', format)
   form.append(f)
-
-  // (canada fork only): use promise-download module
-  let _url = $(form).attr('action');
-  let _type = $(form).attr('method');
-  fetch(_url, {
-    redirect: 'manual',
-    method: _type,
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: $(form).serialize(),
-  }).then(function(_response){
-    if( _response.type == 'opaqueredirect' ){
-      console.log('COMPLETE');
-      console.log(_response.headers);
-    }
-    return _response;
-  }).catch(function(_exception){
-    console.warn('Failed to download the file');
-    console.warn(_exception);
-    return;
-  });
-
+  form.submit()
   p.remove()
   f.remove()
+}
+
+// (canada fork only): use promise-download module
+const serialize_form = function(params, format){
+  const form = $('#filtered-datatables-download');
+  const p = $('<input name="params" type="hidden"/>');
+  p.attr('value', JSON.stringify(params));
+  form.append(p);
+  const f = $('<input name="format" type="hidden"/>');
+  f.attr('value', format);
+  form.append(f);
+
+  let _url = $(form).attr('action');
+  let _type = $(form).attr('method');
+  let _data = $(form).serialize();
+
+  p.remove();
+  f.remove();
+
+  return [_url, _type, _data];
 }
 
 // helper for setting expiring localstorage, ttl in secs
@@ -865,28 +863,56 @@ this.ckan.module('datatables_view', function (jQuery) {
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              run_query(params, 'csv')
+              // (canada fork only): use promise-download module
+              const [_url, _type, _data] = serialize_form(params, 'csv');
+              let payload = {'postData': _data, 'extension': 'csv',
+                'url': _url, 'method': _type, 'message_type': 'promise-download',
+                'contentType': 'application/x-www-form-urlencoded',
+                'description': that._('CSV type files')};
+              const currentDomain = window.location.protocol + '//' + window.location.host;
+              window.parent.postMessage(payload, currentDomain);
             }
           }, {
             text: 'TSV',
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              run_query(params, 'tsv')
+              // (canada fork only): use promise-download module
+              const [_url, _type, _data] = serialize_form(params, 'tsv');
+              let payload = {'postData': _data, 'extension': 'tsv',
+                'url': _url, 'method': _type, 'message_type': 'promise-download',
+                'contentType': 'application/x-www-form-urlencoded',
+                'description': that._('TSV type files')};
+              const currentDomain = window.location.protocol + '//' + window.location.host;
+              window.parent.postMessage(payload, currentDomain);
             }
           }, {
             text: 'JSON',
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              run_query(params, 'json')
+              // (canada fork only): use promise-download module
+              const [_url, _type, _data] = serialize_form(params, 'json');
+              let payload = {'postData': _data, 'extension': 'json',
+                'url': _url, 'method': _type, 'message_type': 'promise-download',
+                'contentType': 'application/x-www-form-urlencoded',
+                'description': that._('JSON type files')};
+              const currentDomain = window.location.protocol + '//' + window.location.host;
+              window.parent.postMessage(payload, currentDomain);
             }
           }, {
             text: 'XML',
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              run_query(params, 'xml')
+              // (canada fork only): use promise-download module
+              const [_url, _type, _data] = serialize_form(params, 'xml');
+              let payload = {'postData': _data, 'extension': 'xml',
+                'url': _url, 'method': _type, 'message_type': 'promise-download',
+                'contentType': 'application/x-www-form-urlencoded',
+                'description': that._('XML type files')};
+              const currentDomain = window.location.protocol + '//' + window.location.host;
+              window.parent.postMessage(payload, currentDomain);
             }
           }]
         }, {
