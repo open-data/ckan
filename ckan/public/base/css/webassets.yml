@@ -1,8 +1,15 @@
 main:
   filters: cssrewrite
   output: base/%(version)s_main.css
-  contents: main.css
+  contents:
+    - main.css
+    # (canada fork only): promise-download module
+    - promise-download.css
+
 main-rtl:
   filters: cssrewrite
   output: base/%(version)s_main-rtl.css
-  contents: main-rtl.css
+  contents:
+    - main-rtl.css
+    # (canada fork only): promise-download module
+    - promise-download.css
