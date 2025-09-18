@@ -118,6 +118,9 @@
 {%- endblock -%}
 {%- block styles -%}
   {{- super() -}}
+  {# (canada fork only): promise-download module #}
+  {% asset 'base/main' %}
+  {% asset 'base/ckan' %}
   {% asset 'ckanext-datatablesview/main-css' %}
   {% asset 'ckanext-datatablesview/main-js' %}
 {% endblock %}
