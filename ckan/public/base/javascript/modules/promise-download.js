@@ -159,7 +159,8 @@ function promiseDownload__init_download(vars){
       if( promiseDownload__currentDownloads.length == 0 && $('.promise-download-icon').length == 0 ){
         $(promiseDownload__downloadArea).addClass('d-none');
       }
-      window.open($(el).attr('href'), '_blank').focus();
+      // FIXME: fallback for POST data?? if vars.method == 'POST'
+      window.open(vars.url, '_blank').focus();
     }
   });
 }

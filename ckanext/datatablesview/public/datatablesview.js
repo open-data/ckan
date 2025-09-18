@@ -864,6 +864,10 @@ this.ckan.module('datatables_view', function (jQuery) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
               // (canada fork only): use promise-download module
+              if( typeof promiseDownload__currentDownloads == 'undefined' ){
+                run_query(params, 'csv');
+                return;
+              }
               const [_url, _type, _data] = serialize_form(params, 'csv');
               let payload = {'postData': _data, 'extension': 'csv',
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
@@ -878,6 +882,10 @@ this.ckan.module('datatables_view', function (jQuery) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
               // (canada fork only): use promise-download module
+              if( typeof promiseDownload__currentDownloads == 'undefined' ){
+                run_query(params, 'tsv');
+                return;
+              }
               const [_url, _type, _data] = serialize_form(params, 'tsv');
               let payload = {'postData': _data, 'extension': 'tsv',
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
@@ -892,6 +900,10 @@ this.ckan.module('datatables_view', function (jQuery) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
               // (canada fork only): use promise-download module
+              if( typeof promiseDownload__currentDownloads == 'undefined' ){
+                run_query(params, 'json');
+                return;
+              }
               const [_url, _type, _data] = serialize_form(params, 'json');
               let payload = {'postData': _data, 'extension': 'json',
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
@@ -906,6 +918,10 @@ this.ckan.module('datatables_view', function (jQuery) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
               // (canada fork only): use promise-download module
+              if( typeof promiseDownload__currentDownloads == 'undefined' ){
+                run_query(params, 'xml');
+                return;
+              }
               const [_url, _type, _data] = serialize_form(params, 'xml');
               let payload = {'postData': _data, 'extension': 'xml',
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
