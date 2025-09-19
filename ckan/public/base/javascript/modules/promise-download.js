@@ -1,6 +1,7 @@
 // (canada fork only): promise-download module
 let promiseDownload__currentDownloads = [];
 let promiseDownload__language = {
+  'requestedLabel': ckan.i18n._('Requesting Download...'),
   'shelfLabel': ckan.i18n._('Downloads'),
   'unfinishedDownloadsMessage': ckan.i18n._('You have unfinished downloads in this page. Do you want to stop these downloads and leave the page?'),
   'startingDownloadLabel': ckan.i18n._('Downloading file...'),
@@ -14,6 +15,12 @@ if( promiseDownload__downloadArea.length == 0 ){
 }
 promiseDownload__downloadArea = $('#promise-download-shelf');
 let downloadList = $(promiseDownload__downloadArea).find('#promise-download-shelf-list');
+
+let promiseDownload__alertArea = $('#promise-download-alert');
+if( promiseDownload__alertArea.length == 0 ){
+  $('body').append('<div id="promise-download-alert" class="d-none"><div id="promise-download-alert-inner"><span><i class="fa fa-spinner" aria-hidden="true"></i>&nbsp;' + promiseDownload__language.requestedLabel + '</span></div></div>');
+}
+promiseDownload__alertArea = $('#promise-download-alert');
 
 window.addEventListener('beforeunload', function(_event){
   if( promiseDownload__currentDownloads.length > 0 ){
@@ -53,28 +60,34 @@ async function promiseDownload__execute_promise(vars) {
     acceptableFileExtensions = ['.' + fileFormat];
   }
 
-  try{
-    const fileHandle = await window.showSaveFilePicker({
-      suggestedName: filename,
-      types: [{
-        description: filePickerDescription,
-        accept: {'application/octet-stream': acceptableFileExtensions},
-      }],
-    });
-    const writableStream = await fileHandle.createWritable();
-    filename = writableStream.path;
-  }catch(_exception){
-    console.warn('Failed to download the file: ' + fetchUrl);
-    console.warn(_exception);
-    throw {'download_id': uniqueID,
-           'do_fallback': true};
+  if( ! vars.notifyOnly ){
+    try{
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{
+          description: filePickerDescription,
+          accept: {'application/octet-stream': acceptableFileExtensions},
+        }],
+      });
+      const writableStream = await fileHandle.createWritable();
+      filename = writableStream.path;
+    }catch(_exception){
+      console.warn('Failed to download the file: ' + fetchUrl);
+      console.warn(_exception);
+      throw {'download_id': uniqueID,
+             'do_fallback': true};
+    }
   }
 
-  promiseDownload__set_download_state(state='start', uniqueID);
+  if( ! vars.notifyOnly ){
+    promiseDownload__set_download_state(state='start', uniqueID);
+  }else{
+    promiseDownload__set_download_state(state='requested', uniqueID);
+  }
 
   try{
     let response;
-    if( type == 'POST' && typeof postData != 'undefined' && postData && postData.length > 0 && typeof contentType != 'undefined' && contentType && contentType.length > 0 ){
+    if( typeof type != 'undefined' && type && type == 'POST' && typeof postData != 'undefined' && postData && postData.length > 0 && typeof contentType != 'undefined' && contentType && contentType.length > 0 ){
       response = await fetch(fetchUrl, {method: type,
                                         headers: {
                                           'Content-Type': contentType
@@ -91,6 +104,10 @@ async function promiseDownload__execute_promise(vars) {
       const { done, value } = await reader.read();
       if (done) {
         break;
+      }
+      if( vars.notifyOnly ){
+        // return as soon as we get the first bytes
+        return {'download_id': uniqueID};
       }
       currentByteInt += value.byteLength;
       let thottleTimeout = false;
@@ -116,6 +133,15 @@ async function promiseDownload__execute_promise(vars) {
 }
 
 function promiseDownload__set_download_state(state, uuid){
+  if( state == 'requested' ){
+    // do not add to promiseDownload__currentDownloads so there is no window alert...
+    return;
+  }
+  if( state == 'requestDone' ){
+    // do not add to promiseDownload__currentDownloads so there is no window alert...
+    $(promiseDownload__alertArea).addClass('d-none');
+    return
+  }
   if( state == 'start' ){
     $(downloadList).prepend('<div class="promise-download-icon" data-download-id="' + uuid + '"><span title="' + promiseDownload__language.startingDownloadLabel + '" aria-label="' + promiseDownload__language.startingDownloadLabel + '"><i class="fa fa-cloud-download" aria-hidden="true"></i>&nbsp;<small>' + filename + '&nbsp;<sup></sup></small></span></div>');
     setTimeout(function(){
@@ -149,27 +175,43 @@ function promiseDownload__set_download_state(state, uuid){
 }
 
 function promiseDownload__init_download(vars){
-  $(promiseDownload__downloadArea).removeClass('d-none');
-  $('footer').css({'margin-bottom': '33px'});
+  if( ! vars.notifyOnly ){
+    $(promiseDownload__downloadArea).removeClass('d-none');
+    $('footer').css({'margin-bottom': '33px'});
+  }else{
+    $(promiseDownload__alertArea).removeClass('d-none');
+  }
   promiseDownload__execute_promise(vars).then(function(_data){
-    promiseDownload__set_download_state('success', _data.download_id);
+    if( ! vars.notifyOnly ){
+      promiseDownload__set_download_state('success', _data.download_id);
+    }else{
+      promiseDownload__set_download_state('requestDone', _data.download_id);
+    }
   }).catch(function(_exception){
-    promiseDownload__set_download_state('error', _exception.download_id);
-    if( _exception.do_fallback ){
-      if( promiseDownload__currentDownloads.length == 0 && $('.promise-download-icon').length == 0 ){
-        $(promiseDownload__downloadArea).addClass('d-none');
+    if( ! vars.notifyOnly ){
+      promiseDownload__set_download_state('error', _exception.download_id);
+      if( _exception.do_fallback ){
+        if( promiseDownload__currentDownloads.length == 0 && $('.promise-download-icon').length == 0 ){
+          $(promiseDownload__downloadArea).addClass('d-none');
+          $(promiseDownload__alertArea).addClass('d-none');
+        }
+        if( typeof vars.method != 'undefined' && vars.method && vars.method == 'POST' && typeof vars.postData != 'undefined' && vars.postData && vars.postData.length > 0 && typeof vars.contentType != 'undefined' && vars.contentType && vars.contentType.length > 0 ){
+          // FIXME: fallback for POST data?? if vars.method == 'POST'
+          // we have the serialized data and url to POST to...might be able to create a new form element to do so...
+          return;
+        }
+        window.open(vars.url, '_blank').focus();
       }
-      // FIXME: fallback for POST data?? if vars.method == 'POST'
-      window.open(vars.url, '_blank').focus();
+    }else{
+      promiseDownload__set_download_state('requestDone',  _exception.download_id);
     }
   });
 }
 
 // receive iframed data from child frames e.g. DataTables View
-window.addEventListener('message', (_event) => {
+window.addEventListener('message', function(_event){
   const currentDomain = window.location.protocol + '//' + window.location.host;
   if( _event.origin == currentDomain ){
-    const receivedData = _event.data;
     if( typeof _event.data != 'undefined' && typeof _event.data.message_type != 'undefined' && _event.data.message_type == 'promise-download' ){
       promiseDownload__init_download(_event.data);
     }
@@ -188,15 +230,15 @@ this.ckan.module('promise-download', function($){
       description: '',
       postData: {},
       contentType: '',
+      notifyOnly: true,
     },
-    initialize: function () {
+    initialize: function(){
       let options = this.options;
       let el = this.el;
 
       if( options.url.length > 0 ){
         $(el).off('click.ExcutePromise');
         $(el).on('click.ExcutePromise', function(_event){
-          _event.preventDefault();
           promiseDownload__init_download(options);
         });
       }
