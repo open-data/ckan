@@ -58,6 +58,9 @@ ckan:
     # (canada fork only): background search index rebuilding
     #TODO: upstream contrib!!
     - modules/progress-bar.js
+    # (canada fork only): JS promise UX download
+    #TODO: upstream contrib!!
+    - modules/promise-download.js
 
 tracking:
   output: base/%(version)s_tracking.js
