@@ -863,72 +863,60 @@ this.ckan.module('datatables_view', function (jQuery) {
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              // (canada fork only): use promise-download module
-              if( typeof promiseDownload__currentDownloads == 'undefined' ){
-                run_query(params, 'csv');
-                return;
-              }
+              // (canada fork only): use promise-download module notifyOnly
               const [_url, _type, _data] = serialize_form(params, 'csv');
-              let payload = {'postData': _data, 'extension': 'csv',
+              let payload = {'postData': _data, 'extension': 'csv', 'notifyOnly': true,
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
                 'contentType': 'application/x-www-form-urlencoded',
                 'description': that._('CSV type files')};
               const currentDomain = window.location.protocol + '//' + window.location.host;
               window.parent.postMessage(payload, currentDomain);
+              run_query(params, 'csv');
             }
           }, {
             text: 'TSV',
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              // (canada fork only): use promise-download module
-              if( typeof promiseDownload__currentDownloads == 'undefined' ){
-                run_query(params, 'tsv');
-                return;
-              }
+              // (canada fork only): use promise-download module notifyOnly
               const [_url, _type, _data] = serialize_form(params, 'tsv');
-              let payload = {'postData': _data, 'extension': 'tsv',
+              let payload = {'postData': _data, 'extension': 'tsv', 'notifyOnly': true,
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
                 'contentType': 'application/x-www-form-urlencoded',
                 'description': that._('TSV type files')};
               const currentDomain = window.location.protocol + '//' + window.location.host;
               window.parent.postMessage(payload, currentDomain);
+              run_query(params, 'tsv');
             }
           }, {
             text: 'JSON',
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              // (canada fork only): use promise-download module
-              if( typeof promiseDownload__currentDownloads == 'undefined' ){
-                run_query(params, 'json');
-                return;
-              }
+              // (canada fork only): use promise-download module notifyOnly
               const [_url, _type, _data] = serialize_form(params, 'json');
-              let payload = {'postData': _data, 'extension': 'json',
+              let payload = {'postData': _data, 'extension': 'json', 'notifyOnly': true,
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
                 'contentType': 'application/x-www-form-urlencoded',
                 'description': that._('JSON type files')};
               const currentDomain = window.location.protocol + '//' + window.location.host;
               window.parent.postMessage(payload, currentDomain);
+              run_query(params, 'json');
             }
           }, {
             text: 'XML',
             action: function (e, dt, button, config) {
               const params = datatable.ajax.params()
               params.visible = datatable.columns().visible().toArray()
-              // (canada fork only): use promise-download module
-              if( typeof promiseDownload__currentDownloads == 'undefined' ){
-                run_query(params, 'xml');
-                return;
-              }
+              // (canada fork only): use promise-download module notifyOnly
               const [_url, _type, _data] = serialize_form(params, 'xml');
-              let payload = {'postData': _data, 'extension': 'xml',
+              let payload = {'postData': _data, 'extension': 'xml', 'notifyOnly': true,
                 'url': _url, 'method': _type, 'message_type': 'promise-download',
                 'contentType': 'application/x-www-form-urlencoded',
                 'description': that._('XML type files')};
               const currentDomain = window.location.protocol + '//' + window.location.host;
               window.parent.postMessage(payload, currentDomain);
+              run_query(params, 'xml');
             }
           }]
         }, {

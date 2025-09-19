@@ -1,6 +1,6 @@
 /* (canada fork only): promise-download module */
 /* Promise Download Module */
-@keyframes flashDownload{
+@keyframes promiseDownload__flashDownload{
   0%{
     transform: scale(1.25);
   }
@@ -8,7 +8,7 @@
     transform: scale(0.75);
   }
 }
-@keyframes spinDownload{
+@keyframes promiseDownload__spinDownload{
   0%{
     transform: rotate(0deg);
   }
@@ -26,7 +26,7 @@
 }
 .promise-download-icon i.fa-cloud-download{
   color: #17a2b8 !important;
-  animation-name: 'flashDownload';
+  animation-name: 'promiseDownload__flashDownload';
   animation-duration: 1500ms;
   animation-timing-function: ease-in-out;
   animation-delay: 0s;
@@ -36,7 +36,7 @@
 }
 .promise-download-icon i.fa-spinner{
   color: #17a2b8 !important;
-  animation-name: 'spinDownload';
+  animation-name: 'promiseDownload__spinDownload';
   animation-duration: 1500ms;
   animation-timing-function: linear;
   animation-delay: 0s;
@@ -78,5 +78,36 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: scroll;
+}
+#promise-download-alert{
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 99;
+  background: rgba(255, 255, 255, 0.45);
+}
+#promise-download-alert-inner{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+#promise-download-alert-inner span{
+  font-weight: 600;
+  font-size: 36px;
+}
+#promise-download-alert-inner i.fa-spinner{
+  animation-name: 'promiseDownload__spinDownload';
+  animation-duration: 1500ms;
+  animation-timing-function: linear;
+  animation-delay: 0s;
+  animation-iteration-count: infinite;
+  animation-direction: normal;
+  animation-fill-mode: forwards;
 }
 /* END Promise Download Module END */
