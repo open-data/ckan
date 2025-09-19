@@ -26,7 +26,7 @@
 }
 .promise-download-icon i.fa-cloud-download{
   color: #17a2b8 !important;
-  animation-name: 'promiseDownload__flashDownload';
+  animation-name: promiseDownload__flashDownload;
   animation-duration: 1500ms;
   animation-timing-function: ease-in-out;
   animation-delay: 0s;
@@ -36,7 +36,7 @@
 }
 .promise-download-icon i.fa-spinner{
   color: #17a2b8 !important;
-  animation-name: 'promiseDownload__spinDownload';
+  animation-name: promiseDownload__spinDownload;
   animation-duration: 1500ms;
   animation-timing-function: linear;
   animation-delay: 0s;
@@ -102,7 +102,7 @@
   font-size: 36px;
 }
 #promise-download-alert-inner i.fa-spinner{
-  animation-name: 'promiseDownload__spinDownload';
+  animation-name: promiseDownload__spinDownload;
   animation-duration: 1500ms;
   animation-timing-function: linear;
   animation-delay: 0s;
