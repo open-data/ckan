@@ -175,7 +175,9 @@ class SynchronousSearchPlugin(p.SingletonPlugin):
                         'model': model,
                         'ignore_auth': True,
                         'validate': False,
-                        'use_cache': False
+                        'use_cache': False,
+                        # (canada fork only): non-qualified res_url for lang domain support
+                        'for_index': True,
                     }), {'id': entity.id}), operation)
         elif operation == domain_object.DomainObjectOperation.deleted:
             dispatch_by_operation(entity.__class__.__name__,
@@ -208,7 +210,9 @@ def rebuild(package_id: Optional[str] = None,
         'model': model,
         'ignore_auth': True,
         'validate': False,
-        'use_cache': False
+        'use_cache': False,
+        # (canada fork only): non-qualified res_url for lang domain support
+        'for_index': True,
     })
 
     if package_id:

@@ -14,6 +14,9 @@ from ckan.common import config, asbool
 import sqlalchemy
 from sqlalchemy import text
 
+# (canada fork only): non-qualified res_url for lang domain support
+from flask import request
+
 
 import ckan
 import ckan.lib.dictization
@@ -1092,6 +1095,19 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
 
     for item in plugins.PluginImplementations(plugins.IPackageController):
         item.after_dataset_show(context, package_dict)
+
+    # (canada fork only): non-qualified res_url for lang domain support
+    if not context.get('for_index'):
+        try:
+            current_domain = request.host_url.rstrip('/')
+        except RuntimeError:
+            current_domain = config['ckan.site_url'].rstrip('/')
+        for res_dict in package_dict['resources']:
+            if(
+              res_dict.get('url_type') == 'upload' and
+              res_dict.get('url', '').startswith('/')
+            ):
+                res_dict['url'] = current_domain + res_dict['url']
 
     return package_dict
 
