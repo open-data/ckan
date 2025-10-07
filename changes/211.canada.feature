@@ -1,0 +1,1 @@
+Resource URLs are now only stored as relative paths in SOLR. The request hostname is prepended during `package_show`
