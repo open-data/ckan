@@ -1,0 +1,1 @@
+Added a `cache_bust` filter for webassets.
