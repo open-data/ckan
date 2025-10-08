@@ -11,6 +11,12 @@ from markupsafe import Markup
 from webassets import Environment
 from webassets.loaders import YAMLLoader
 
+# (canada fork only): cache busting resolver
+import random
+import string
+from webassets.env import Resolver
+from webassets.filter import Filter, register_filter
+
 # (canada fork only): use CSP nonce to support strict-dynamic
 from ckan.common import config, g, request
 
@@ -21,6 +27,50 @@ env: Optional[Environment] = None
 yaml.warnings({u'YAMLLoadWarning': False})
 
 
+# (canada fork only): cache busting resolver
+class CacheBustResolver(Resolver):
+    def _has_cache_bust_filter(self, ctx) -> bool:
+        if not ctx:
+            return False
+        try:
+            filters = getattr(ctx._overwrites, 'filters')
+        except (KeyError, AttributeError, EnvironmentError):
+            filters = getattr(ctx._parent, 'filters')
+        if not filters:
+            return False
+        return any(isinstance(f, CacheBustFilter) for f in filters)
+
+    def _get_cache_bust_nonce(self) -> str:
+        return ''.join(random.choices(
+            string.ascii_letters + string.digits, k=22))
+
+    def resolve_source_to_url(self, ctx, filepath, item):
+        outpath = super(CacheBustResolver, self).resolve_source_to_url(
+            ctx, filepath, item)
+        if not self._has_cache_bust_filter(ctx):
+            return outpath
+        return f"{outpath}?v={self._get_cache_bust_nonce()}"
+
+    def resolve_output_to_url(self, ctx, target):
+        outpath = super(CacheBustResolver, self).resolve_output_to_url(
+            ctx, target)
+        if not self._has_cache_bust_filter(ctx):
+            return outpath
+        return f"{outpath}?v={self._get_cache_bust_nonce()}"
+
+
+# (canada fork only): cache busting resolver
+class CacheBustFilter(Filter):
+    name = 'cache_bust'
+
+    def output(self, _in, out, **kwargs):
+        out.write(_in.read())
+
+
+# (canada fork only): cache busting resolver
+register_filter(CacheBustFilter)
+
+
 def create_library(name: str, path: str) -> None:
     """Create WebAssets library(set of Bundles).
     """
@@ -28,7 +78,9 @@ def create_library(name: str, path: str) -> None:
     if not os.path.exists(config_path):
         return
     assert env
-    library: dict[str, Any] = YAMLLoader(config_path).load_bundles()
+    # (canada fork only): cache busting resolver
+    env.resolver = CacheBustResolver()
+    library: dict[str, Any] = YAMLLoader(config_path).load_bundles(env)
     bundles = {
         u'/'.join([name, key]): bundle
         for key, bundle
@@ -63,6 +115,8 @@ def webassets_init() -> None:
     env.directory = static_path
     env.debug = config.get(u'debug')
     env.url = u'/webassets/'
+    # (canada fork only): cache busting resolver
+    env.resolver = CacheBustResolver()
 
     add_public_path(base_path, u'/base/')
 
@@ -92,6 +146,8 @@ def include_asset(name: str) -> None:
         return
 
     assert env
+    # (canada fork only): cache busting resolver
+    env.resolver = CacheBustResolver()
     try:
         bundle: Any = env[name]
     except KeyError:
