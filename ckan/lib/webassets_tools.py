@@ -12,8 +12,8 @@ from webassets import Environment
 from webassets.loaders import YAMLLoader
 
 # (canada fork only): cache busting resolver
-import random
-import string
+from datetime import datetime
+from pytz import UTC
 from webassets.env import Resolver
 from webassets.filter import Filter, register_filter
 
@@ -41,8 +41,7 @@ class CacheBustResolver(Resolver):
         return any(isinstance(f, CacheBustFilter) for f in filters)
 
     def _get_cache_bust_nonce(self) -> str:
-        return ''.join(random.choices(
-            string.ascii_letters + string.digits, k=22))
+        return str(datetime.now(UTC).timestamp())
 
     def resolve_source_to_url(self, ctx, filepath, item):
         outpath = super(CacheBustResolver, self).resolve_source_to_url(
