@@ -1,0 +1,1 @@
+Upscale to configured URL scheme for relative `res_url` values from SOLR. This fixes a critical issue to some quirky network middleware behaviours.

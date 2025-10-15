@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 # (canada fork only): non-qualified res_url for lang domain support
 from flask import request
+from urllib.parse import urlparse, urlunparse
 
 
 import ckan
@@ -1102,6 +1103,15 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
             current_domain = request.host_url.rstrip('/')
         except RuntimeError:
             current_domain = config['ckan.site_url'].rstrip('/')
+        # upscale to configured scheme if different...
+        # NOTE: this is very important for firewall and middleware stuff...
+        configured_domain = config['ckan.site_url']
+        configured_parts = urlparse(configured_domain)
+        requesting_parts = urlparse(current_domain)
+        if configured_parts.scheme != requesting_parts.scheme:
+            requesting_parts = requesting_parts._replace(
+                scheme=configured_parts.scheme)
+            current_domain = urlunparse(requesting_parts)
         for res_dict in package_dict['resources']:
             if(
               res_dict.get('url_type') == 'upload' and
