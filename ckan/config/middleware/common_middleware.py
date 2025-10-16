@@ -12,9 +12,6 @@ import sqlalchemy as sa
 from ckan.common import CKANConfig, config
 from ckan.types import CKANApp
 
-# (canada fork only): trusted login domains
-from ckan.plugins import plugin_loaded
-
 
 class RootPathMiddleware(object):
     '''
@@ -86,13 +83,5 @@ class HostHeaderMiddleware(object):
                          '/user/logged_out']:
             site_url = config.get('ckan.site_url')
             parts = urlparse(site_url)
-            host = str(parts.netloc)
-            # (canada fork only): trusted login domains
-            if plugin_loaded('language_domains'):
-                lang_domains = config.get('ckanext.language_domains.domain_map')
-                for _lang_code, domain_list in lang_domains.items():
-                    if environ['HTTP_HOST'] in domain_list:
-                        host = environ['HTTP_HOST']
-                        break
-            environ['HTTP_HOST'] = host
+            environ['HTTP_HOST'] = str(parts.netloc)
         return self.app(environ, start_response)
