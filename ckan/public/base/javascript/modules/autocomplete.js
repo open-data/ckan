@@ -55,6 +55,9 @@ this.ckan.module('autocomplete', function (jQuery) {
         formatResult: this.formatResult,
         formatNoMatches: this.formatNoMatches,
         formatInputTooShort: this.formatInputTooShort,
+        // (canada fork only): more i18n
+        // TODO: upstream contrib!!
+        formatSearching: this.formatSearching,
         dropdownCssClass: this.options.dropdownClass,
         containerCssClass: this.options.containerClass,
         tokenSeparators: this.options.tokensep.split(''),
@@ -234,6 +237,17 @@ this.ckan.module('autocomplete', function (jQuery) {
         'Input is too short, must be at least %(num)d characters',
         min
       );
+    },
+
+    /* (canada fork only): more i18n
+     * TODO: upstream contrib!!
+     * Formatter used by the select2 plugin that returns a string when
+     * XHR is being performed.
+     *
+     * Returns a string.
+     */
+    formatSearching: function () {
+      return this._('Searching...');
     },
 
     formatTerm: function (term) {
