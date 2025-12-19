@@ -12,15 +12,7 @@
       <i class="fa fa-arrows-alt"></i>
       {{ _("Fullscreen") }}
     </a>
-    {# (canada fork only): non-qualified URIs #}
-    <a class="btn btn-default"
-       href="#embed-{{ resource_view['id'] }}"
-       data-module="resource-view-embed"
-       data-module-id="{{ resource_view['id'] }}"
-       data-module-url="{{ h.url_for('resource_view', id=package['name'], resource_id=resource['id'], view_id=resource_view['id'], qualified=false) }}">
-      <i class="fa fa-code"></i>
-      {{ _("Embed") }}
-    </a>
+    {# (canada fork only): remove embed dur to X-Frame-Options:SAMEORIGIN #}
   </div>
   {% block description %}
     <p class="desc">{{ h.render_markdown(resource_view['description']) }}</p>
@@ -72,29 +64,6 @@
         </iframe>
       {% endif %}
     </div>
-    <div id="embed-{{ resource_view['id'] }}" class="modal fade resource-view-embed">
-      <div class="modal-dialog">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <h3 class="modal-title">{{ _("Embed resource view") }}</h3>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
-
-      </div>
-      <div class="modal-body">
-        <p class="embed-content">{{ _("You can copy and paste the embed code into a CMS or blog software that supports raw HTML") }}</p>
-        <div class="row">
-          <div class="col-md-6">
-            {{ form.input("width", label=_("Width"), value=700, classes=["control-full"]) }}
-          </div>
-          <div class="col-md-6">
-            {{ form.input("height", label=_("Height"), value=400, classes=["control-full"]) }}
-          </div>
-        </div>
-        {{ form.textarea("code", label=_("Code"), value="", classes=["pre"], rows=3) }}
-      </div>
-      </div>
-      </div>
-    </div>
+    {# (canada fork only): remove embed dur to X-Frame-Options:SAMEORIGIN #}
   </div>
 {% endblock %}
