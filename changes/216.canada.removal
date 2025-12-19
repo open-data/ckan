@@ -1,0 +1,1 @@
+Removed the Resource View embed button and modal due to `X-Frame-Options: SAMEORIGIN` security requirement preventing embeds.
