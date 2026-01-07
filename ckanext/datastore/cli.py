@@ -168,8 +168,9 @@ def purge(list: bool = False, quiet: bool = False):
             )
         except logic.NotFound:
             resource_id_list.append(record['name'])
-            click.echo("Resource '%s' orphaned - queued for drop" %
-                       record['name'])
+            if not list:
+                click.echo("Resource '%s' orphaned - queued for drop" %
+                           record['name'])
             continue
         except KeyError:
             continue
@@ -177,20 +178,22 @@ def purge(list: bool = False, quiet: bool = False):
         # TODO: upstream contrib!!
         if res['state'] == 'deleted':
             resource_id_list.append(record['name'])
-            click.echo("Resource '%s' deleted - queued for drop" %
-                       record['name'])
+            if not list:
+                click.echo("Resource '%s' deleted - queued for drop" %
+                           record['name'])
         if pkg['state'] == 'deleted':
             resource_id_list.append(record['name'])
-            click.echo("Package '%s' deleted - queued for drop" %
-                       pkg['id'])
+            if not list:
+                click.echo("Package '%s' deleted - queued for drop" %
+                           pkg['id'])
 
-    orphaned_table_count = len(resource_id_list)
     # (canada fork only): more options and state=deleted handling
     # TODO: upstream contrib!!
     if list:
         click.echo('\n'.join(resource_id_list))
         return
 
+    orphaned_table_count = len(resource_id_list)
     click.echo('%d orphaned tables found.' % orphaned_table_count)
 
     if not orphaned_table_count:

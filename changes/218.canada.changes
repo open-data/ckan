@@ -1,0 +1,1 @@
+Added `--list` and `--quiet` options to the `datastore purge` command.
