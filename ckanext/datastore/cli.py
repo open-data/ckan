@@ -134,7 +134,8 @@ def _parse_db_config(config_key: str = u'sqlalchemy.url'):
 # (canada fork only): more options and state=deleted handling
 # TODO: upstream contrib!!
 @click.option('-l', '--list', is_flag=True,
-              type=click.BOOL, help='Only output the list of oprhaned Resource IDs.')
+              type=click.BOOL,
+              help='Only output the list of oprhaned or deleted Resource IDs.')
 @click.option('-q', '--quiet', is_flag=True,
               type=click.BOOL, help='Suppress human interaction.')
 def purge(list: bool = False, quiet: bool = False):

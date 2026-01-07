@@ -1,1 +1,1 @@
-Added `--list` and `--quiet` options to the `datastore purge` command.
+Added `--list` and `--quiet` options to the `datastore purge` command. The command now handled soft-deleted Resources and Datasets.
