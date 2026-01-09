@@ -338,7 +338,9 @@ def make_flask_stack(conf: Union[Config, CKANConfig]) -> CKANApp:
         config[key] = flask_app.config[key]
 
     # Prevent the host from request to be added to the new header location.
-    app = HostHeaderMiddleware(app)
+    # (canada fork only): remove old user auth domain things...
+    # TODO: upstream contrib!!
+    # app = HostHeaderMiddleware(app)
 
     app = I18nMiddleware(app)
 
