@@ -137,7 +137,7 @@ def _parse_db_config(config_key: str = u'sqlalchemy.url'):
               type=click.BOOL,
               help='Only output the list of oprhaned or deleted Resource IDs.')
 @click.option('-y', '--yes', is_flag=True,
-              type=click.BOOL, help='Suppress human interaction.')
+              type=click.BOOL, help='Purge without asking for confirmation.')
 def purge(list: bool = False, yes: bool = False):
     '''Purge orphaned or deleted resources from the datastore using the datastore_delete
     action, which drops tables when called without filters.'''
