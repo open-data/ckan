@@ -1,1 +1,1 @@
-Added `--list` and `--yes` options to the `datastore purge` command. The command now handled soft-deleted Resources and Datasets.
+Added `--list` and `--yes` options to the `datastore purge` command. The command now handled soft-deleted Resources and Datasets. Fixed an issue with the `datastore purge` command not querying all datastore tables.
