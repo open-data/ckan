@@ -144,49 +144,58 @@ def purge(list: bool = False, yes: bool = False):
 
     site_user = logic.get_action('get_site_user')({'ignore_auth': True}, {})
 
-    result = logic.get_action('datastore_search')(
-        {'user': site_user['name']},
-        {'resource_id': '_table_metadata'}
-    )
-
     resource_id_list = []
-    for record in result['records']:
-        try:
-            # ignore 'alias' records (views) as they are automatically
-            # deleted when the parent resource table is dropped
-            if record['alias_of']:
-                continue
+    # (canada fork only): more options and state=deleted handling
+    # TODO: upstream contrib!!
+    offset = 0
+    while True:
+        result = logic.get_action('datastore_search')(
+            {'user': site_user['name']},
+            {'resource_id': '_table_metadata',
+             'limit': 1000,
+             # TODO: handle ckan.datastore.search.rows_max during upstream contrib!!
+             'offset': offset}
+        )
+        if not result['records']:
+            break
+        offset += 1000
+        for record in result['records']:
+            try:
+                # ignore 'alias' records (views) as they are automatically
+                # deleted when the parent resource table is dropped
+                if record['alias_of']:
+                    continue
 
+                # (canada fork only): more options and state=deleted handling
+                # TODO: upstream contrib!!
+                res = logic.get_action('resource_show')(
+                    {'user': site_user['name']},
+                    {'id': record['name']}
+                )
+                pkg = logic.get_action('package_show')(
+                    {'user': site_user['name']},
+                    {'id': res['package_id']}
+                )
+            except logic.NotFound:
+                resource_id_list.append(record['name'])
+                if not list:
+                    click.echo("Resource '%s' orphaned - queued for drop" %
+                               record['name'])
+                continue
+            except KeyError:
+                continue
             # (canada fork only): more options and state=deleted handling
             # TODO: upstream contrib!!
-            res = logic.get_action('resource_show')(
-                {'user': site_user['name']},
-                {'id': record['name']}
-            )
-            pkg = logic.get_action('package_show')(
-                {'user': site_user['name']},
-                {'id': res['package_id']}
-            )
-        except logic.NotFound:
-            resource_id_list.append(record['name'])
-            if not list:
-                click.echo("Resource '%s' orphaned - queued for drop" %
-                           record['name'])
-            continue
-        except KeyError:
-            continue
-        # (canada fork only): more options and state=deleted handling
-        # TODO: upstream contrib!!
-        if res['state'] == 'deleted':
-            resource_id_list.append(record['name'])
-            if not list:
-                click.echo("Resource '%s' deleted - queued for drop" %
-                           record['name'])
-        if pkg['state'] == 'deleted':
-            resource_id_list.append(record['name'])
-            if not list:
-                click.echo("Package '%s' deleted - queued for drop" %
-                           pkg['id'])
+            if res['state'] == 'deleted':
+                resource_id_list.append(record['name'])
+                if not list:
+                    click.echo("Resource '%s' deleted - queued for drop" %
+                               record['name'])
+            if pkg['state'] == 'deleted':
+                resource_id_list.append(record['name'])
+                if not list:
+                    click.echo("Package '%s' deleted - queued for drop" %
+                               pkg['id'])
 
     # (canada fork only): more options and state=deleted handling
     # TODO: upstream contrib!!
