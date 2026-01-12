@@ -234,10 +234,8 @@ class CreateView(MethodView):
                     _(u'The dataset {id} could not be found.').format(id=id)
                 )
             except ValidationError as e:
-                errors = cast(
-                    "list[ErrorDict]", e.error_dict.get('resources', [{}]))[-1]
                 error_summary = e.error_summary
-                return self.get(package_type, id, data, errors, error_summary)
+                return self.get(package_type, id, {}, e.error_dict, error_summary)
             return h.redirect_to(u'{}.read'.format(package_type), id=id)
 
         data[u'package_id'] = id
@@ -268,10 +266,8 @@ class CreateView(MethodView):
                     {'id': id, 'state': 'active'}
                 )
             except ValidationError as e:
-                errors = cast(
-                    "list[ErrorDict]", e.error_dict.get('resources', [{}]))[-1]
                 error_summary = e.error_summary
-                return self.get(package_type, id, data, errors, error_summary)
+                return self.get(package_type, id, {}, e.error_dict, error_summary)
             return h.redirect_to(u'{}.read'.format(package_type), id=id)
         elif save_action == u'go-dataset':
             # go to first stage of add dataset
