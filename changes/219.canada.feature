@@ -1,0 +1,1 @@
+Added a `ckan.site_read_only` config option which disables `_create`, `_update`, `_patch`, and `_delete` actions for non-sysadmin users.
