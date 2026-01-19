@@ -165,6 +165,9 @@ def default_create_package_schema(
             '__extras': [ignore],
         },
         'metadata_modified': [ignore_not_sysadmin, ignore_missing, isodate],
+        # (canada fork only): metadata_created for data migrations
+        # TODO: upstream contrib!!
+        'metadata_created': [ignore_not_sysadmin, ignore_missing, isodate],
     }
 
 
@@ -172,7 +175,10 @@ def default_create_package_schema(
 def default_update_package_schema(
         ignore_missing: Validator, package_id_not_changed: Validator,
         name_validator: Validator, package_name_validator: Validator,
-        unicode_safe: Validator, owner_org_validator: Validator):
+        unicode_safe: Validator, owner_org_validator: Validator,
+        # (canada fork only): metadata_created for data migrations
+        # TODO: upstream contrib!!
+        ignore: Validator):
     schema = default_create_package_schema()
 
     schema['resources'] = default_update_resource_schema()
@@ -191,6 +197,10 @@ def default_update_package_schema(
     schema['title'] = [ignore_missing, unicode_safe]
 
     schema['owner_org'] = [ignore_missing, owner_org_validator, unicode_safe]
+
+    # (canada fork only): metadata_created for data migrations
+    # TODO: upstream contrib!!
+    schema['metadata_created'] = [ignore]
 
     return schema
 

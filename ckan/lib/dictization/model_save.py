@@ -349,8 +349,10 @@ def package_dict_save(
     model = context["model"]
     Package = model.Package
 
-    if 'metadata_created' in pkg_dict:
-        del pkg_dict['metadata_created']
+    # (canada fork only): metadata_created for data migrations
+    # TODO: upstream contrib!!
+    # if 'metadata_created' in pkg_dict:
+    #     del pkg_dict['metadata_created']
 
     plugin_data = pkg_dict.pop('plugin_data', None)
     if include_plugin_data:
