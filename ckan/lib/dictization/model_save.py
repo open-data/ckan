@@ -59,7 +59,11 @@ def resource_dict_save(
         obj.url_changed = True
 
     any_change = changed or obj.extras != skipped
-    if any_change:
+    # (canada fork only): metadata_modified for data migrations
+    # TODO: upstream contrib!!
+    if res_dict.get('metadata_modified'):
+        obj.metadata_modified = res_dict['metadata_modified']
+    elif any_change:
         obj.metadata_modified = datetime.datetime.utcnow()
     obj.state = u'active'
     obj.extras = skipped

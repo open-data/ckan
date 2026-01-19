@@ -36,7 +36,10 @@ def default_resource_schema(
         isodate: Validator, int_validator: Validator,
         extras_valid_json: Validator, keep_extras: Validator,
         resource_id_validator: Validator,
-        resource_id_does_not_exist: Validator):
+        resource_id_does_not_exist: Validator,
+        # (canada fork only): metadata_modified for data migrations
+        # TODO: upstream contrib!!
+        ignore_not_sysadmin: Validator):
     return cast(Schema, {
         'id': [ignore_empty, resource_id_validator,
                resource_id_does_not_exist, unicode_safe],
@@ -61,6 +64,9 @@ def default_resource_schema(
         'tracking_summary': [ignore_missing],
         'datastore_active': [ignore_missing],
         '__extras': [ignore_missing, extras_valid_json, keep_extras],
+        # (canada fork only): metadata_modified for data migrations
+        # TODO: upstream contrib!!
+        'metadata_modified': [ignore_not_sysadmin, ignore_missing, isodate],
     })
 
 
@@ -225,6 +231,9 @@ def default_show_package_schema(keep_extras: Validator,
         'created': [ignore_missing],
         'position': [not_empty],
         'last_modified': [],
+        # (canada fork only): metadata_modified for data migrations
+        # TODO: upstream contrib!!
+        'metadata_modified': [],
         'cache_last_updated': [],
         'package_id': [],
         'size': [],
