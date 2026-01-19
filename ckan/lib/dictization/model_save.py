@@ -145,9 +145,10 @@ def package_resource_list_save(
 def package_extras_save(
         extra_dicts: Optional[list[dict[str, Any]]], pkg: 'model.Package',
         context: Context) -> None:
-    allow_partial_update = context.get("allow_partial_update", False)
-    if extra_dicts is None and allow_partial_update:
-        return
+    # (canada fork only): from backport PR#8407, support old package_extras table
+    extras_changed = False
+    if extra_dicts is None:
+        return extras_changed
 
     session = context["session"]
 
@@ -166,6 +167,7 @@ def package_extras_save(
     #new
     for key in set(new_extras.keys()) - set(old_extras.keys()):
         pkg.extras[key] = new_extras[key]
+        extras_changed = True
     #changed
     for key in set(new_extras.keys()) & set(old_extras.keys()):
         extra = old_extras[key]
@@ -173,10 +175,14 @@ def package_extras_save(
             continue
         extra.value = new_extras[key]
         session.add(extra)
+        extras_changed = True
     #deleted
     for key in set(old_extras.keys()) - set(new_extras.keys()):
         extra = old_extras[key]
         session.delete(extra)
+        extras_changed = True
+
+    return extras_changed
 
 
 def package_tag_list_save(tag_dicts: Optional[list[dict[str, Any]]],
@@ -374,6 +380,9 @@ def package_dict_save(
     tag_change = package_tag_list_save(pkg_dict.get("tags"), pkg, context)
     group_change = package_membership_list_save(
         pkg_dict.get("groups"), pkg, context)
+    # (canada fork only): from backport PR#8407, support old package_extras table
+    extras_change = package_extras_save(
+        pkg_dict.get("extras"), pkg, context)
 
     # relationships are not considered 'part' of the package, so only
     # process this if the key is provided
@@ -387,7 +396,8 @@ def package_dict_save(
     return (
         pkg,
         'create' if pkg_change == 'create'
-        else 'update' if pkg_change or res_change or tag_change or group_change
+        # (canada fork only): from backport PR#8407, support old package_extras table
+        else 'update' if pkg_change or res_change or tag_change or group_change or extras_change
         else None
     )
 
