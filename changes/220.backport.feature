@@ -1,0 +1,1 @@
+Backported [#8421](https://github.com/ckan/ckan/pull/8421) for faster metadata updates. Comes with the `metadata_modified` and `metadata_created` schemas, allowing for site package migrations with correct metadata for these fields.
