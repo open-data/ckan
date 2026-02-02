@@ -36,7 +36,10 @@ def default_resource_schema(
         isodate: Validator, int_validator: Validator,
         extras_valid_json: Validator, keep_extras: Validator,
         resource_id_validator: Validator,
-        resource_id_does_not_exist: Validator):
+        resource_id_does_not_exist: Validator,
+        # (canada fork only): metadata_modified for data migrations
+        # TODO: upstream contrib!!
+        ignore_not_sysadmin: Validator):
     return cast(Schema, {
         'id': [ignore_empty, resource_id_validator,
                resource_id_does_not_exist, unicode_safe],
@@ -61,6 +64,9 @@ def default_resource_schema(
         'tracking_summary': [ignore_missing],
         'datastore_active': [ignore_missing],
         '__extras': [ignore_missing, extras_valid_json, keep_extras],
+        # (canada fork only): metadata_modified for data migrations
+        # TODO: upstream contrib!!
+        'metadata_modified': [ignore_not_sysadmin, ignore_missing, isodate],
     })
 
 
@@ -123,8 +129,9 @@ def default_create_package_schema(
         datasets_with_no_organization_cannot_be_private: Validator,
         empty: Validator, tag_string_convert: Validator,
         owner_org_validator: Validator, json_object: Validator,
-        ignore_not_sysadmin: Validator, license_choices: Validator):
-    return cast(Schema, {
+        ignore_not_sysadmin: Validator, license_choices: Validator,
+        isodate: Validator) -> Schema:
+    return {
         '__before': [duplicate_extras_key, ignore],
         'id': [empty_if_not_sysadmin, ignore_missing, unicode_safe,
                package_id_does_not_exist],
@@ -162,8 +169,12 @@ def default_create_package_schema(
             'name': [ignore_missing, unicode_safe],
             'title': [ignore_missing, unicode_safe],
             '__extras': [ignore],
-        }
-    })
+        },
+        'metadata_modified': [ignore_not_sysadmin, ignore_missing, isodate],
+        # (canada fork only): metadata_created for data migrations
+        # TODO: upstream contrib!!
+        'metadata_created': [ignore_not_sysadmin, ignore_missing, isodate],
+    }
 
 
 @validator_args
@@ -213,6 +224,9 @@ def default_show_package_schema(keep_extras: Validator,
         'created': [ignore_missing],
         'position': [not_empty],
         'last_modified': [],
+        # (canada fork only): metadata_modified for data migrations
+        # TODO: upstream contrib!!
+        'metadata_modified': [],
         'cache_last_updated': [],
         'package_id': [],
         'size': [],

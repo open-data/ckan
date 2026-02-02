@@ -210,7 +210,8 @@ def package_create(
             data['creator_user_id'] = user_obj.id
             include_plugin_data = user_obj.sysadmin and plugin_data
 
-    pkg = model_save.package_dict_save(data, context, include_plugin_data)
+    pkg, _change = model_save.package_dict_save(
+        data, context, include_plugin_data)
 
     # Needed to let extensions know the package and resources ids
     model.Session.flush()
@@ -218,6 +219,9 @@ def package_create(
     if data.get('resources'):
         for index, resource in enumerate(data['resources']):
             resource['id'] = pkg.resources[index].id
+
+    if not data.get('metadata_modified'):
+        pkg.metadata_modified = datetime.datetime.utcnow()
 
     context_org_update = context.copy()
     context_org_update['ignore_auth'] = True
@@ -311,9 +315,8 @@ def resource_create(context: Context,
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
         plugin.before_resource_create(context, data_dict)
 
-    if 'resources' not in pkg_dict:
-        pkg_dict['resources'] = []
 
+    # (canada fork only): keep mimetype and file size attributes
     upload = uploader.get_resource_uploader(data_dict)
 
     if 'mimetype' not in data_dict:
@@ -323,12 +326,20 @@ def resource_create(context: Context,
     if 'size' not in data_dict:
         if hasattr(upload, 'filesize'):
             data_dict['size'] = upload.filesize
+    # (canada fork only): keep mimetype and file size attributes :END
+
+    original_package = dict(pkg_dict)
+
+    # allow metadata_modified to be updated
+    pkg_dict.pop('metadata_modified', None)
+    pkg_dict['resources'] = list(pkg_dict.get('resources', []))
 
     pkg_dict['resources'].append(data_dict)
 
     try:
         context['defer_commit'] = True
         context['use_cache'] = False
+        context['original_package'] = original_package
         _get_action('package_update')(context, pkg_dict)
         context.pop('defer_commit')
     except ValidationError as e:
