@@ -2504,6 +2504,20 @@ def status_show(context: Context, data_dict: DataDict) -> ActionResult.StatusSho
     return site_info
 
 
+# (canada fork only): list of package types
+# TODO: upstream contrib!!!
+def available_package_types(context: Context, data_dict: DataDict) -> ActionResult:
+    """
+    Returns a list of the available package types.
+    """
+    _check_access('available_package_types', context, data_dict)
+
+    available_package_types = set()
+    for plugin in plugins.PluginImplementations(plugins.IDatasetForm):
+        available_package_types.update(plugin.package_types())
+    return sorted(available_package_types)
+
+
 def vocabulary_list(
         context: Context, data_dict: DataDict) -> ActionResult.VocabularyList:
     '''Return a list of all the site's tag vocabularies.

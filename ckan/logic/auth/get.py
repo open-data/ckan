@@ -235,6 +235,12 @@ def task_status_show(context: Context, data_dict: DataDict) -> AuthResult:
     return {'success': True}
 
 
+# (canada fork only): list of package types
+# TODO: upstream contrib!!!
+def available_package_types(context: Context, data_dict: DataDict) -> AuthResult:
+    return {'success': True}
+
+
 def get_site_user(context: Context, data_dict: DataDict) -> AuthResult:
     # FIXME this is available to sysadmins currently till
     # @auth_sysadmins_check decorator is added
