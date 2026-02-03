@@ -1,0 +1,1 @@
+Fixed an issue with the Success and Failure flash messages not rendering properly in the `resource-reorder` JS module.

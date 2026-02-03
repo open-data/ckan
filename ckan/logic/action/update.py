@@ -104,10 +104,7 @@ def resource_update(context: Context, data_dict: DataDict) -> ActionResult.Resou
     pkg_dict['resources'] = list(pkg_dict['resources'])
 
     resources = cast("list[dict[str, Any]]", pkg_dict['resources'])
-    for n, p in enumerate(resources):
-        if p['id'] == id:
-            break
-    else:
+    if resources[resource.position]['id'] != id:
         log.error('Could not find resource %s after all', id)
         raise NotFound(_('Resource was not found.'))
 
@@ -117,14 +114,17 @@ def resource_update(context: Context, data_dict: DataDict) -> ActionResult.Resou
         data_dict['datastore_active'] = resource.extras['datastore_active']
 
     for plugin in plugins.PluginImplementations(plugins.IResourceController):
-        plugin.before_resource_update(context, pkg_dict['resources'][n],
-                                      data_dict)
+        plugin.before_resource_update(
+            context,
+            pkg_dict['resources'][resource.position],
+            data_dict
+        )
 
-    resources[n] = data_dict
+    resources[resource.position] = data_dict
 
     try:
-        context['use_cache'] = False
-        updated_pkg_dict = _get_action('package_update')(context, pkg_dict)
+        updated_pkg_dict = _get_action('package_update')(
+            update_context, pkg_dict)
     except ValidationError as e:
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??

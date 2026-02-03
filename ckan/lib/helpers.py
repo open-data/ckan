@@ -2832,3 +2832,14 @@ def csrf_input():
     '''
     import ckan.lib.base as base
     return literal(base.render('snippets/csrf_input.html'))
+
+
+# (canada fork only): list of package types
+# TODO: upstream contrib!!!
+@core_helper
+def get_available_package_types():
+    """
+    Return a list of available package types
+    """
+    context = cast(Context, {'user': g.user})
+    return logic.get_action('available_package_types')(context, {})

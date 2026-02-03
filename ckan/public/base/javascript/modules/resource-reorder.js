@@ -34,7 +34,15 @@ this.ckan.module('resource-reorder', function($) {
       // (canada fork only): handle all errors in resource actions
       // TODO: upstream contrib??
       errors: [
-        '<div class="error-explanation alert alert-danger">',
+        '<div class="reorder-error-explanation alert alert-danger">',
+        '<h3></h3>',
+        '<p></p>',
+        '</div>'
+      ].join('\n'),
+      // (canada fork only): handle success in resource actions
+      // TODO: upstream contrib??
+      success: [
+        '<div class="reorder-success-explanation alert alert-success">',
         '<h3></h3>',
         '<p></p>',
         '</div>'
@@ -57,10 +65,21 @@ this.ckan.module('resource-reorder', function($) {
 
       // (canada fork only): handle all errors in resource actions
       // TODO: upstream contrib??
-      this.html_errors = $(this.template.errors)
-        .insertBefore(this.el)
-        .hide();
-      $(this.html_errors).find('h3').text(this._('Errors in dataset'));
+      if( $('.reorder-error-explanation').length == 0 ){
+        this.html_errors = $(this.template.errors)
+          .insertBefore(this.el)
+          .hide();
+        $(this.html_errors).find('h3').text(this._('Errors in dataset'));
+      }
+
+      // (canada fork only): handle success in resource actions
+      // TODO: upstream contrib??
+      if( $('.reorder-success-explanation').length == 0 ){
+        this.html_success = $(this.template.success)
+          .insertBefore(this.el)
+          .hide();
+        $(this.html_success).find('h3').text(this._('Saved new order'));
+      }
 
       this.html_help_text = $(this.template.help_text)
         .text(helpText)
@@ -138,21 +157,35 @@ this.ckan.module('resource-reorder', function($) {
         $('.resource-item', module.el).each(function() {
           order.push($(this).data('id'));
         });
+        // (canada fork only): handle all errors in resource actions
+        // TODO: upstream contrib??
+        $(module.html_errors).hide();
+        // (canada fork only): handle success in resource actions
+      // TODO: upstream contrib??
+        $(module.html_success).hide();
         module.sandbox.client.call('POST', 'package_resource_reorder', {
           id: module.options.id,
           order: order
         }, function(data) {
           // (canada fork only): handle all errors in resource actions
           // TODO: upstream contrib??
-          if( typeof data.result !== 'undefined' && typeof data.result.error_summary !== 'undefined' ){
+          if( typeof data.result !== 'undefined' && typeof data.result.error_summary !== 'undefined' && (data.result.error_summary != null || data.result.errors != null) ){
             $(module.html_errors).find('p').text(data.result.error_summary);
             $(module.html_errors).show();
+            console.warn('Failed to reorder resources:');
+            console.warn(data.result);
+          }else{
+            // (canada fork only): handle success in resource actions
+            // TODO: upstream contrib??
+            $(module.html_success).show();
           }
+          // TODO: fix form not flashing success and resetting...
           module.html_saving.hide();
           $('.save, .cancel', module.html_form_actions).removeClass('disabled');
           module.cache = module.el.html();
           module.reset();
           module.is_reordering = false;
+          module.initialize();
         });
       }
     },

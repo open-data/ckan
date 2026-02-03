@@ -1,3 +1,7 @@
+{# (canada fork only): list of package types #}
+{# TODO: upstream contrib!!! #}
+{% set available_package_types = h.get_available_package_types() %}
+
 {% macro actor(activity) %}
   <span>
     {{ h.linked_user(activity.user_id, 0, 30) }}
@@ -5,7 +9,9 @@
 {% endmacro %}
 
 {% macro dataset(activity) %}
-  {% set dataset_type = activity.data.package.type or 'dataset' %}
+  {# (canada fork only): list of package types #}
+  {# TODO: upstream contrib!!! #}
+  {% set dataset_type = activity.data.package.type if activity.data.package.type and activity.data.package.type in available_package_types else 'dataset' %}
   <span class="dataset">
     <a href="{{ h.url_for(dataset_type ~ '.read', id=activity.object_id ) }}">
       {{ activity.data.package.title if activity.data.package else _("unknown") }}
