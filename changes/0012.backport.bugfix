@@ -1,0 +1,1 @@
+Backported [e8ec7fb](https://github.com/ckan/ckan/commit/e8ec7fb06325f792a2159b2d9f92c1cb664a8fa2) to fix a major issue with Resource updating and patching in regards to the Resource ordering.
