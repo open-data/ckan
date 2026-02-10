@@ -9,7 +9,9 @@ from collections import OrderedDict
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy import orm
 from ckan.common import config
-from sqlalchemy import types, Column, Table, ForeignKey, Index
+# (danada fork only): unique resource position constraint
+# TODO: upstream contrib!! w/ migration script
+from sqlalchemy import types, Column, Table, ForeignKey, Index, UniqueConstraint
 from typing_extensions import Self
 
 import ckan.model.meta as meta
@@ -55,10 +57,11 @@ resource_table = Table(
     Column('url_type', types.UnicodeText),
     Column('extras', _types.JsonDictType),
     Column('state', types.UnicodeText, default=core.State.ACTIVE),
-    # (danada fork only): unique resource position index
+    # (danada fork only): unique resource position constraint
     # TODO: upstream contrib!! w/ migration script
-    Index('idx_package_resource_unique_position', 'package_id', 'position',
-          unique=True, postgresql_where="(state = 'active'::text)")
+    UniqueConstraint(Column('package_id'), Column('position'),
+        name='con_package_resource_unique_position',
+        deferrable=True, initially='deferred')
 )
 
 
