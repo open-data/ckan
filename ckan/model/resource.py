@@ -55,7 +55,7 @@ resource_table = Table(
     Column('url_type', types.UnicodeText),
     Column('extras', _types.JsonDictType),
     Column('state', types.UnicodeText, default=core.State.ACTIVE),
-    # (danada fork only): uiqure resource position index
+    # (danada fork only): unique resource position index
     # TODO: upstream contrib!! w/ migration script
     Index('idx_package_resource_unique_position', 'package_id', 'position',
           unique=True, postgresql_where="(state = 'active'::text)")
