@@ -1,1 +1,1 @@
-Added a unique constraint `con_package_resource_unique_position` onto the Resource model to make resource positions unique per dataset. This is a deferrable constraint.
+Added a unique constraint `con_package_resource_unique_position` onto the Resource model to make resource positions unique per dataset. This is a deferrable constraint. Resource with a deleted state will now have `null` positions. Requires DB plugin migration.
