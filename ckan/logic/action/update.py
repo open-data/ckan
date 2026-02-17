@@ -346,7 +346,7 @@ def package_update(
         changed_resources = original_package['resources']
 
     resource_uploads = []
-    for resource in data_dict.get('resources', []):
+    for resource in changed_resources or []:
         # file uploads/clearing
         upload = uploader.get_resource_uploader(resource)
 
@@ -427,7 +427,6 @@ def package_update(
                 resource = next(resiter)
                 upload = next(uploaditer)
                 resource['id'] = pkg.resources[i].id
-
                 upload.upload(resource['id'], uploader.get_max_resource_size())
 
         for item in plugins.PluginImplementations(plugins.IPackageController):

@@ -184,8 +184,7 @@ def _get_stately_resource_positions(index: int, resources: List[Resource]):
     """
     if resources[index].state != 'deleted':
         return index
-    else:
-        return None
+    return None
 
 
 meta.mapper(Resource, resource_table, properties={
@@ -200,6 +199,9 @@ meta.mapper(Resource, resource_table, properties={
                                 # TODO: upstream contrib!! w/ migration script
                                 ordering_func=_get_stately_resource_positions
                             ),
+                            # (canada fork only): proper resource position order for package ORM object
+                            # TODO: upstream contrib!!!
+                            order_by=resource_table.c.position,
                             cascade='all, delete'
                             ),
     )
