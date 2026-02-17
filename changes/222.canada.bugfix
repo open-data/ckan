@@ -1,0 +1,1 @@
+Added an Order By to the backref `resources_all` so that the Package ORM object accessing its `resources` property will have the resources in the proper ordering of `position`. This fixes a flaky issue when uploading resources during `package_update`
