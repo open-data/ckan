@@ -143,6 +143,9 @@ def package_resource_list_save(
     # Mark any left-over resources as deleted
     for resource in set(old_list) - set(obj_list):
         resource.state = 'deleted'
+        # (canada fork only): unique resource position constraint
+        # TODO: upstream contrib!! w/ migration script
+        resource.position = None
         resource_list.append(resource)
 
     return True

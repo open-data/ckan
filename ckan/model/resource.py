@@ -2,14 +2,18 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Callable, ClassVar, Optional
+# (canada fork only): unique resource position constraint
+# TODO: upstream contrib!! w/ migration script
+from typing import Any, Callable, ClassVar, Optional, List
 
 
 from collections import OrderedDict
 from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy import orm
 from ckan.common import config
-from sqlalchemy import types, Column, Table, ForeignKey
+# (canada fork only): unique resource position constraint
+# TODO: upstream contrib!! w/ migration script
+from sqlalchemy import types, Column, Table, ForeignKey, UniqueConstraint
 from typing_extensions import Self
 
 import ckan.model.meta as meta
@@ -55,6 +59,11 @@ resource_table = Table(
     Column('url_type', types.UnicodeText),
     Column('extras', _types.JsonDictType),
     Column('state', types.UnicodeText, default=core.State.ACTIVE),
+    # (canada fork only): unique resource position constraint
+    # TODO: upstream contrib!! w/ migration script
+    UniqueConstraint(Column('package_id'), Column('position'),
+        name='con_package_resource_unique_position',
+        deferrable=True, initially='deferred')
 )
 
 
@@ -164,13 +173,32 @@ class Resource(core.StatefulObjectMixin,
 
 ## Mappers
 
+# (canada fork only): unique resource position constraint
+# TODO: upstream contrib!! w/ migration script
+def _get_stately_resource_positions(index: int, resources: List[Resource]):
+    """
+    Give state='deleted' resources null positions.
+
+    Required for con_package_resource_unique_position
+    unique constraint when deleting resources.
+    """
+    if resources[index].state != 'deleted':
+        return index
+    return None
+
+
 meta.mapper(Resource, resource_table, properties={
     'package': orm.relation(
         Package,
         # all resources including deleted
         # formally package_resources_all
         backref=orm.backref('resources_all',
-                            collection_class=ordering_list('position'),
+                            collection_class=ordering_list(
+                                'position',
+                                # (canada fork only): unique resource position constraint
+                                # TODO: upstream contrib!! w/ migration script
+                                ordering_func=_get_stately_resource_positions
+                            ),
                             # (canada fork only): proper resource position order for package ORM object
                             # TODO: upstream contrib!!!
                             order_by=resource_table.c.position,
