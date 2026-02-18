@@ -33,6 +33,7 @@ from ckan.lib import signals
 # (canada fork only): nocache decorator
 # TODO: upstream contrib??
 from . import nocache_store
+from sqlalchemy import func
 
 log = logging.getLogger(__name__)
 
@@ -758,20 +759,16 @@ class RequestResetView(MethodView):
             # Search by email address
             # (You can forget a user id, but you don't tend to forget your
             # email)
-            user_list = logic.get_action(u'user_list')(context, {
-                u'email': id
-            })
-            if user_list:
-                # send reset emails for *all* user accounts with this email
-                # (otherwise we'd have to silently fail - we can't tell the
-                # user, as that would reveal the existence of accounts with
-                # this email address)
-                for user_dict in user_list:
-                    # This is ugly, but we need the user object for the mailer,
-                    # and user_list does not return them
-                    logic.get_action(u'user_show')(
-                        context, {u'id': user_dict[u'id']})
-                    user_objs.append(context[u'user_obj'])
+
+            # send reset emails for *all* user accounts with this email
+            # (otherwise we'd have to silently fail - we can't tell the
+            # user, as that would reveal the existence of accounts with
+            # this email address)
+            user_objs = (
+                model.Session.query(model.User)
+                .filter(func.lower(model.User.email) == id.strip().lower())
+                .all()
+            )
 
         else:
             # Search by user name
