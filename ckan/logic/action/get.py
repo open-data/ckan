@@ -883,6 +883,7 @@ def user_list(
     if q:
         query = model.User.search(q, query, user_name=context.get('user'))
     if email:
+        # (canada fork only): support case-insensitive email filtering
         query = query.filter(
             sqlalchemy.func.lower(model.User.email) == email.strip().lower()
             )
