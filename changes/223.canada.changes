@@ -1,0 +1,2 @@
+- Allow users to request a password reset using a case-insensitive email address.
+- Ensures password reset works even if the email is stored with mixed-case letters in the database.
