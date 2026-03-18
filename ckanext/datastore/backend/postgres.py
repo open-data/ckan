@@ -26,7 +26,9 @@ import datetime
 import hashlib
 import json
 import decimal
-from collections import OrderedDict
+# (canada fork only): show duplicate keys
+# TODO: upstrea contrib??
+from collections import OrderedDict, Counter
 
 from urllib.parse import (
     urlencode, urlunparse, parse_qsl, urlparse
@@ -1251,8 +1253,14 @@ def create_table(
     # Check for duplicate fields
     unique_fields = {f['id'] for f in supplied_fields}
     if not len(unique_fields) == len(supplied_fields):
+        # (canada fork only): show duplicate keys
+        # TODO: upstrea contrib??
+        field_id_counts = Counter([f['id'] for f in supplied_fields])
+        duplicate_field_ids = [fid for fid, count in
+                               field_id_counts.items() if count > 1]
         raise ValidationError({
-            'field': ['Duplicate column names are not supported']
+            'field': ['Duplicate column names are not supported: {}'.format(
+                        ', '.join(duplicate_field_ids))]
         })
 
     if records:
