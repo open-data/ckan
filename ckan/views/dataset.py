@@ -8,6 +8,9 @@ from functools import partial
 from typing_extensions import TypeAlias
 from urllib.parse import urlencode
 from typing import Any, Iterable, Optional, Union, cast
+# (canada fork only): resource search
+# TODO: upstream contrib??
+from html import escape as html_escape
 
 from flask import Blueprint
 from flask.views import MethodView
@@ -488,6 +491,20 @@ def read(package_type: str, id: str) -> Union[Response, str]:
             data_dict['id'] != pkg_dict['name']:
         return h.redirect_to(u'{}.read'.format(package_type),
                              id=pkg_dict['name'])
+
+    # (canada fork only): resource search
+    # TODO: upstream contrib??
+    resource_query = request.args.get("resource_query")
+    if resource_query:
+        resource_query = html_escape(resource_query)
+        filtered_resources = []
+        for res_dict in pkg_dict['resources']:
+            res_name = h.get_translated(res_dict, 'name')
+            if resource_query.lower() not in res_name.lower():
+                continue
+            filtered_resources.append(res_dict)
+        pkg_dict['resources'] = filtered_resources
+        g.resource_query = resource_query
 
     # can the resources be previewed?
     for resource in pkg_dict[u'resources']:
