@@ -496,7 +496,6 @@ def read(package_type: str, id: str) -> Union[Response, str]:
     # TODO: upstream contrib??
     resource_query = request.args.get("resource_query")
     if resource_query:
-        resource_query = html_escape(resource_query)
         filtered_resources = []
         for res_dict in pkg_dict['resources']:
             res_name = h.get_translated(res_dict, 'name')
