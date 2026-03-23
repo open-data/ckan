@@ -489,6 +489,16 @@ def read(package_type: str, id: str) -> Union[Response, str]:
         return h.redirect_to(u'{}.read'.format(package_type),
                              id=pkg_dict['name'])
 
+    # (canada fork only): resource search
+    # TODO: upstream contrib??
+    resource_query = request.args.get("resource_query")
+    if resource_query:
+        pkg_dict['resources'] = [
+            r for r in pkg_dict['resources']
+            if resource_query.lower() in h.get_translated(r, 'name').lower()
+        ]
+        g.resource_query = resource_query
+
     # can the resources be previewed?
     for resource in pkg_dict[u'resources']:
         resource_views = get_action(u'resource_view_list')(
