@@ -8,9 +8,6 @@ from functools import partial
 from typing_extensions import TypeAlias
 from urllib.parse import urlencode
 from typing import Any, Iterable, Optional, Union, cast
-# (canada fork only): resource search
-# TODO: upstream contrib??
-from html import escape as html_escape
 
 from flask import Blueprint
 from flask.views import MethodView
