@@ -496,13 +496,10 @@ def read(package_type: str, id: str) -> Union[Response, str]:
     # TODO: upstream contrib??
     resource_query = request.args.get("resource_query")
     if resource_query:
-        filtered_resources = []
-        for res_dict in pkg_dict['resources']:
-            res_name = h.get_translated(res_dict, 'name')
-            if resource_query.lower() not in res_name.lower():
-                continue
-            filtered_resources.append(res_dict)
-        pkg_dict['resources'] = filtered_resources
+        pkg_dict['resources'] = [
+            r for r in pkg_dict['resources']
+            if resource_query.lower() in h.get_translated(r, 'name').lower()
+        ]
         g.resource_query = resource_query
 
     # can the resources be previewed?
