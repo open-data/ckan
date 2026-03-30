@@ -600,7 +600,7 @@ def datastore_search(context: Context, data_dict: dict[str, Any]):
 
     # (canada fork only): configurable datastore search tables
     # TODO: upstream contrib!!
-    if data_dict['resource_id'] not in p.toolkit.config.get('ckan.datastore.allow_table_search'):
+    if data_dict['resource_id'] not in p.toolkit.config.get('ckan.datastore.allow_table_search') + ['_table_metadata']:
         res_exists, real_id = backend.resource_id_from_alias(res_id)
         # Resource only has to exist in the datastore (because it could be an
         # alias)
