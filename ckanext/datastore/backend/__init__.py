@@ -6,6 +6,10 @@ import re
 import logging
 from typing import Any, Container
 
+# (canada fork only): psql dump format
+# TODO: upstream contrib??
+import subprocess
+
 import ckan.plugins as plugins
 from ckan.common import CKANConfig, config
 from ckanext.datastore.interfaces import IDatastoreBackend
@@ -191,6 +195,13 @@ class DatastoreBackend:
         :type fields: list of dictionaries
         :param records: list of matching results
         :type records: list of dictionaries
+        """
+        raise NotImplementedError()
+
+    # (canada fork only): psql dump format
+    # TODO: upstream contrib??
+    def dump_sql(self, id: str) -> subprocess.CompletedProcess:
+        """Define an SQL dump export for the Resource's table.
         """
         raise NotImplementedError()
 
