@@ -2808,14 +2808,17 @@ def create_function(name: str, arguments: Iterable[dict[str, Any]],
         or_replace=u'OR REPLACE' if or_replace else u'',
         name=identifier(name),
         args=u', '.join(
-            u'{argmode} {argname} {argtype}'.format(
+            u'{argmode} {argname} {argtype} {argdefault}'.format(
                 # (canada fork only): adds argmode capability
                 argmode=a['argmode'] if 'argmode' in a else '',
                 argname=identifier(a['argname']),
                 # (canada fork only): support literal type boolean
                 # TODO: upstream contrib!! make better with constant list of psql literals.
                 # FIXME: psql has some literals that do not work in double quotes.
-                argtype=identifier(a['argtype']) if a['argtype'] != 'boolean' else a['argtype'])
+                argtype=identifier(a['argtype']) if a['argtype'] != 'boolean' else a['argtype'],
+                # (canada fork only): adds argdefault capability
+                argdefault=' DEFAULT {}'.format(identifier(a['argdefault'])
+                    if a['argtype'] == 'text' and a['argdefault'] != 'NULL' else a['argdefault']) if 'argdefault' in a else '')
             for a in arguments),
         rettype=identifier(rettype),
         definition=literal_string(definition))
