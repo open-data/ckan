@@ -70,10 +70,27 @@ def site_read(context: Context, data_dict: Optional[DataDict]=None) -> bool:
     return True
 
 
-@logic.validate(ckan.logic.schema.default_pagination_schema)
+# (canada fork only): align package_list with package_search
+# TODO: upstream contrib!!
+@logic.validate(ckan.logic.schema.default_package_list_schema)
 def package_list(context: Context, data_dict: DataDict) -> ActionResult.PackageList:
     '''Return a list of the names of the site's datasets (packages).
 
+    # (canada fork only): align package_list with package_search
+    # TODO: upstream contrib!!
+    :param include_drafts: if ``True``, draft datasets will be included in the
+        results. This option is only availale to sysadmins. Optional, the default is
+        ``False``.
+    :type include_drafts: bool
+    :param include_deleted: if ``True``, deleted datasets will be included in the
+        results (site configuration "ckan.search.remove_deleted_packages" must
+        be set to False). This option is only availale to sysadmins.
+        Optional, the default is ``False``.
+    :type include_deleted: bool
+    :param include_private: if ``True``, private datasets will be included in
+        the results. This option is only availale to sysadmins.
+        Optional, the default is ``False``.
+    :type include_private: bool
     :param limit: if given, the list of datasets will be broken into pages of
         at most ``limit`` datasets per page and only one page will be returned
         at a time (optional)
@@ -94,9 +111,23 @@ def package_list(context: Context, data_dict: DataDict) -> ActionResult.PackageL
     col = (package_table.c["id"]
            if api == 2 else package_table.c["name"])
     query = _select([col])
+
+    # (canada fork only): align package_list with package_search
+    # TODO: upstream contrib!!
+    include_private = asbool(data_dict.pop('include_private', False))
+    include_drafts = asbool(data_dict.pop('include_drafts', False))
+    include_deleted = asbool(data_dict.pop('include_deleted', False))
+
+    states = ['active']
+    if include_drafts:
+        states.append('draft')
+    if include_deleted:
+        states.append('deleted')
+
     query = query.where(_and_(
-        package_table.c["state"] == 'active',
-        package_table.c["private"] == False,
+        package_table.c["state"].in_(states),
+        package_table.c["private"] == False if not include_private
+        else package_table.c["private"].in_([True, False]),
     ))
     query = query.order_by(col)
 
@@ -112,7 +143,9 @@ def package_list(context: Context, data_dict: DataDict) -> ActionResult.PackageL
     return [r[0] for r in query.execute() or []]
 
 
-@logic.validate(ckan.logic.schema.default_package_list_schema)
+# (canada fork only): align package_list with package_search
+# TODO: upstream contrib!!
+@logic.validate(ckan.logic.schema.default_package_list_with_resources_schema)
 def current_package_list_with_resources(
         context: Context, data_dict: DataDict) -> ActionResult.CurrentPackageListWithResources:
     '''Return a list of the site's datasets (packages) and their resources.
