@@ -227,7 +227,7 @@ def is_authorized(action: str, context: Context,
 
         # (canada fork only): site read only mode
         # TODO: upstream contrib!!!
-        if config.get('ckan.site_read_only', False):
+        if p.toolkit.asbool(config.get('ckan.site_read_only', False)):
             if not getattr(p.toolkit.get_action(action), 'side_effect_free', False):
                 return {'success': False,
                         'msg': _('Site is in read only mode')}
