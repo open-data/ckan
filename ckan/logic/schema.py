@@ -628,13 +628,28 @@ def default_follow_group_schema(
 
 
 @validator_args
-def default_package_list_schema(ignore_missing: Validator,
-                                natural_number_validator: Validator,
-                                is_positive_integer: Validator):
+def default_package_list_with_resources_schema(ignore_missing: Validator,
+                                               natural_number_validator: Validator,
+                                               is_positive_integer: Validator):
     return cast(Schema, {
         'limit': [ignore_missing, natural_number_validator],
         'offset': [ignore_missing, natural_number_validator],
         'page': [ignore_missing, is_positive_integer]
+    })
+
+# (canada fork only): align package_list with package_search
+# TODO: upstream contrib!!
+@validator_args
+def default_package_list_schema(ignore_missing: Validator,
+                                natural_number_validator: Validator,
+                                boolean_validator: Validator,
+                                ignore_not_sysadmin: Validator):
+    return cast(Schema, {
+        'include_drafts': [ignore_missing, boolean_validator, ignore_not_sysadmin],
+        'include_deleted': [ignore_missing, boolean_validator, ignore_not_sysadmin],
+        'include_private': [ignore_missing, boolean_validator, ignore_not_sysadmin],
+        'limit': [ignore_missing, natural_number_validator],
+        'offset': [ignore_missing, natural_number_validator]
     })
 
 
