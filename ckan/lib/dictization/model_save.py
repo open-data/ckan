@@ -752,6 +752,8 @@ def api_token_save(data_dict: dict[str, Any],
     model = context[u"model"]
     user = model.User.get(data_dict['user'])
     assert user
+    # (canada fork only): sysadmin inserts/migrations
+    # TODO: upstream contrib!!
     if 'id' in data_dict:
         # sysadmin insertion / migration
         token, _change = d.table_dict_save(

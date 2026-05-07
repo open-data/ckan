@@ -1545,6 +1545,8 @@ def api_token_create(context: Context,
         raise ValidationError(errors)
 
     token_obj = model_save.api_token_save(
+        # (canada fork only): sysadmin inserts/migrations
+        # TODO: upstream contrib!!
         validated_data_dict, context
     )
     model.Session.commit()
