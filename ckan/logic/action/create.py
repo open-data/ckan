@@ -1545,7 +1545,7 @@ def api_token_create(context: Context,
         raise ValidationError(errors)
 
     token_obj = model_save.api_token_save(
-        {u'user': user, u'name': name}, context
+        validated_data_dict, context
     )
     model.Session.commit()
     data = {
