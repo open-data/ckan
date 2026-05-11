@@ -752,11 +752,26 @@ def api_token_save(data_dict: dict[str, Any],
     model = context[u"model"]
     user = model.User.get(data_dict['user'])
     assert user
-    token, _change = d.table_dict_save(
-        {
-            u"user_id": user.id,
-            u"name": data_dict[u"name"]
-        },
-        model.ApiToken, context
-    )
+    # (canada fork only): sysadmin inserts/migrations
+    # TODO: upstream contrib!!
+    if 'id' in data_dict:
+        # sysadmin insertion / migration
+        token, _change = d.table_dict_save(
+            {
+                "user_id": user.id,
+                "name": data_dict[u"name"],
+                "id": data_dict["id"],
+                "created_at": data_dict.get("created_at"),
+                "last_access": data_dict.get("last_access")
+            },
+            model.ApiToken, context
+        )
+    else:
+        token, _change = d.table_dict_save(
+            {
+                u"user_id": user.id,
+                u"name": data_dict[u"name"]
+            },
+            model.ApiToken, context
+        )
     return token

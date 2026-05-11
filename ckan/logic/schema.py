@@ -853,6 +853,11 @@ def default_create_api_token_schema(not_empty: Validator,
         u'name': [not_empty, unicode_safe],
         u'user': [not_empty, unicode_safe],
         u'plugin_extras': [ignore_missing, json_object, ignore_not_sysadmin],
+        # (canada fork only): sysadmin inserts/migrations
+        # TODO: upstream contrib!!
+        'created_at': [ignore_missing, ignore_not_sysadmin],
+        'id': [ignore_missing, ignore_not_sysadmin],
+        'last_access': [ignore_missing, ignore_not_sysadmin],
     })
 
 
