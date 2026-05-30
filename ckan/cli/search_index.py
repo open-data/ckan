@@ -90,9 +90,9 @@ def get_orphans() -> list[str]:
     search = None
     indexed_package_ids = []
     while search is None or len(indexed_package_ids) < search['count']:
-        search = logic.get_action('package_search')({}, {
-                'q': '*:*',
+        search = logic.get_action('package_search')({'ignore_auth':True}, {
                 'fl': 'id',
+                'include_private': True,
                 'start': len(indexed_package_ids),
                 'rows': 1000})
         indexed_package_ids += search['results']
@@ -127,6 +127,7 @@ def list_orphans_command():
 )
 @click.option(u'-v', u'--verbose', is_flag=True)
 def clear_orphans(verbose: bool = False):
+    from ckan.lib.search import clear
     for orphaned_package_id in get_orphans():
         if verbose:
             click.echo("Clearing search index for dataset {}...".format(
