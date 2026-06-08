@@ -236,6 +236,8 @@ def datastore_function_create_schema() -> Schema:
         'arguments': {
             'argname': [unicode_only, not_empty],
             'argtype': [unicode_only, not_empty],
+            # (canada fork only): adds argdefault capability
+            'argdefault': [ignore_missing],
             # (canada fork only): adds argmode capability
             'argmode': [ignore_missing, unicode_only, one_of([
                 u'in', u'out', u'inout'

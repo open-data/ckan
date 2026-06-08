@@ -628,13 +628,28 @@ def default_follow_group_schema(
 
 
 @validator_args
-def default_package_list_schema(ignore_missing: Validator,
-                                natural_number_validator: Validator,
-                                is_positive_integer: Validator):
+def default_package_list_with_resources_schema(ignore_missing: Validator,
+                                               natural_number_validator: Validator,
+                                               is_positive_integer: Validator):
     return cast(Schema, {
         'limit': [ignore_missing, natural_number_validator],
         'offset': [ignore_missing, natural_number_validator],
         'page': [ignore_missing, is_positive_integer]
+    })
+
+# (canada fork only): align package_list with package_search
+# TODO: upstream contrib!!
+@validator_args
+def default_package_list_schema(ignore_missing: Validator,
+                                natural_number_validator: Validator,
+                                boolean_validator: Validator,
+                                ignore_not_sysadmin: Validator):
+    return cast(Schema, {
+        'include_drafts': [ignore_missing, boolean_validator, ignore_not_sysadmin],
+        'include_deleted': [ignore_missing, boolean_validator, ignore_not_sysadmin],
+        'include_private': [ignore_missing, boolean_validator, ignore_not_sysadmin],
+        'limit': [ignore_missing, natural_number_validator],
+        'offset': [ignore_missing, natural_number_validator]
     })
 
 
@@ -833,11 +848,17 @@ def default_create_api_token_schema(not_empty: Validator,
                                     unicode_safe: Validator,
                                     ignore_missing: Validator,
                                     json_object: Validator,
-                                    ignore_not_sysadmin: Validator):
+                                    ignore_not_sysadmin: Validator,
+                                    isodate: Validator):
     return cast(Schema, {
         u'name': [not_empty, unicode_safe],
         u'user': [not_empty, unicode_safe],
         u'plugin_extras': [ignore_missing, json_object, ignore_not_sysadmin],
+        # (canada fork only): sysadmin inserts/migrations
+        # TODO: upstream contrib!!
+        'created_at': [ignore_missing, isodate, ignore_not_sysadmin],
+        'id': [ignore_missing, ignore_not_sysadmin],
+        'last_access': [ignore_missing, isodate, ignore_not_sysadmin],
     })
 
 

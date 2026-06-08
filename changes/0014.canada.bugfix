@@ -1,0 +1,1 @@
+Fixed an issue with `ckan.site_read_only` not respecting Boolean types in the config file.
