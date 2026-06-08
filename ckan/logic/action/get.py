@@ -1154,6 +1154,8 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
               res_dict.get('url', '').startswith('/')
             ):
                 res_dict['url'] = current_domain + res_dict['url']
+                if res_dict.get('original_url'):
+                    res_dict['original_url'] = current_domain + res_dict['original_url']  # XLoader field
 
     return package_dict
 
