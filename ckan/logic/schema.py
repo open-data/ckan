@@ -137,6 +137,8 @@ def default_create_package_schema(
                package_id_does_not_exist],
         'name': [
             not_empty, unicode_safe, name_validator, package_name_validator],
+        # (canada fork only): schema for creator_user_id
+        'creator_user_id': [ignore_missing, unicode_safe, ignore_not_sysadmin],
         'title': [if_empty_same_as("name"), unicode_safe],
         'author': [ignore_missing, unicode_safe],
         'author_email': [ignore_missing, unicode_safe, strip_value,
