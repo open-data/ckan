@@ -1,0 +1,1 @@
+Added support for the `language_domains` plugin to output the correct relative Resource download URIs.
