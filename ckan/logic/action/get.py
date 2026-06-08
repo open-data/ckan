@@ -16,8 +16,9 @@ from sqlalchemy import text
 
 # (canada fork only): non-qualified res_url for lang domain support
 from flask import request
+import re
 from urllib.parse import urlparse, urlunparse
-
+from ckan.lib import helpers
 
 import ckan
 import ckan.lib.dictization
@@ -1137,23 +1138,39 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
     if not context.get('for_index'):
         try:
             current_domain = request.host_url.rstrip('/')
+            current_locale = plugins.toolkit.h.lang()
         except RuntimeError:
             current_domain = config['ckan.site_url'].rstrip('/')
+            current_locale = config.get('ckan.locale_default', 'en')
         # upscale to configured scheme if different...
         # NOTE: this is very important for firewall and middleware stuff...
-        configured_domain = config['ckan.site_url']
-        configured_parts = urlparse(configured_domain)
+        configured_scheme, configured_host = helpers.get_site_protocol_and_host(current_locale)
         requesting_parts = urlparse(current_domain)
-        if configured_parts.scheme != requesting_parts.scheme:
+        if configured_scheme != requesting_parts.scheme:
             requesting_parts = requesting_parts._replace(
-                scheme=configured_parts.scheme)
+                scheme=configured_scheme)
             current_domain = urlunparse(requesting_parts)
+        if plugins.plugin_loaded('language_domains'):
+            root_paths = config.get('ckanext.language_domains.root_paths', {})
+            keep_lang_paths = config.get(
+                'ckanext.language_domains.keep_lang_paths', False)
+            root_path = root_paths.get(configured_host, '').rstrip('/')
+            if root_path and keep_lang_paths:
+                root_path = re.sub('{{LANG}}', current_locale, root_path)
+            else:
+                root_path = re.sub('{{LANG}}', '', root_path).rstrip('/')
+            if root_path:
+                current_domain = f'{current_domain}{root_path}'
+            elif keep_lang_paths:
+                current_domain = f'{current_domain}/{current_locale}'
         for res_dict in package_dict['resources']:
             if(
               res_dict.get('url_type') == 'upload' and
               res_dict.get('url', '').startswith('/')
             ):
                 res_dict['url'] = current_domain + res_dict['url']
+                if res_dict.get('original_url'):
+                    res_dict['original_url'] = current_domain + res_dict['original_url']  # XLoader field
 
     return package_dict
 

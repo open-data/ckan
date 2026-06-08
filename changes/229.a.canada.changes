@@ -1,0 +1,1 @@
+Prepends the requesting host and scheme to the `original_url` XLoader Resource field, supporting relative URIs for XLoader fields in the database.
