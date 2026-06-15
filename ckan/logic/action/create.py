@@ -207,7 +207,10 @@ def package_create(
     if user:
         user_obj = model.User.by_name(six.ensure_text(user))
         if user_obj:
-            data['creator_user_id'] = user_obj.id
+            # (canada fork only): schema for creator_user_id
+            # TODO: upstream contrib!!
+            if not data.get('creator_user_id'):
+                data['creator_user_id'] = user_obj.id
             include_plugin_data = user_obj.sysadmin and plugin_data
 
     pkg, _change = model_save.package_dict_save(
