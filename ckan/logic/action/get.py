@@ -1171,6 +1171,13 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
                 res_dict['url'] = current_domain + res_dict['url']
                 if res_dict.get('original_url'):
                     res_dict['original_url'] = current_domain + res_dict['original_url']  # XLoader field
+    else:
+        # (canada fork only): never index locale sub dirs
+        locales = config.get('ckan.locales_offered', 'en')
+        for res_dict in package_dict['resources']:
+            for locale in locales:
+                if res_dict.get('url', '').startswith(f'/{locale}/'):
+                    res_dict['url'] = res_dict['url'].replace(f'/{locale}/', '/')
 
     return package_dict
 

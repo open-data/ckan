@@ -1031,6 +1031,12 @@ def _insert_links(data_dict: dict[str, Any], limit: int, offset: int):
     except (KeyError, TypeError, RuntimeError):
         return  # no links required for local actions
 
+    log.info('    ')
+    log.info('DEBUGGING::STEP 3')
+    log.info('    ')
+    log.info(urlstring)
+    log.info('    ')
+
     # change the offset in the url
     parsed = list(urlparse(urlstring))
     query = parsed[4]

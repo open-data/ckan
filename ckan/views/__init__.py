@@ -220,7 +220,16 @@ def set_ckan_current_url(environ: Any) -> None:
         u'/'.join(quote(pce, u'') for pce in path_info.split(u'/'))
 
     qs = environ.get(u'QUERY_STRING')
+
     if qs:
         environ[u'CKAN_CURRENT_URL'] = u'%s?%s' % (path_info, qs)
     else:
         environ[u'CKAN_CURRENT_URL'] = path_info
+
+    log.info('    ')
+    log.info('DEBUGGING::STEP SURPRISE!!!')
+    log.info('    ')
+    log.info(environ['CKAN_CURRENT_URL'])
+    log.info(environ['REQUEST_URI'])
+    # log.info(plugins.toolkit.request.environ['CKAN_CURRENT_URL'])
+    log.info('    ')
