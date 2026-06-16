@@ -16,9 +16,7 @@ from sqlalchemy import text
 
 # (canada fork only): non-qualified res_url for lang domain support
 from flask import request
-import re
 from urllib.parse import urlparse, urlunparse
-from ckan.lib import helpers
 
 import ckan
 import ckan.lib.dictization
@@ -1155,7 +1153,7 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
               res_dict.get('url', '').startswith('/')
             ):
                 res_dict['url'] = current_domain + res_dict['url']
-                if res_dict.get('original_url'):
+                if res_dict.get('original_url') and res_dict.get('original_url', '').startswith('/'):
                     res_dict['original_url'] = current_domain + res_dict['original_url']  # XLoader field
 
     return package_dict
