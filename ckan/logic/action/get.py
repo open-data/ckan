@@ -1141,7 +1141,7 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
             current_locale = plugins.toolkit.h.lang()
         except RuntimeError:
             current_domain = config['ckan.site_url'].rstrip('/')
-            current_locale = config.get('ckan.locale_default', 'en')
+            current_locale = config['ckan.locale_default']
         # upscale to configured scheme if different...
         # NOTE: this is very important for firewall and middleware stuff...
         configured_scheme, configured_host = helpers.get_site_protocol_and_host(current_locale)
@@ -1156,9 +1156,9 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
                 'ckanext.language_domains.keep_lang_paths', False)
             root_path = root_paths.get(configured_host, '').rstrip('/')
             if root_path and keep_lang_paths:
-                root_path = re.sub('{{LANG}}', current_locale, root_path)
+                root_path = root_path.replace('{{LANG}}', current_locale)
             else:
-                root_path = re.sub('{{LANG}}', '', root_path).rstrip('/')
+                root_path = root_path.replace('{{LANG}}', '').rstrip('/')
             if root_path:
                 current_domain = f'{current_domain}{root_path}'
             elif keep_lang_paths:
@@ -1173,7 +1173,7 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
                     res_dict['original_url'] = current_domain + res_dict['original_url']  # XLoader field
     else:
         # (canada fork only): never index locale sub dirs
-        locales = config.get('ckan.locales_offered', 'en')
+        locales = config['ckan.locales_offered']
         for res_dict in package_dict['resources']:
             for locale in locales:
                 if res_dict.get('url', '').startswith(f'/{locale}/'):
