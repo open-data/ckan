@@ -836,8 +836,16 @@ def _create_atom_id(resource_path: str,
         return u''.join([site_url, resource_path])
 
     tagging_entity = u','.join([authority_name, date_string])
-    return u':'.join(['tag', tagging_entity, resource_path])
+    # (canada fork only): add feed id gen implement method
+    # TODO: upstream contrib!!
+    atom_id = ':'.join(['tag', tagging_entity, resource_path])
 
+    for plugin in plugins.PluginImplementations(plugins.IFeed):
+        if hasattr(plugin, 'create_atom_id'):
+            atom_id = plugin.create_atom_id(
+                atom_id, resource_path, authority_name, date_string)
+
+    return atom_id
 
 # Routing
 # (canada fork only): custom single dataset feed

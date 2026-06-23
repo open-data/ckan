@@ -206,6 +206,13 @@ class IFeed(Interface):
         """
         return {}
 
+    # (canada fork only): add feed id gen implement method
+    # TODO: upstream contrib!!
+    def create_atom_id(self, atom_id: str, resource_path: str,
+                       authority_name: Optional[str] = None,
+                       date_string: Optional[str] = None) -> str:
+        pass
+
 
 class IResourceUrlChange(Interface):
     u'''
