@@ -340,6 +340,7 @@ def search(package_type: str) -> str:
         )
         extra_vars[u'search_facets'] = query[u'search_facets']
         extra_vars[u'facet_ranges'] = query[u'facet_ranges']  # (canada fork only): add facet ranges
+        extra_vars['facet_queries'] = query['facet_queries']  # (canada fork only): add facet queries
         extra_vars[u'page'].items = query[u'results']
     except SearchQueryError as se:
         # User's search parameters are invalid, in such a way that is not
