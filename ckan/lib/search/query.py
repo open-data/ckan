@@ -31,7 +31,8 @@ VALID_SOLR_PARAMETERS = set([
     'q', 'fl', 'fq', 'rows', 'sort', 'start', 'wt', 'qf', 'bf', 'boost',
     'facet', 'facet.mincount', 'facet.limit', 'facet.field',
     'extras', 'fq_list', 'tie', 'defType', 'mm', 'df',
-    'facet.range.end', 'facet.range', 'facet.range.gap', 'facet.range.start'  # (canada fork only): add facet ranges
+    'facet.range.end', 'facet.range', 'facet.range.gap', 'facet.range.start',  # (canada fork only): add facet ranges
+    'facet.query',  # (canada fork only): add facet queries
 ])
 
 # for (solr) package searches, this specifies the fields that are searched
@@ -121,7 +122,6 @@ def _get_local_query_parser(q: str) -> str:
     q = q.strip()
     if not q.startswith("{!"):
         return qp_type
-
     try:
         local_params = q[:q.rindex("}") + 1]
         parts = _parse_local_params(local_params)
@@ -450,7 +450,7 @@ class PackageSearchQuery(SearchQuery):
         def _check_query_parser(param: str, value: Any):
             if isinstance(value, str) and value.strip().startswith("{!"):
                 if not _get_local_query_parser(value) in config["ckan.search.solr_allowed_query_parsers"]:
-                   raise SearchError(f"Local parameters are not supported in param '{param}'.")
+                    raise SearchError(f"Local parameters are not supported in param '{param}'.")
 
         for param in query.keys():
             if isinstance(query[param], str):
@@ -475,7 +475,7 @@ class PackageSearchQuery(SearchQuery):
                         'Unknown sort order' in e.args[0]:
                     raise SearchQueryError('Invalid "sort" parameter')
 
-                if ("Failed to connect to server" in e.args[0] or 
+                if ("Failed to connect to server" in e.args[0] or
                         "Connection to server" in e.args[0]):
                     log.warning("Connection Error: Failed to connect to Solr server.")
                     raise SolrConnectionError("Solr returned an error while searching.")
@@ -509,6 +509,7 @@ class PackageSearchQuery(SearchQuery):
             self.facets[field] = dict(zip(values[0::2], values[1::2]))
 
         self.facet_ranges = solr_response.facets.get('facet_ranges', {})  # (canada fork only): add facet ranges
+        self.facet_queries = solr_response.facets.get('facet_queries', {})  # (canada fork only): add facet queries
 
         return {'results': self.results, 'count': self.count}
 
