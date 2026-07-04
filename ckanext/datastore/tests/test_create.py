@@ -4,6 +4,8 @@ import json
 import pytest
 import sqlalchemy.orm as orm
 
+from faker import Faker
+
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.plugins as p
@@ -17,6 +19,8 @@ from ckanext.datastore.tests.helpers import (
     execute_sql,
     when_was_last_analyze,
 )
+
+fake = Faker()
 
 
 @pytest.mark.usefixtures("with_request_context")
@@ -1447,3 +1451,39 @@ class TestDatastoreCreateTriggers(object):
             assert error.value.error_dict == {
                 u"records": [u'"BEANS"? Yeeeeccch!']
             }
+
+
+@pytest.mark.ckan_config("ckan.plugins", "datastore")
+@pytest.mark.usefixtures("with_plugins", "with_request_context")
+def test_sequences():
+    seqname = fake.unique.user_name()
+    helpers.call_action("datastore_sequence_create", name=seqname)
+    assert helpers.call_action("datastore_sequence_next", name=seqname) == 1
+    assert helpers.call_action("datastore_sequence_next", name=seqname) == 2
+    helpers.call_action("datastore_sequence_delete", name=seqname)
+
+    with pytest.raises(ValidationError) as error:
+        helpers.call_action("datastore_sequence_next", name=seqname)
+    assert error.value.error_dict == {
+        "name": [f'relation "{seqname}" does not exist']
+    }
+
+    helpers.call_action("datastore_sequence_create", name=seqname)
+    with pytest.raises(ValidationError) as error:
+        helpers.call_action("datastore_sequence_create", name=seqname)
+    assert error.value.error_dict == {
+        "name": [f'relation "{seqname}" already exists']
+    }
+    helpers.call_action(
+        "datastore_sequence_create", name=seqname, if_not_exists=True,
+    )
+
+    helpers.call_action("datastore_sequence_delete", name=seqname)
+    with pytest.raises(ValidationError) as error:
+        helpers.call_action("datastore_sequence_delete", name=seqname)
+    assert error.value.error_dict == {
+        "name": [f'sequence "{seqname}" does not exist']
+    }
+    helpers.call_action(
+        "datastore_sequence_delete", name=seqname, if_exists=True,
+    )
