@@ -2859,10 +2859,15 @@ def drop_function(name: str, if_exists: bool):
 
 
 def create_sequence(name: str, if_not_exists: bool) -> None:
+    # sqlalchemy 1.4 CreateSequence doesn't implement if_not_exists
+    sql = '''
+        CREATE SEQUENCE {if_not_exists} {name};
+    '''.format(
+        if_not_exists='IF NOT EXISTS' if if_not_exists else '',
+        name=identifier(name),
+    )
     try:
-        with get_write_engine().begin() as conn:
-            seq = sa.Sequence(name)
-            conn.execute(CreateSequence(seq, if_not_exists=if_not_exists))
+        _write_engine_execute(sql)
     except ProgrammingError as pe:
         raise ValidationError({'name': [_programming_error_summary(pe)]})
 
