@@ -1674,6 +1674,14 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                     WHERE ({primary_key}) = ({primary_value})
                 """.format(**format_params)
 
+                # (canada fork only): allow importing _id values
+                # TODO: upstream contrib?
+                if context.get('datastore_import') and '_id' in record:
+                    p = f"val_{next(idx_gen)}"
+                    unique_values[p] = record['_id']
+                    format_params['values'] = f':{p},' + format_params['values']
+                    format_params['columns'] = '_id,' + format_params['columns']
+
                 insert_string = """
                     INSERT INTO {res_id} ({columns})
                            SELECT {values}
