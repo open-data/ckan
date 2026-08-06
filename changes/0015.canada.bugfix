@@ -1,0 +1,1 @@
+Fixed a major issue with Resource ValidationErrors not displaying for resources that had been reordered and not indexed yet.
