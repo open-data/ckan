@@ -71,6 +71,14 @@ this.ckan = this.ckan || {};
    * Returns a url string.
    */
   ckan.url = function (path, includeLocale) {
+    /**
+     * (canada fork only):
+     * if at anypoint something uses includeLocale=true
+     * it might cause problems with multi-domain and root
+     * path setups. By default, nothing in our stack uses
+     * includeLocale=true - so should be fine for now
+     * (June 2026)
+     */
     if (typeof path === 'boolean') {
       includeLocale = path;
       path = null;

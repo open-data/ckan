@@ -19,6 +19,15 @@
      * Returns an url string.
      */
     url: function (path) {
+      /**
+       * (canada fork only):
+       * if at anypoint something uses client.url or
+       * client.getCompletions it might cause problems
+       * with multi-domain and root path setups. This
+       * would happen if client.url or client.getCompletions
+       * is passed a path with the language and root already
+       * prepended to it. (June 2026)
+       */
       if (!(/^https?:\/\//i).test(path)) {
         path = this.endpoint + '/' + path.replace(/^\//, '');
       }

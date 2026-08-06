@@ -1,0 +1,1 @@
+Fixed a major i18n issue in which the French translation string (`ckan/templates/package/snippets/package_form.html:35`) had malformed HTML tags, resulting in the Package Form not rendering fully in French.

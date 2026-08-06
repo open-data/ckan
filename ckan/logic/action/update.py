@@ -129,7 +129,8 @@ def resource_update(context: Context, data_dict: DataDict) -> ActionResult.Resou
         # (canada fork only): handle all errors in resource actions
         # TODO: upstream contrib??
         error_dict, error_summary = resource_validation_errors(
-            e.error_dict, action='update', pkg_dict=pkg_dict, resource_index=n)
+            e.error_dict, action='update', pkg_dict=pkg_dict,
+            resource_index=resource.position)
         raise ValidationError(error_dict, error_summary=error_summary)
 
     resource = _get_action('resource_show')(context, {'id': id})
