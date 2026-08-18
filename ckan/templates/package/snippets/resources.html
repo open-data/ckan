@@ -13,6 +13,7 @@ Example:
 
 #}
 {% set resources = pkg.resources or [] %}
+{# (canada fork only): internal error fix #}
 {% set can_edit = h.check_access('package_update', {'id':pkg.id }) if pkg.id else h.check_access('package_create') %}
 {% if resources %}
   {% block resources %}
