@@ -18,7 +18,6 @@ from sqlalchemy import text
 from flask import request
 from urllib.parse import urlparse, urlunparse
 
-
 import ckan
 import ckan.lib.dictization
 import ckan.logic as logic
@@ -1149,11 +1148,12 @@ def package_show(context: Context, data_dict: DataDict) -> ActionResult.PackageS
                 scheme=configured_parts.scheme)
             current_domain = urlunparse(requesting_parts)
         for res_dict in package_dict['resources']:
-            if(
-              res_dict.get('url_type') == 'upload' and
-              res_dict.get('url', '').startswith('/')
-            ):
+            if res_dict.get('url_type') != 'upload':
+                continue
+            if res_dict.get('url', '').startswith('/'):
                 res_dict['url'] = current_domain + res_dict['url']
+            if res_dict.get('original_url', '').startswith('/'):
+                res_dict['original_url'] = current_domain + res_dict['original_url']  # XLoader field
 
     return package_dict
 
