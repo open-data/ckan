@@ -16,7 +16,7 @@
       {% for field in ddict %}
 
         {% set field_type %}{% block dictionary_field_type scoped
-          %}{{ field.type }}{% endblock %}{% endset %}
+          %}{{ _(field.type) }}{% endblock %}{% endset %}
 
         {% set extra_info -%}
           {% call dictionary_field(_('Label')) %}
@@ -43,7 +43,10 @@
               <button class="accordion-button no-after" disabled>
             {%- endif -%}
               <div class="col-1">{{ loop.index }}.</div><div class="col-7">
-                {{- h.get_translated(field.get('info', {}), 'label')
+                {# (canada fork only): #}
+                {# we save <field>_en and <field>_fr, not <field>_translated_<lang> #}
+                {# so get_translated will not work for our data dictionary fields. #}
+                {{- field.get('info', {}).get('label_' ~ h.lang(), '')
                   or field.id -}}
               </div>
               <div class="col-4">{{ field_type }}</div>
