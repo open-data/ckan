@@ -16,7 +16,7 @@
       {% for field in ddict %}
 
         {% set field_type %}{% block dictionary_field_type scoped
-          %}{{ field.type }}{% endblock %}{% endset %}
+          %}{{ _(field.type) }}{% endblock %}{% endset %}
 
         {% set extra_info -%}
           {% call dictionary_field(_('Label')) %}
