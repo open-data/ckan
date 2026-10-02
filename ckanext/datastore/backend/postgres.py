@@ -11,6 +11,7 @@ from typing_extensions import TypeAlias
 
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.dialects.postgresql import REGCLASS
+from sqlalchemy.schema import CreateSequence, DropSequence
 from ckan.types import Context, ErrorDict
 import copy
 import logging
@@ -1691,6 +1692,16 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
                     primary_key=pk_sql
                 )
 
+                # (canada fork only): allow importing _id values
+                # TODO: upstream contrib?
+                if ('recombinant_import' in context.get(
+                    'datastore_app_context_flags', []) and '_id' in record
+                ):
+                    p = f"val_{next(idx_gen)}"
+                    unique_values[p] = record['_id']
+                    format_params['values'] = f':{p},' + format_params['values']
+                    format_params['columns'] = '_id,' + format_params['columns']
+
                 # (canada fork only): https://github.com/ckan/ckan/pull/8684
                 sql_string = """
                     INSERT INTO {res_id} ({columns}) VALUES ({values})
@@ -2844,6 +2855,16 @@ class DatastorePostgresqlBackend(DatastoreBackend):
             except DatabaseError as err:
                 raise DatastoreException(err)
 
+    def create_sequence(self, *args: Any, **kwargs: Any) -> None:
+        return create_sequence(*args, **kwargs)
+
+    def drop_sequence(self, *args: Any, **kwargs: Any) -> None:
+        return drop_sequence(*args, **kwargs)
+
+    def sequence_nextval(self, *args: Any, **kwargs: Any) -> int:
+        return sequence_nextval(*args, **kwargs)
+
+
 
 def create_function(name: str, arguments: Iterable[dict[str, Any]],
                     rettype: Any, definition: str, or_replace: bool):
@@ -2891,6 +2912,40 @@ def drop_function(name: str, if_exists: bool):
         _write_engine_execute(sql)
     except ProgrammingError as pe:
         raise ValidationError({u'name': [_programming_error_summary(pe)]})
+
+
+def create_sequence(name: str, if_not_exists: bool) -> None:
+    # sqlalchemy 1.4 CreateSequence doesn't implement if_not_exists
+    sql = '''
+        CREATE SEQUENCE {if_not_exists} {name};
+    '''.format(
+        if_not_exists='IF NOT EXISTS' if if_not_exists else '',
+        name=identifier(name),
+    )
+    try:
+        _write_engine_execute(sql)
+    except ProgrammingError as pe:
+        raise ValidationError({'name': [_programming_error_summary(pe)]})
+
+
+def drop_sequence(name: str, if_exists: bool) -> None:
+    try:
+        with get_write_engine().begin() as conn:
+            seq = sa.Sequence(name)
+            conn.execute(DropSequence(seq, if_exists=if_exists))
+    except ProgrammingError as pe:
+        raise ValidationError({'name': [_programming_error_summary(pe)]})
+
+
+def sequence_nextval(name: str) -> int:
+    try:
+        with get_write_engine().begin() as conn:
+            seq = sa.Sequence(name)
+            num = conn.execute(sa.select(seq.next_value())).scalar()
+            assert isinstance(num, int)
+            return num
+    except ProgrammingError as pe:
+        raise ValidationError({'name': [_programming_error_summary(pe)]})
 
 
 def _write_engine_execute(sql: str):
