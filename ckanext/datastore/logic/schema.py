@@ -251,3 +251,23 @@ def datastore_analyze_schema() -> Schema:
     return {
         'resource_id': [unicode_safe, resource_id_exists],
     }
+
+
+def datastore_sequence_create_schema() -> Schema:
+    return {
+        'name': [unicode_only, not_empty],
+        'if_not_exists': [default(False), boolean_validator],
+    }
+
+
+def datastore_sequence_delete_schema() -> Schema:
+    return {
+        'name': [unicode_only, not_empty],
+        'if_exists': [default(False), boolean_validator],
+    }
+
+
+def datastore_sequence_next_schema() -> Schema:
+    return {
+        'name': [unicode_only, not_empty],
+    }
