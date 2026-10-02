@@ -1676,7 +1676,9 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
 
                 # (canada fork only): allow importing _id values
                 # TODO: upstream contrib?
-                if context.get('datastore_import') and '_id' in record:
+                if 'recombinant_import' in context.get(
+                    'datastore_app_context_flags', []) and '_id' in record
+                :
                     p = f"val_{next(idx_gen)}"
                     unique_values[p] = record['_id']
                     format_params['values'] = f':{p},' + format_params['values']
