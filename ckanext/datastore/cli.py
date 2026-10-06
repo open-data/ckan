@@ -144,6 +144,11 @@ def purge(list: bool = False, yes: bool = False):
 
     site_user = logic.get_action('get_site_user')({'ignore_auth': True}, {})
 
+    # (canada fork only): skip underscored tables,
+    #                     skip public_table_search tables
+    # TODO: upstream contrib!!
+    public_search_tables = config.get('ckan.datastore.public_table_search', [])
+
     resource_id_list = []
     # (canada fork only): more options and state=deleted handling
     # TODO: upstream contrib!!
@@ -164,6 +169,14 @@ def purge(list: bool = False, yes: bool = False):
                 # ignore 'alias' records (views) as they are automatically
                 # deleted when the parent resource table is dropped
                 if record['alias_of']:
+                    continue
+
+                # (canada fork only): skip underscored tables,
+                #                     skip public_table_search tables
+                # TODO: upstream contrib!!
+                if record['name'] in public_search_tables:
+                    continue
+                if record['name'].startswith('_'):
                     continue
 
                 # (canada fork only): more options and state=deleted handling
