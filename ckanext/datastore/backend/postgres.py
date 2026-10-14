@@ -1522,8 +1522,30 @@ def upsert_data(context: Context, data_dict: dict[str, Any]):
         )
 
         try:
-            context['connection'].execute(sa.text(sql_string), rows)
+            if len(rows) > 1:
+                itrans = context['connection'].begin_nested()
+                try:
+                    context['connection'].execute(sa.text(sql_string), rows)
+                except:
+                    itrans.rollback()
+                    raise
+                itrans.commit()
+            else:
+                context['connection'].execute(sa.text(sql_string), rows)
+
         except (DatabaseError, DataError) as err:
+            if len(rows) > 1:
+                # determine failing row number for records_row
+                etrans = context['connection'].begin_nested()
+                try:
+                    for num, row in enumerate(rows):
+                        try:
+                            context['connection'].execute(sa.text(sql_string), [row])
+                        except (DatabaseError, DataError) as _err:
+                            break
+                finally:
+                    etrans.rollback()
+
             # (canada fork only): parse constraint sql errors
             # TODO: upstream contrib!!
             errmsg = _programming_error_summary(err)
