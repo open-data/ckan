@@ -356,7 +356,16 @@ def datastore_info(context: Context, data_dict: dict[str, Any]
     data_dict['id'] = id
     p.toolkit.check_access('datastore_info', context, data_dict)
 
-    p.toolkit.get_action('resource_show')(context, {'id': id})
+    # (canada fork only): pass resource_show check
+    # TODO: upstream contrib??
+    check_resource = True
+    public_search_tables = p.toolkit.config.get(
+        'ckan.datastore.public_table_search', [])
+    if resource_id in public_search_tables and resource_id != '_table_metadata':
+        check_resource = False
+
+    if check_resource:
+        p.toolkit.get_action('resource_show')(context, {'id': id})
 
     info = backend.resource_fields(id)
 
