@@ -50,8 +50,8 @@ __all__ = [
     # (canada fork only): TypedDict sub-classes for action results
     # TODO: upstream contrib!!!
     'ExtrasDict', 'TagDict', 'TrackingSummaryDict',
-    'ResourceShowDict', 'PackageShowDict', 'GroupPackageDict',
-    'GroupMemberDict', 'OrganizationShowDict'
+    'ResourceDict', 'PackageDict', 'GroupPackageDict',
+    'GroupMemberDict', 'OrganizationDict'
 ]
 Config: TypeAlias = Dict[str, Union[str, Mapping[str, str]]]
 CKANApp = Any
@@ -262,6 +262,9 @@ class ExtrasDict(TypedDict, total=False):
     Dictionary for object extras.
 
     see: ckan.logic.schema.default_tags_schema
+
+    (canada fork only): extras do not exist in later
+                        CKAN versions i.e upstream
     '''
     id: str
     key: Required[str]
@@ -294,9 +297,10 @@ class TrackingSummaryDict(TypedDict):
     recent: int
 
 
-class ResourceShowDict(TypedDict, total=False):
+class ResourceDict(TypedDict, total=False):
     '''
-    Dictionary returned from the resource_show action.
+    Dictionary returned from the resource_show and passed to
+    resource_create/resource_update actions
 
     see: ckan.logic.schema.default_show_package_schema
     '''
@@ -323,7 +327,7 @@ class ResourceShowDict(TypedDict, total=False):
     tracking_summary: TrackingSummaryDict
 
 
-class PackageShowDict(TypedDict, total=False):
+class PackageDict(TypedDict, total=False):
     '''
     Dictionary returned from the package_show action.
 
@@ -352,8 +356,8 @@ class PackageShowDict(TypedDict, total=False):
     license_title: str
     tracking_summary: TrackingSummaryDict
     owner_org: str
-    organization: OrganizationShowDict
-    resources: List[ResourceShowDict]
+    organization: OrganizationDict
+    resources: List[ResourceDict]
     num_resources: int
     tags: List[TagDict]
     tag_string: str
@@ -381,7 +385,7 @@ class GroupMemberDict(TypedDict, total=False):
     capacity: str
 
 
-class OrganizationShowDict(TypedDict, total=False):
+class OrganizationDict(TypedDict, total=False):
     '''
     Dictionary returned from the organization_show action.
 
@@ -398,6 +402,8 @@ class OrganizationShowDict(TypedDict, total=False):
     created: DateTime
     is_organization: bool
     approval_status: str
+    # (canada fork only): extras do not exist in later
+    #                     CKAN versions i.e upstream
     extras: List[ExtrasDict]
     packages: List[GroupPackageDict]
     users: List[GroupMemberDict]
