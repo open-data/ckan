@@ -4,6 +4,8 @@ import json
 import pytest
 import sqlalchemy.orm as orm
 
+from faker import Faker
+
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.plugins as p
@@ -17,6 +19,8 @@ from ckanext.datastore.tests.helpers import (
     execute_sql,
     when_was_last_analyze,
 )
+
+fake = Faker()
 
 
 @pytest.mark.usefixtures("with_request_context")
@@ -1393,6 +1397,7 @@ class TestDatastoreCreateTriggers(object):
         helpers.call_action(
             u"datastore_function_create",
             name=u"spamexception_trigger",
+            or_replace=True,
             rettype=u"trigger",
             definition=u"""
                 BEGIN
@@ -1408,7 +1413,7 @@ class TestDatastoreCreateTriggers(object):
                     u"datastore_create",
                     resource={u"package_id": ds["id"]},
                     fields=[{u"id": u"spam", u"type": u"text"}],
-                    records=[{u"spam": u"spam"}, {u"spam": u"EGGS"}],
+                    records=[{"spam": "spam"}, {"spam": "EGGS"}, {"spam": "spam"}],
                     triggers=[{u"function": u"spamexception_trigger"}],
                 )
         assert error.value.error_dict == {u"records": [u'"EGGS"? Yeeeeccch!']}
@@ -1421,6 +1426,7 @@ class TestDatastoreCreateTriggers(object):
         helpers.call_action(
             u"datastore_function_create",
             name=u"spamonly_trigger",
+            or_replace=True,
             rettype=u"trigger",
             definition=u"""
                 BEGIN
@@ -1442,8 +1448,44 @@ class TestDatastoreCreateTriggers(object):
                     u"datastore_upsert",
                     method=u"insert",
                     resource_id=res["resource_id"],
-                    records=[{u"spam": u"spam"}, {u"spam": u"BEANS"}],
+                    records=[{"spam": "spam"}, {"spam": "BEANS"}, {"spam": "spam"}],
                 )
             assert error.value.error_dict == {
                 u"records": [u'"BEANS"? Yeeeeccch!']
             }
+
+
+@pytest.mark.ckan_config("ckan.plugins", "datastore")
+@pytest.mark.usefixtures("with_plugins", "with_request_context")
+def test_sequences():
+    seqname = fake.unique.user_name()
+    helpers.call_action("datastore_sequence_create", name=seqname)
+    assert helpers.call_action("datastore_sequence_next", name=seqname) == 1
+    assert helpers.call_action("datastore_sequence_next", name=seqname) == 2
+    helpers.call_action("datastore_sequence_delete", name=seqname)
+
+    with pytest.raises(ValidationError) as error:
+        helpers.call_action("datastore_sequence_next", name=seqname)
+    assert error.value.error_dict == {
+        "name": [f'relation "{seqname}" does not exist']
+    }
+
+    helpers.call_action("datastore_sequence_create", name=seqname)
+    with pytest.raises(ValidationError) as error:
+        helpers.call_action("datastore_sequence_create", name=seqname)
+    assert error.value.error_dict == {
+        "name": [f'relation "{seqname}" already exists']
+    }
+    helpers.call_action(
+        "datastore_sequence_create", name=seqname, if_not_exists=True,
+    )
+
+    helpers.call_action("datastore_sequence_delete", name=seqname)
+    with pytest.raises(ValidationError) as error:
+        helpers.call_action("datastore_sequence_delete", name=seqname)
+    assert error.value.error_dict == {
+        "name": [f'sequence "{seqname}" does not exist']
+    }
+    helpers.call_action(
+        "datastore_sequence_delete", name=seqname, if_exists=True,
+    )
